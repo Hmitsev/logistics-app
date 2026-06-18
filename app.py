@@ -636,3 +636,116 @@ def parse_valvoline_excel(file):
     })
 
     return df
+    # ======================================================
+# ✅ PROCESS (FINAL)
+# ======================================================
+if uploaded_files and len(uploaded_files) > 0:
+
+    all_data = []
+
+    for file in uploaded_files:
+
+        # ✅ NESTE
+        if menu == "NESTE":
+            df = parse_neste_excel(file)
+
+        # ✅ VALVOLINE
+        elif menu == "VALVOLINE":
+            df = parse_valvoline_excel(file)
+
+        # ✅ PDF (Castrol + MOTUL)
+        elif source_type == "PDF":
+
+            reader = PdfReader(file)
+            text = ""
+
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+
+            if menu == "CASTROL":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
+
+        # ✅ Excel fallback
+        else:
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
+
+        all_data.append(df)
+
+    # ✅ CHECK
+    if not all_data:
+        st.warning("⚠️ Няма данни")
+        st.stop()
+
+    final_df = pd.concat(all_data, ignore_index=True)
+
+    # ✅ filters
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
+
+    # ======================================================
+    # ✅ FINAL REPORT FUNCTION (ако го няма)
+    # ======================================================
+    def build_final_report(df):
+
+        grouped = df.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        ).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": "sum"
+        })
+
+        rows = []
+
+        for code, group in grouped.groupby("Тарифен код"):
+
+            for _, r in group.iterrows():
+                rows.append(r.to_dict())
+
+            rows.append({
+                "Тарифен код": str(code) + " -",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": group["kolichestvo"].sum(),
+                "тегло": group["тегло"].sum()
+            })
+
+            rows.append({
+                "Тарифен код": "",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": "",
+                "тегло": ""
+            })
+
+        rows.append({
+            "Тарифен код": "GRAND TOTAL",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": grouped["kolichestvo"].sum(),
+            "тегло": grouped["тегло"].sum()
+        })
+
+        return pd.DataFrame(rows)
+
+    report = build_final_report(final_df)
+
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
+
+    # ✅ export
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        report.to_excel(writer, index=False)
+
+    st.download_button(
+        "📥 Изтегли Excel",
+        data=output.getvalue(),
+        file_name="final_report.xlsx"
+    )
