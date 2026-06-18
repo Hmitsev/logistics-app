@@ -7,48 +7,11 @@ import base64
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (задължителен вход)
+# ✅ BACKGROUND FUNCTION
 # ======================================================
-def check_login():
-
-    if "logged_in" not in st.session_state:
-        st.session_state["logged_in"] = False
-
-    if st.session_state["logged_in"]:
-        return True
-
-    st.title("🔐 Вход в системата")
-
-    username = st.text_input("Потребител")
-    password = st.text_input("Парола", type="password")
-
-    if st.button("Вход"):
-
-        if username == "mitnica" and password == "Intercars2026":
-            st.session_state["logged_in"] = True
-
-            # ✅ ✅ ТОВА Е КЛЮЧОВИЯ FIX
-            st.rerun()
-
-        else:
-            st.error("❌ Грешно име или парола")
-
-    return False
-
-
-# ✅ ако не е логнат → спира
-if not check_login():
-    st.stop()
-
-
-# ✅ извиква login-а
-check_login()
-# ======================================================
-# ✅ BACKGROUND
-# ======================================================
-def set_bg():
+def set_bg(image_file):
     try:
-        with open("background.png", "rb") as f:
+        with open(image_file, "rb") as f:
             encoded = base64.b64encode(f.read()).decode()
 
         st.markdown(
@@ -66,8 +29,50 @@ def set_bg():
     except:
         pass
 
-set_bg()
 
+# ======================================================
+# ✅ LOGIN SYSTEM (с различен background)
+# ======================================================
+def check_login():
+
+    if "logged_in" not in st.session_state:
+        st.session_state["logged_in"] = False
+
+    # ✅ ако НЕ е логнат → login фон
+    if not st.session_state["logged_in"]:
+
+        set_bg("background_login.png")
+
+        st.markdown(
+            "<h1 style='text-align:center; color:white;'>🔐 Вход в системата</h1>",
+            unsafe_allow_html=True
+        )
+
+        username = st.text_input("Потребител")
+        password = st.text_input("Парола", type="password")
+
+        if st.button("Вход"):
+
+            if username == "mitnica" and password == "Intercars2026":
+                st.session_state["logged_in"] = True
+                st.rerun()
+            else:
+                st.error("❌ Грешно име или парола")
+
+        return False
+
+    return True
+
+
+# ✅ ако не е логнат → спира всичко
+if not check_login():
+    st.stop()
+
+
+# ======================================================
+# ✅ MAIN APP BACKGROUND (след login)
+# ======================================================
+set_bg("background.png")
 # ======================================================
 # ✅ МИТНИЧЕСКИ КОДОВЕ
 # ======================================================
