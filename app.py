@@ -368,7 +368,7 @@ def parse_castrol(text):
     return pd.DataFrame(rows)
 
 # ======================================================
-# ✅ MOTUL (СТАБИЛЕН FINAL)
+# ✅ MOTUL (FINAL STABLE)
 # ======================================================
 def parse_motul(text):
 
@@ -393,18 +393,26 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
+        # ✅ ТЕГЛО (FINAL FIX ✅)
         # ======================================================
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        # ✅ взимаме правилното тегло (най-малкото)
         if weights and current_weight == 0:
             try:
                 values = [
                     float(w.replace(" ", "").replace(",", "."))
                     for w in weights
                 ]
-                current_weight = min(values)
+
+                # ✅ очаквано тегло (oil density logic)
+                expected = current_qty * liters_per_unit * 0.85
+
+                # ✅ най-близка стойност = реалното тегло
+                current_weight = min(
+                    values,
+                    key=lambda x: abs(x - expected)
+                )
+
             except:
                 pass
 
@@ -430,7 +438,6 @@ def parse_motul(text):
             if code:
                 code_value = code.group(1)[:8]
 
-                # ✅ логика за количество
                 if current_qty * units_in_box * liters_per_unit > 100000:
                     real_qty = current_qty
                 else:
@@ -447,13 +454,12 @@ def parse_motul(text):
                     "тегло": current_weight
                 })
 
-                # ✅ КРИТИЧЕН RESET
+                # ✅ reset
                 current_qty = 0
                 current_weight = 0
                 liters_per_unit = 0
                 units_in_box = 1
 
-    # ✅ ВАЖНО: вътре във функцията!
     return pd.DataFrame(rows)
 
 
