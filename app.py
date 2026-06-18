@@ -411,75 +411,6 @@ def build_final_report(df):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL STABLE)
-# ======================================================
-if uploaded_files:
-
-    all_data = []
-
-    for file in uploaded_files:
-
-        if source_type == "PDF":
-            reader = PdfReader(file)
-            text = ""
-
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
-
-            if menu == "Castrol":
-                df = parse_castrol(text)
-
-            elif menu == "MOTUL":
-                df = parse_motul(text)
-
-        else:
-            # ✅ Excel FIX
-            df_raw = pd.read_excel(file)
-
-            df = pd.DataFrame({
-                "Тарифен код": df_raw["Comm./imp. code no."],
-                "Количество": df_raw["Delivery quantity"],
-                "wid": 1,
-                "kolichestvo": df_raw["Delivery quantity"],
-                "тегло": df_raw["Net Weight"]
-            })
-
-        all_data.append(df)
-
-    # ✅ ако няма данни
-    if not all_data:
-        st.warning("⚠️ Няма обработени данни")
-        st.stop()
-
-    final_df = pd.concat(all_data, ignore_index=True)
-
-    # ✅ защита
-    if "Тарифен код" not in final_df.columns:
-        st.error("❌ Липсва 'Тарифен код' – parser не извлече данни")
-        st.stop()
-
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["тегло"] > 0]
-
-    report = build_final_report(final_df)
-
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
-
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
-
-   st.download_button(
-    "📥 Изтегли Excel",
-    data=output.getvalue(),
-    file_name="final_report.xlsx",
-    key="download_excel"
-)
-
-# ======================================================
 # ✅ BUILD FINAL REPORT (FIXED)
 # ======================================================
 def build_final_report(df):
@@ -499,7 +430,7 @@ def build_final_report(df):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL STABLE + FIXED END)
+# ✅ PROCESS (ONLY ONE FINAL VERSION)
 # ======================================================
 if uploaded_files:
 
@@ -541,7 +472,7 @@ if uploaded_files:
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ защита ако parser не е върнал правилно
+    # ✅ защита ако parser не е извлякъл нищо
     if "Тарифен код" not in final_df.columns:
         st.error("❌ Липсва 'Тарифен код' – parser не работи")
         st.stop()
@@ -550,24 +481,20 @@ if uploaded_files:
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
     final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ финален отчет
     report = build_final_report(final_df)
 
-    # ✅ UI
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ✅ Excel export
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         report.to_excel(writer, index=False)
 
-    # ✅ ✅ FIXED DOWNLOAD BUTTON (правилен indent + key)
+    # ✅ ✅ FIXED DOWNLOAD BUTTON
     st.download_button(
         "📥 Изтегли Excel",
         data=output.getvalue(),
         file_name="final_report.xlsx",
         key="download_excel"
     )
-
