@@ -7,6 +7,37 @@ import base64
 
 
 # ======================================================
+# ✅ LOGIN SYSTEM
+# ======================================================
+def check_login():
+
+    if "logged_in" not in st.session_state:
+        st.session_state["logged_in"] = False
+
+    if st.session_state["logged_in"]:
+        return True
+
+    st.title("🔐 Вход")
+
+    username = st.text_input("Потребител")
+    password = st.text_input("Парола", type="password")
+
+    if st.button("Вход"):
+
+        # ✅ ТУК СИ СЛАГАШ USER/PASS
+        if username == "admin" and password == "1234":
+            st.session_state["logged_in"] = True
+            st.rerun()
+        else:
+            st.error("Грешно име или парола")
+
+    return False
+
+
+# ✅ Ако не е логнат → спира приложението
+if not check_login():
+    st.stop()
+# ======================================================
 # ✅ BACKGROUND
 # ======================================================
 def set_bg():
