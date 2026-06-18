@@ -574,7 +574,7 @@ def parse_valvoline_excel(file):
         grams = re.search(r"(\d+)\s*g", pack, re.I)
 
         # ======================================================
-        # ✅ MULTI PACK (x L)
+        # ✅ MULTI PACK (пример: 4x5L)
         # ======================================================
         if multi:
             units = int(multi.group(1))
@@ -582,44 +582,31 @@ def parse_valvoline_excel(file):
 
             wid = liters
 
-            # ✅ ПРОБВАМЕ И ДВАТА ВАРИАНТА
-            kol_liters = qty
-            kg_per_l_candidate = weight / kol_liters if kol_liters > 0 else 0
-
-            # ✅ ако изглежда като масло → qty вече е литри
-            if 0.7 < kg_per_l_candidate < 0.95:
-                kolichestvo = qty
-                real_qty = qty / liters
-            else:
-                # ✅ иначе са кутии
-                kolichestvo = qty * liters
-                real_qty = qty
+            # ✅ тук qty = бройки
+            kolichestvo = qty * liters
+            real_qty = qty
 
 
         # ======================================================
-        # ✅ SINGLE L
+        # ✅ SINGLE L (пример: 20L, 208L)
         # ======================================================
         elif single:
             wid = int(single.group(1))
 
-            kol_liters = qty
-            kg_per_l_candidate = weight / kol_liters if kol_liters > 0 else 0
-
-            if 0.7 < kg_per_l_candidate < 0.95:
-                kolichestvo = qty
-                real_qty = qty / wid
-            else:
-                kolichestvo = qty * wid
-                real_qty = qty
+            # ✅ при VALVOLINE → това вече са литри
+            kolichestvo = qty
+            real_qty = qty / wid
 
 
         # ======================================================
-        # ✅ GRAMS
+        # ✅ GRAMS (грес)
         # ======================================================
         elif grams:
             wid = 1
             kolichestvo = qty
             real_qty = qty
+
+
         # ======================================================
         # ✅ fallback
         # ======================================================
