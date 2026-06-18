@@ -481,7 +481,7 @@ def parse_neste_excel(file):
     return df
 
 # ======================================================
-# ✅ VALVOLINE (EXCEL ONLY ✅)
+# ✅ VALVOLINE (EXCEL ONLY ✅ FINAL FIXED)
 # ======================================================
 def parse_valvoline_excel(file):
 
@@ -519,10 +519,8 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен header ред")
         st.stop()
 
-    # ✅ четем пак със правилния header
     df = xls.parse(sheet_name, header=header_row)
 
-    # ✅ чистим колоните
     df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ")
 
     # ======================================================
@@ -546,7 +544,7 @@ def parse_valvoline_excel(file):
             column_map[col] = "weight"
 
         elif "package" in c:
-            column_map[col] = "packages" 
+            column_map[col] = "packages"
 
     df = df.rename(columns=column_map)
 
@@ -564,24 +562,46 @@ def parse_valvoline_excel(file):
 
     for _, r in df.iterrows():
 
-        # ✅ директно от Excel
         code = str(r["code"])[:8]
         pack = str(r["pack"])
-        qty = float(r["qty"])          # ✅ това е kolic (литри)
-        weight = float(r["weight"])    # ✅ тегло
-        packages = float(r["packages"]) if "packages" in df.columns else 0  # ✅ broj
+        qty = float(r["qty"])          # ✅ литри
+        weight = float(r["weight"])
+        packages = float(r["packages"]) if "packages" in df.columns else 0
 
-        # ✅ wid от Packaging
-        wid_match = re.search(r"(\d+)", pack)
-        wid = int(wid_match.group(1)) if wid_match else 1
+        # ======================================================
+        # ✅ ПРАВИЛЕН wid extraction
+        # ======================================================
 
-        # ✅ НЯМА СМЕТКИ → директно копие от Excel
+        # 1️⃣  формат: 4x5 L
+        multi_L = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
+
+        # 2️⃣ формат: 24x400 G
+        multi_G = re.search(r"(\d+)\s*x\s*(\d+)\s*G", pack, re.I)
+
+        # 3️⃣ single: 20 L
+        single_L = re.search(r"(\d+)\s*L", pack, re.I)
+
+        if multi_L:
+            wid = int(multi_L.group(2))   # ✅ 5
+
+        elif multi_G:
+            wid = int(multi_G.group(2))   # ✅ 400
+
+        elif single_L:
+            wid = int(single_L.group(1))  # ✅ 20 / 208
+
+        else:
+            wid = 1
+
+        # ======================================================
+        # ✅ DIRECT MAPPING (NO CALCULATIONS)
+        # ======================================================
         rows.append({
             "Тарифен код": code,
-            "Количество": packages,   # ✅ broj (No. of packages)
-            "wid": wid,               # ✅ Packaging
-            "kolichestvo": qty,       # ✅ Qty (литри!)
-            "тегло": weight           # ✅ Net Kg
+            "Количество": packages,   # ✅ broj
+            "wid": wid,
+            "kolichestvo": qty,       # ✅ литри
+            "тегло": weight
         })
 
     df = pd.DataFrame(rows)
@@ -596,6 +616,7 @@ def parse_valvoline_excel(file):
     })
 
     return df
+
         # ======================================================
         # ✅ MULTI PACK (пример: 4x5L)
         # ======================================================
