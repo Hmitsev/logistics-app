@@ -356,7 +356,7 @@ st.markdown("""
 st.markdown('<div class="source-title">📦 Logistics App</div>', unsafe_allow_html=True)
 
 # ✅ Sidebar
-menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
+
 
 # ✅ STATE
 if "source_type" not in st.session_state:
