@@ -100,144 +100,72 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (WORKING BUTTON COLORS)
+# ✅ TRUE CUSTOM BUTTONS (WORKING 100%)
 # ======================================================
-
-# ✅ заглавие
-st.markdown("""
-<style>
-.source-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: white;
-}
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
-
 
 # ✅ state
 if "source_type" not in st.session_state:
     st.session_state["source_type"] = "PDF"
 
-
-# ✅ избор
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("PDF", key="pdf_btn", use_container_width=True):
-        st.session_state["source_type"] = "PDF"
-        st.rerun()
-
-with col2:
-    if st.button("Excel", key="excel_btn", use_container_width=True):
-        st.session_state["source_type"] = "Excel"
-        st.rerun()
-
-
-# ✅ цветова логика
-if st.session_state["source_type"] == "PDF":
-    pdf_color = "#ff3b3b"
-    excel_color = "#2b2b2b"
-else:
-    pdf_color = "#2b2b2b"
-    excel_color = "#36c165"
-
-
-# ✅ СТИЛ – директно по KEY (РАБОТИ 100%)
-st.markdown(f"""
-<style>
-
-/* PDF */
-button[data-testid="baseButton-secondary"][aria-label="pdf_btn"],
-button[kind="secondary"][id*="pdf_btn"] {{
-    background-color: {pdf_color} !important;
-    color: white !important;
-    font-weight: 800 !important;
-    border-radius: 12px !important;
-    height: 60px !important;
-}}
-
-/* Excel */
-button[data-testid="baseButton-secondary"][aria-label="excel_btn"],
-button[kind="secondary"][id*="excel_btn"] {{
-    background-color: {excel_color} !important;
-    color: white !important;
-    font-weight: 800 !important;
-    border-radius: 12px !important;
-    height: 60px !important;
-}}
-
-</style>
-""", unsafe_allow_html=True)
-
-
 source_type = st.session_state["source_type"]
 
 
-# ✅ текст статус
+# ✅ цветове
 if source_type == "PDF":
-    st.markdown("<div style='color:#ff3b3b; font-weight:900;'>You Chose: PDF</div>", unsafe_allow_html=True)
+    pdf_color = "#ff3b3b"
+    excel_color = "#444"
 else:
-    st.markdown("<div style='color:#36c165; font-weight:900;'>You Chose: Excel</div>", unsafe_allow_html=True)
+    pdf_color = "#444"
+    excel_color = "#36c165"
 
 
-# ✅ Add file
-st.markdown(
-    "<div style='font-size:20px; font-weight:900; color:white; margin-top:15px;'>Add file</div>",
-    unsafe_allow_html=True
-)
+# ✅ HTML + click чрез form submit
+st.markdown(f"""
+<form method="post">
+    <div style="display:flex; gap:10px;">
+        
+        <button name="source" value="PDF" style="
+            flex:1;
+            padding:15px;
+            border:none;
+            border-radius:12px;
+            background:{pdf_color};
+            color:white;
+            font-weight:800;
+            font-size:16px;
+            cursor:pointer;
+        ">
+            PDF
+        </button>
+
+        <button name="source" value="Excel" style="
+            flex:1;
+            padding:15px;
+            border:none;
+            border-radius:12px;
+            background:{excel_color};
+            color:white;
+            font-weight:800;
+            font-size:16px;
+            cursor:pointer;
+        ">
+            Excel
+        </button>
+
+    </div>
+</form>
+""", unsafe_allow_html=True)
 
 
-# ✅ uploader (връща се обратно)
-uploaded_files = st.file_uploader(
-    "",
-    type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
-    accept_multiple_files=True
-)
+# ✅ обработка на click
+if "source" in st.query_params:
+    chosen = st.query_params["source"]
 
+    if chosen in ["PDF", "Excel"]:
+        st.session_state["source_type"] = chosen
+        st.query_params.clear()
+        st.rerun()
 
-# ✅ Sidebar
-menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
-
-
-
-# ======================================================
-# ✅ CASTROL
-# ======================================================
-def parse_castrol(text):
-
-    rows = []
-    lines = text.split("\n")
-    current_liters = 0
-
-    for line in lines:
-
-        multi = re.search(r"(\d+)X(\d+)L", line)
-        single = re.search(r"(\d+)L", line)
-
-        if multi:
-            current_liters = int(multi.group(1)) * int(multi.group(2))
-        elif single:
-            current_liters = int(single.group(1))
-
-        if "Cod Vamal" in line:
-            try:
-                code = re.search(r"Cod Vamal:(\d+)", line).group(1)
-                qty = int(re.search(r"ST\s*(\d+)", line).group(1))
-
-                rows.append({
-                    "Тарифен код": code,
-                    "Количество": qty,
-                    "wid": current_liters,
-                    "kolichestvo": qty * current_liters,
-                    "тегло": 0
-                })
-            except:
-                pass
-
-    return pd.DataFrame(rows)
 
 
 # ======================================================
