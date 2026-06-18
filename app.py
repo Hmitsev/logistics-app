@@ -391,10 +391,10 @@ def parse_motul(text):
                 pass
 
         # ✅ тегло
-        weights = re.findall(r"\d+,\d+", line)
+        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", lin)
         if weights:
             try:
-                current_weight = float(weights[0].replace(",", "."))
+                current_weight = float(weights[-1].replace(" ", "").replace(",", "."))
             except:
                 pass
 
