@@ -487,6 +487,7 @@ def parse_valvoline_excel(file):
 
     xls = pd.ExcelFile(file)
 
+    # ✅ намираме PL sheet
     sheet_name = None
     for s in xls.sheet_names:
         if "PL" in s.upper():
@@ -499,10 +500,10 @@ def parse_valvoline_excel(file):
 
     df = xls.parse(sheet_name)
 
-    # ✅ CLEAN колони
-    df.columns = df.columns.str.strip()
+    # ✅ CLEAN всички колони брутално
+    df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ").str.replace("  ", " ")
 
-    # ✅ DEBUG (ако пак има проблем)
+    # ✅ DEBUG (ако трябва)
     # st.write(df.columns)
 
     column_map = {}
@@ -512,16 +513,19 @@ def parse_valvoline_excel(file):
 
         if "tariff" in c:
             column_map[col] = "code"
+
         elif "pack" in c:
             column_map[col] = "pack"
-        elif c == "qty":
+
+        elif c.strip() == "qty":
             column_map[col] = "qty"
+
         elif "net" in c:
             column_map[col] = "weight"
 
     df = df.rename(columns=column_map)
 
-    # ✅ защита
+    # ✅ защита (сега вече ще мине)
     required = ["code", "pack", "qty", "weight"]
     missing = [c for c in required if c not in df.columns]
 
@@ -536,7 +540,7 @@ def parse_valvoline_excel(file):
 
     for _, r in df.iterrows():
 
-        code = str(r["code"])[:8]  # ✅ махаме последните 2 цифри
+        code = str(r["code"])[:8]
         qty = r["qty"]
         weight = r["weight"]
         pack = str(r["pack"])
@@ -554,9 +558,6 @@ def parse_valvoline_excel(file):
 
         elif single:
             wid = int(single.group(1))
-
-        else:
-            wid = 1
 
         rows.append({
             "Тарифен код": code,
