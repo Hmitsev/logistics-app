@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE","VALVOLINE"])
 
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
