@@ -519,7 +519,7 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен header ред")
         st.stop()
 
-    # ✅ четем пак, но със правилния header
+    # ✅ четем пак със правилния header
     df = xls.parse(sheet_name, header=header_row)
 
     # ✅ чистим колоните
@@ -562,17 +562,19 @@ def parse_valvoline_excel(file):
     for _, r in df.iterrows():
 
         code = str(r["code"])[:8]
-        qty = r["qty"]
-        weight = r["weight"]
+        qty = float(r["qty"])
+        weight = float(r["weight"])
         pack = str(r["pack"])
 
         wid = 1
 
+        # ✅ regex
         multi = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
         single = re.search(r"(\d+)\s*L", pack, re.I)
+        grams = re.search(r"(\d+)\s*g", pack, re.I)
 
         # ======================================================
-        # ✅ FIX ЗА VALVOLINE (qty = вече литри ✅)
+        # ✅ ЛИТРИ (multi)
         # ======================================================
         if multi:
             units = int(multi.group(1))
@@ -580,15 +582,30 @@ def parse_valvoline_excel(file):
 
             wid = liters
 
-            kolichestvo = qty                  # ✅ НЕ умножаваме повече
-            real_qty = qty / liters            # ✅ брой кутии
+            kolichestvo = qty            # ✅ qty already liters
+            real_qty = qty / liters      # ✅ бройки
 
+        # ======================================================
+        # ✅ ЛИТРИ (single)
+        # ======================================================
         elif single:
             wid = int(single.group(1))
 
             kolichestvo = qty
             real_qty = qty / wid
 
+        # ======================================================
+        # ✅ ГРЕСИ (grams) ✅ FIX
+        # ======================================================
+        elif grams:
+            wid = 1
+
+            kolichestvo = qty            # ✅ НЕ пипаме
+            real_qty = qty               # ✅ правилно 96
+
+        # ======================================================
+        # ✅ fallback
+        # ======================================================
         else:
             wid = 1
             kolichestvo = qty
@@ -614,6 +631,7 @@ def parse_valvoline_excel(file):
     })
 
     return df
+
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
