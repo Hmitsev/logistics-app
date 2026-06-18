@@ -497,18 +497,19 @@ final_df["Code"] = final_df["Code"].astype(str)
 final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
 final_df = final_df[final_df["teglo"] > 0]
 
-# ✅ временно показваме raw данните (без report)
-st.subheader("📊 RAW DATA")
-st.dataframe(final_df)
+# ✅ показваме таблицата
+    st.subheader("📊 RAW DATA")
+    st.dataframe(final_df)
 
+    # ✅ export
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
+        final_df.to_excel(writer, index=False)
 
     st.download_button(
         "📥 Изтегли Excel",
         data=output.getvalue(),
-        file_name="final_report.xlsx",
+        file_name="raw_motul.xlsx",
         key="download_excel"
     )
