@@ -617,31 +617,65 @@ if uploaded_files and len(uploaded_files) > 0:
     for file in uploaded_files:
 
         # ======================================================
-        # ✅ FILE PROCESSING
-        # ======================================================
+# ✅ FILE PROCESSING (FINAL SAFE + VALVOLINE ONLY EXCEL)
+# ======================================================
+for file in uploaded_files:
 
-        # ✅ NESTE → Excel
-        if menu == "NESTE":
+    df = None  # ✅ reset (ВАЖНО)
 
+    # ===============================
+    # ✅ VALVOLINE → ONLY EXCEL
+    # ===============================
+    if menu == "VALVOLINE":
+
+        if source_type != "Excel":
+            st.warning("⚠️ VALVOLINE работи само с Excel файлове")
+            continue
+
+        try:
+            df = parse_valvoline_excel(file)
+        except:
+            st.warning(f"⚠️ Грешка при VALVOLINE файл: {file.name}")
+            continue
+
+    # ===============================
+    # ✅ NESTE → Excel
+    # ===============================
+    elif menu == "NESTE":
+
+        try:
             df = parse_neste_excel(file)
+        except:
+            st.warning(f"⚠️ Грешка при NESTE файл: {file.name}")
+            continue
 
-        # ✅ PDF (Castrol + MOTUL)
-        elif source_type == "PDF":
+    # ===============================
+    # ✅ PDF (CASTROL / MOTUL)
+    # ===============================
+    elif source_type == "PDF":
 
+        try:
             reader = PdfReader(file)
             text = ""
 
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            if menu == "Castrol":
+            if menu == "CASTROL":
                 df = parse_castrol(text)
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel fallback (GENERIC)
-        else:
+        except:
+            st.warning(f"⚠️ Грешка при PDF файл: {file.name}")
+            continue
 
+    # ===============================
+    # ✅ GENERIC EXCEL FALLBACK
+    # ===============================
+    else:
+
+        try:
             df = pd.read_excel(file)
             df.columns = df.columns.str.strip()
 
@@ -666,7 +700,6 @@ if uploaded_files and len(uploaded_files) > 0:
                     column_map[col] = "Net Weight"
 
             df = df.rename(columns=column_map)
-
             df = df.loc[:, ~df.columns.duplicated()]
 
             required_cols = [
@@ -700,9 +733,15 @@ if uploaded_files and len(uploaded_files) > 0:
                 "Net Weight": "тегло"
             })
 
-        # ✅ ADD RESULT
-        all_data.append(df)
+        except:
+            st.warning(f"⚠️ Грешка при Excel файл: {file.name}")
+            continue
 
+    # ===============================
+    # ✅ SAFE APPEND (NO CRASH)
+    # ===============================
+    if isinstance(df, pd.DataFrame) and not df.empty:
+        all_data.append(df)
     # ======================================================
     # ✅ FINAL COMBINE
     # ======================================================
