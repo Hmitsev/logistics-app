@@ -560,11 +560,10 @@ def parse_valvoline_excel(file):
 
         code = str(r["code"])[:8]
         pack = str(r["pack"])
-        qty = float(r["qty"])          # ✅ литри
+        qty = float(r["qty"])          # ✅ това е kolic
         weight = float(r["weight"])
-        packages = float(r["packages"]) if "packages" in df.columns else 0
 
-        # ✅ wid extraction
+        # ✅ wid извличане
         multi_L = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
         multi_G = re.search(r"(\d+)\s*x\s*(\d+)\s*G", pack, re.I)
         single_L = re.search(r"(\d+)\s*L", pack, re.I)
@@ -578,13 +577,20 @@ def parse_valvoline_excel(file):
         else:
             wid = 1
 
+        # ✅ ФИНАЛНА СМЕТКА
+        if wid != 0:
+            broj = qty / wid
+        else:
+            broj = qty
+
         rows.append({
             "Тарифен код": code,
-            "Количество": packages,
+            "Количество": broj,        # ✅ broj
             "wid": wid,
-            "kolichestvo": qty,
+            "kolichestvo": qty,        # ✅ kolic
             "тегло": weight
         })
+
 
     df = pd.DataFrame(rows)
 
