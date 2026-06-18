@@ -393,28 +393,18 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (FINAL FIX ✅)
-        # ======================================================
-        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+# ✅ ТЕГЛО (FINAL TRUE FIX ✅)
+# ======================================================
+weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        if weights and current_weight == 0:
-            try:
-                values = [
-                    float(w.replace(" ", "").replace(",", "."))
-                    for w in weights
-                ]
-
-                # ✅ очаквано тегло (oil density logic)
-                expected = current_qty * liters_per_unit * 0.85
-
-                # ✅ най-близка стойност = реалното тегло
-                current_weight = min(
-                    values,
-                    key=lambda x: abs(x - expected)
-                )
-
-            except:
-                pass
+if weights:
+    try:
+        # ✅ последното число от реда е теглото
+        current_weight = float(
+            weights[-1].replace(" ", "").replace(",", ".")
+        )
+    except:
+        pass
 
         # ======================================================
         # ✅ РАЗФАСОВКА (wid)
