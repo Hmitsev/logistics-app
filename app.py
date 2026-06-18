@@ -497,7 +497,9 @@ def build_final_report(df):
     })
 
     return pd.DataFrame(rows)
-    # ======================================================
+
+
+# ======================================================
 # ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
@@ -529,56 +531,12 @@ if uploaded_files and len(uploaded_files) > 0:
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel fallback
+        # ✅ Excel (GENERIC fallback – твоята стара логика)
         else:
 
             df = pd.read_excel(file)
             df.columns = df.columns.str.strip()
 
-        # ✅ добавяме към списъка
-        all_data.append(df)
-
-    # ======================================================
-    # ✅ AFTER LOOP
-    # ======================================================
-
-    if not all_data:
-        st.warning("⚠️ Няма данни")
-        st.stop()
-
-    final_df = pd.concat(all_data, ignore_index=True)
-
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["тегло"] > 0]
-
-    report = build_final_report(final_df)
-
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
-
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
-
-    st.download_button(
-        "📥 Изтегли Excel",
-        data=output.getvalue(),
-        file_name="final_report.xlsx"
-    )
-
-
-
-        # ======================================================
-        # ✅ EXCEL (FIXED)
-        # ======================================================
-        else:
-
-            df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
-
-            # ✅ COLUMN MAP
             column_map = {}
 
             for col in df.columns:
@@ -599,15 +557,11 @@ if uploaded_files and len(uploaded_files) > 0:
                 elif "net weight" in c or "weight" in c:
                     column_map[col] = "Net Weight"
 
-            df = df.rename(columns=column_map)# 
-            # ✅ махаме duplicate колони (КРИТИЧНО)
+            df = df.rename(columns=column_map)
+
+            # ✅ махаме duplicate колони
             df = df.loc[:, ~df.columns.duplicated()]
-            
 
-            # ✅ DEBUG
-    
-
-            # ✅ защита
             required_cols = [
                 "Commodity code",
                 "Type of packaging",
@@ -622,7 +576,6 @@ if uploaded_files and len(uploaded_files) > 0:
                 st.error(f"❌ Липсват колони: {missing}")
                 st.stop()
 
-            # ✅ групиране като PDF логика
             df = df.groupby(
                 ["Commodity code", "Type of packaging"],
                 as_index=False
@@ -640,17 +593,19 @@ if uploaded_files and len(uploaded_files) > 0:
                 "Net Weight": "тегло"
             })
 
-        # ✅ добавяме към списъка
+        # ✅ добавяме резултата
         all_data.append(df)
 
-    # ✅ защита
+    # ======================================================
+    # ✅ FINAL COMBINE
+    # ======================================================
+
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ еднаква логика за PDF + Excel
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
     final_df = final_df[final_df["тегло"] > 0]
@@ -660,7 +615,6 @@ if uploaded_files and len(uploaded_files) > 0:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ✅ export
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
