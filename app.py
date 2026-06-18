@@ -627,11 +627,26 @@ if uploaded_files and len(uploaded_files) > 0:
                 st.warning("⚠️ VALVOLINE работи само с Excel файлове")
                 continue
 
-            try:
-                df = parse_valvoline_excel(file)
-            except:
-                st.warning(f"⚠️ Грешка при VALVOLINE файл: {file.name}")
-                continue
+            if menu == "VALVOLINE":
+
+    if source_type != "Excel":
+        st.warning("⚠️ VALVOLINE работи само с Excel файлове")
+        continue
+
+    try:
+        # ✅ проверка дали е правилен файл
+        test_df = pd.read_excel(file)
+        cols = [c.lower() for c in test_df.columns]
+
+        if not any("tariff" in c for c in cols):
+            st.warning(f"⚠️ Това НЕ е VALVOLINE PL файл ({file.name}) - пропускам")
+            continue
+
+        df = parse_valvoline_excel(file)
+
+    except:
+        st.warning(f"⚠️ Грешка при VALVOLINE файл: {file.name}")
+        continue
 
         # ===============================
         # ✅ NESTE
