@@ -481,7 +481,7 @@ def parse_neste_excel(file):
     return df
 
 # ======================================================
-# ✅ VALVOLINE FINAL (WORKING 100%)
+# ✅ VALVOLINE FINAL (WORKING + UI FIX)
 # ======================================================
 def parse_valvoline_excel(file):
 
@@ -490,7 +490,7 @@ def parse_valvoline_excel(file):
 
     xls = pd.ExcelFile(file)
 
-    # ✅ sheet
+    # ✅ намираме sheet
     sheet_name = None
     for s in xls.sheet_names:
         if "PL" in s.upper():
@@ -501,7 +501,7 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен PL sheet")
         st.stop()
 
-    # ✅ header detect
+    # ✅ намираме header
     raw = xls.parse(sheet_name, header=None)
 
     header_row = None
@@ -515,11 +515,11 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен header ред")
         st.stop()
 
-    # ✅ read
+    # ✅ четем файла
     df = xls.parse(sheet_name, header=header_row)
     df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ")
 
-    # ✅ column map
+    # ✅ COLUMN MAP
     column_map = {}
 
     for col in df.columns:
@@ -552,12 +552,11 @@ def parse_valvoline_excel(file):
 
         code = str(r["code"])[:8]
         pack = str(r["pack"]).upper()
-        qty = float(r["qty"])        # ✅ ТУК ТИ Е BROJ
+        qty = float(r["qty"])          # ✅ BROJ
         weight = float(r["weight"])
 
         # ✅ wid extraction
         wid = 1
-
         numbers = re.findall(r"\d+", pack)
 
         if "X" in pack and len(numbers) >= 2:
@@ -565,27 +564,27 @@ def parse_valvoline_excel(file):
         elif numbers:
             wid = int(numbers[0])
 
-        # ✅ FINAL LOGIC (ВАЖНОТО)
+        # ✅ FINAL LOGIC (твоята правилна)
         broj = qty
         kolichestvo = qty * wid
 
         rows.append({
-            "Тарифен код": code,
-            "Количество": broj,
+            "Code": code,
             "wid": wid,
-            "kolichestvo": kolichestvo,
-            "тегло": weight
+            "teglo": weight,
+            "colic": kolichestvo,
+            "Broj": broj
         })
 
     result = pd.DataFrame(rows)
 
     result = result.groupby(
-        ["Тарифен код", "wid"],
+        ["Code", "wid"],
         as_index=False
     ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
+        "Broj": "sum",
+        "colic": "sum",
+        "teglo": "sum"
     })
 
     return result
