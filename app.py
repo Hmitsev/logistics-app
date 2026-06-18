@@ -30,7 +30,7 @@ def set_bg(image_file):
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (NO SCROLL + INLINE LOGO)
+# ✅ LOGIN SYSTEM (FINAL INLINE LOGO WORKING)
 # ======================================================
 def check_login():
 
@@ -39,44 +39,40 @@ def check_login():
 
     if not st.session_state["logged_in"]:
 
-        # ✅ login background
+        # ✅ background
         set_bg("background_login.png")
 
-        # ✅ ✅ HEADER В 1 РЕД (текст + лого вдясно)
-        st.markdown("""
-        <div style="
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            gap:12px;
-            margin-top:20px;
-            margin-bottom:20px;
-            white-space:nowrap;
-        ">
+        # ✅ HEADER В 1 РЕД (чрез columns, но правилно оразмерени)
+        col1, col2 = st.columns([4,1])
+
+        with col1:
+            st.markdown("""
             <div style="
+                text-align:right;
                 font-size:32px;
                 font-weight:900;
                 color:white;
+                white-space:nowrap;
             ">
                 CustomsFlow
             </div>
+            """, unsafe_allow_html=True)
 
-            <img src="Screenshot 2026-06-18 093459.png" width="60">
-        </div>
-        """, unsafe_allow_html=True)
+        with col2:
+            st.image("Screenshot 2026-06-18 093459.png", width=60)
 
+        # ✅ леко spacing
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        # ✅ Заглавие
+        # ✅ Login title
         st.markdown(
             "<h1 style='text-align:center; color:white;'>🔐 Вход</h1>",
             unsafe_allow_html=True
         )
 
-
         # ✅ Inputs
         username = st.text_input("Потребител")
         password = st.text_input("Парола", type="password")
-
 
         # ✅ Button
         if st.button("Вход"):
@@ -96,6 +92,7 @@ if not check_login():
 
 # ✅ main background
 set_bg("background.png")
+
 
 
 
