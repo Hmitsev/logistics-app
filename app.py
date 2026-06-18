@@ -100,7 +100,7 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (STABLE VERSION)
+# ✅ FINAL UI (WORKING + TEXT INSIDE BUTTON)
 # ======================================================
 
 st.markdown("""
@@ -119,7 +119,7 @@ st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_h
 
 # ✅ STATE
 if "source_type" not in st.session_state:
-    st.session_state["source_type"] = "PDF"
+    st.session_state["source_type"] = ""
 
 
 # ✅ БУТОНИ
@@ -142,47 +142,83 @@ if excel_clicked:
 source_type = st.session_state["source_type"]
 
 
-# ✅ ОЦВЕТЯВАНЕ (работещо 100%)
+# ✅ ЦВЯТ + ТЕКСТ В БУТОНА
 if source_type == "PDF":
-    st.markdown("""
-        <style>
-        button[data-testid="baseButton-secondary"] {
-            background-color: #444;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    pdf_color = "#ff3b3b"
+    excel_color = "#444"
 
-    st.markdown("""
-        <style>
-        div[data-testid="column"]:nth-of-type(1) button {
-            background-color: #ff3b3b !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    pdf_text = "You chose: PDF"
+    excel_text = "Excel"
+
+elif source_type == "Excel":
+    pdf_color = "#444"
+    excel_color = "#36c165"
+
+    pdf_text = "PDF"
+    excel_text = "You chose: Excel"
 
 else:
-    st.markdown("""
-        <style>
-        button[data-testid="baseButton-secondary"] {
-            background-color: #444;
-        }
-        </style>
+    pdf_color = "#444"
+    excel_color = "#444"
+
+    pdf_text = "PDF"
+    excel_text = "Excel"
+
+
+# ✅ ОЦВЕТЯВАНЕ НА БУТОНИ
+st.markdown(f"""
+<style>
+
+/* PDF */
+div[data-testid="column"]:nth-of-type(1) button {{
+    background-color: {pdf_color} !important;
+    color: white !important;
+    font-weight: 500 !important;
+    border-radius: 12px !important;
+    height: 60px !important;
+}}
+
+/* Excel */
+div[data-testid="column"]:nth-of-type(2) button {{
+    background-color: {excel_color} !important;
+    color: white !important;
+    font-weight: 500 !important;
+    border-radius: 12px !important;
+    height: 60px !important;
+}}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ✅ ТЕКСТ ВЪТРЕ (overlay върху бутона)
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown(f"""
+    <div style="
+        margin-top:-65px;
+        text-align:center;
+        color:white;
+        font-weight:500;
+        pointer-events:none;
+    ">
+        {pdf_text}
+    </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-        <style>
-        div[data-testid="column"]:nth-of-type(2) button {
-            background-color: #36c165 !important;
-        }
-        </style>
+with col2:
+    st.markdown(f"""
+    <div style="
+        margin-top:-65px;
+        text-align:center;
+        color:white;
+        font-weight:500;
+        pointer-events:none;
+    ">
+        {excel_text}
+    </div>
     """, unsafe_allow_html=True)
-
-
-# ✅ STATUS
-if source_type == "PDF":
-    st.markdown("<div style='color:#ff3b3b; font-weight:900;'>You Chose: PDF</div>", unsafe_allow_html=True)
-else:
-    st.markdown("<div style='color:#36c165; font-weight:900;'>You Chose: Excel</div>", unsafe_allow_html=True)
 
 
 # ✅ ADD FILE
@@ -202,8 +238,6 @@ uploaded_files = st.file_uploader(
 
 # ✅ SIDEBAR
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
-
-
 # ======================================================
 # ✅ REPORT
 # ======================================================
