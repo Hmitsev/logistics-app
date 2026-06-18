@@ -232,4 +232,3 @@ if uploaded_files:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
-``
