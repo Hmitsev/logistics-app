@@ -370,9 +370,7 @@ def parse_castrol(text):
 # ======================================================
 # ✅ MOTUL (РАБОТЕЩ)
 # ======================================================
-# ======================================================
-# ✅ MOTUL (РАБОТЕЩ)
-# ======================================================
+
 def parse_motul(text):
 
     rows = []
@@ -382,7 +380,7 @@ def parse_motul(text):
     liters_per_unit = 0
     units_in_box = 1
 
-    # ✅ 🔥 използваме last_weight вместо current_weight
+    # ✅ държим последното валидно тегло
     last_weight = 0
 
     for line in lines:
@@ -398,18 +396,19 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (ФИНАЛЕН FIX)
+        # ✅ ТЕГЛО (ФИНАЛЕН STRUCTURE FIX)
         # ======================================================
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        if weights:
+        # ✅ ВЗИМАМЕ ТЕГЛО САМО АКО ИМА ПОНЕ 2 ЧИСЛА
+        if len(weights) >= 2:
             try:
                 clean_weights = [
                     float(w.replace(" ", "").replace(",", "."))
                     for w in weights
                 ]
 
-                # ✅ взимаме най-малкото число (реалното тегло)
+                # ✅ реалното тегло винаги е по-малкото
                 last_weight = min(clean_weights)
 
             except:
@@ -454,7 +453,7 @@ def parse_motul(text):
                     "тегло": last_weight
                 })
 
-                # ✅ 🔥 RESET (много важно)
+                # ✅ RESET
                 current_qty = 0
                 last_weight = 0
                 liters_per_unit = 0
