@@ -117,50 +117,63 @@ def parse_motul(text):
     rows = []
     lines = text.split("\n")
 
-    for i, line in enumerate(lines):
+    current_qty = 0
+    current_weight = 0
+    liters_per_unit = 0
+    units_in_box = 1
 
-        match = re.findall(r'(\d{1,4})\s+(\d{1,3}(?:\s\d{3})*,\d+)', line)
+    for line in lines:
 
+        # ✅ количество
+        match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
         if match:
             try:
-                qty = float(match[0][0])
-                weight = float(match[0][1].replace(" ", "").replace(",", "."))
-
-                code = None
-                for j in range(i, min(i + 6, len(lines))):
-                    c = re.search(r'\b\d{8}\b', lines[j])
-                    if c:
-                        code = c.group(0)
-                        break
-
-                wid = 1
-                for j in range(max(0, i - 8), i + 1):
-                    l = lines[j].upper()
-
-                    pack = re.search(r'(\d+)X(\d+)L', l)
-                    single = re.search(r'(\d+)L', l)
-
-                    if pack:
-                        wid = float(pack.group(2))
-                    elif single:
-                        wid = float(single.group(1))
-
-                    if "0.500L" in l:
-                        wid = 0.5
-                    elif "0.250L" in l:
-                        wid = 0.25
-
-                if code:
-                    rows.append({
-                        "Тарифен код": code,
-                        "Количество": qty,
-                        "wid": wid,
-                        "kolichestvo": qty * wid,
-                        "тегло": weight
-                    })
-
+                current_qty = int(match.group(1))
             except:
                 pass
+
+        # ✅ тегло
+        weights = re.findall(r"\d+,\d+", line)
+        if weights:
+            try:
+                current_weight = float(weights[0].replace(",", "."))
+            except:
+                pass
+
+        # ✅ multipack
+        multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
+        single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
+
+        if multi:
+            units_in_box = int(multi[-1][0])
+            liters_per_unit = float(multi[-1][1].replace(",", "."))
+        elif single:
+            units_in_box = 1
+            liters_per_unit = float(single.group(1).replace(",", "."))
+
+        # ✅ код
+        if "HS code" in line:
+            code = re.search(r"HS code\s*:\s*(\d+)", line)
+
+            if code:
+                code_value = code.group(1)[:8]
+
+                # ✅ логика от вчера (КЛЮЧОВА)
+                if current_qty * units_in_box * liters_per_unit > 100000:
+                    real_qty = current_qty
+                else:
+                    if units_in_box > 1 and liters_per_unit <= 5:
+                        real_qty = current_qty * units_in_box
+                    else:
+                        real_qty = current_qty
+
+                rows.append({
+                    "Тарифен код": code_value,
+                    "Количество": real_qty,
+                    "wid": liters_per_unit,
+                    "kolichestvo": real_qty * liters_per_unit,
+                    "тегло": current_weight
+                })
 
     return pd.DataFrame(rows)
 
