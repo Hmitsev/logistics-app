@@ -545,6 +545,9 @@ def parse_valvoline_excel(file):
         elif "net" in c:
             column_map[col] = "weight"
 
+        elif "package" in c:
+            column_map[col] = "packages"   # ✅ broj
+
     df = df.rename(columns=column_map)
 
     required = ["code", "pack", "qty", "weight"]
@@ -561,18 +564,38 @@ def parse_valvoline_excel(file):
 
     for _, r in df.iterrows():
 
+        # ✅ директно от Excel
         code = str(r["code"])[:8]
-        qty = float(r["qty"])
-        weight = float(r["weight"])
         pack = str(r["pack"])
+        qty = float(r["qty"])          # ✅ това е kolic (литри)
+        weight = float(r["weight"])    # ✅ тегло
+        packages = float(r["packages"]) if "packages" in df.columns else 0  # ✅ broj
 
-        wid = 1
+        # ✅ wid от Packaging
+        wid_match = re.search(r"(\d+)", pack)
+        wid = int(wid_match.group(1)) if wid_match else 1
 
-        # ✅ regex
-        multi = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
-        single = re.search(r"(\d+)\s*L", pack, re.I)
-        grams = re.search(r"(\d+)\s*g", pack, re.I)
+        # ✅ НЯМА СМЕТКИ → директно копие от Excel
+        rows.append({
+            "Тарифен код": code,
+            "Количество": packages,   # ✅ broj (No. of packages)
+            "wid": wid,               # ✅ Packaging
+            "kolichestvo": qty,       # ✅ Qty (литри!)
+            "тегло": weight           # ✅ Net Kg
+        })
 
+    df = pd.DataFrame(rows)
+
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
         # ======================================================
         # ✅ MULTI PACK (пример: 4x5L)
         # ======================================================
