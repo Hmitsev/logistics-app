@@ -394,19 +394,22 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (ВРЪЩАМЕ СТАБИЛНИЯ МЕТОД)
+        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
         # ======================================================
-        weights = re.findall(r"\d+,\d+", line)
+        # взима числа като: 1 685,140
+        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
         if weights:
             try:
-                # ✅ ВИНАГИ първото число
-                current_weight = float(weights[0].replace(",", "."))
+                # ✅ маха space и прави float
+                current_weight = float(
+                    weights[0].replace(" ", "").replace(",", ".")
+                )
             except:
                 pass
 
         # ======================================================
-        # ✅ РАЗФАСОВКА
+        # ✅ РАЗФАСОВКА (wid)
         # ======================================================
         multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
         single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
@@ -419,7 +422,7 @@ def parse_motul(text):
             liters_per_unit = float(single.group(1).replace(",", "."))
 
         # ======================================================
-        # ✅ HS CODE И ЗАПИС
+        # ✅ КОД + ЗАПИС
         # ======================================================
         if "HS code" in line:
             code = re.search(r"HS code\s*:\s*(\d+)", line)
@@ -427,7 +430,7 @@ def parse_motul(text):
             if code:
                 code_value = code.group(1)[:8]
 
-                # ✅ правилната логика за qty
+                # ✅ логика за quantity
                 if current_qty * units_in_box * liters_per_unit > 100000:
                     real_qty = current_qty
                 else:
