@@ -393,7 +393,7 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ РАЗФАСОВКА (важно: ПРЕДИ теглото!)
+        # ✅ РАЗФАСОВКА
         # ======================================================
         multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
         single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
@@ -404,27 +404,64 @@ def parse_motul(text):
         elif single:
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
+
         # ======================================================
-        # ✅ ТЕГЛО (FINAL CORRECT FIX ✅)
+        # ✅ ТЕГЛО (ФИНАЛ ✅)
         # ======================================================
-        
-weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-# ✅ само редове които имат quantity pattern
-qty_match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
+        # ✅ САМО ВАЛИДНИ РЕДОВЕ
+        qty_match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
 
-if weights and qty_match:
-    try:
-        values = [
-            float(w.replace(" ", "").replace(",", "."))
-            for w in weights
-        ]
+        if weights and qty_match:
+            try:
+                values = [
+                    float(w.replace(" ", "").replace(",", "."))
+                    for w in weights
+                ]
 
-        # ✅ теглото винаги е последното число от ТАКЪВ ред
-        current_weight = values[-1]
+                # ✅ последните 2 числа (нето + бруто)
+                last_two = values[-2:]
 
-    except:
-        pass
+                # ✅ по-малкото = нето
+                current_weight = min(last_two)
+
+            except:
+                pass
+
+        # ======================================================
+        # ✅ КОД + ЗАПИС
+        # ======================================================
+        if "HS code" in line:
+            code = re.search(r"HS code\s*:\s*(\d+)", line)
+
+            if code:
+                code_value = code.group(1)[:8]
+
+                if current_qty * units_in_box * liters_per_unit > 100000:
+                    real_qty = current_qty
+                else:
+                    if units_in_box > 1 and liters_per_unit <= 5:
+                        real_qty = current_qty * units_in_box
+                    else:
+                        real_qty = current_qty
+
+                rows.append({
+                    "Тарифен код": code_value,
+                    "Количество": real_qty,
+                    "wid": liters_per_unit,
+                    "kolichestvo": real_qty * liters_per_unit,
+                    "тегло": current_weight
+                })
+
+                # ✅ RESET
+                current_qty = 0
+                current_weight = 0
+                liters_per_unit = 0
+                units_in_box = 1
+
+    return pd.DataFrame(rows)
+
 
 
 
