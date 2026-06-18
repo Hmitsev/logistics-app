@@ -366,6 +366,35 @@ def parse_motul(text):
             pass
 
     return pd.DataFrame(rows)
+    # ======================================================
+# ✅ MOTUL PARSER (FIXED)
+# ======================================================
+def parse_motul(text):
+
+    rows = []
+
+    matches = re.findall(
+        r'(\d+[.,]?\d*)\s*EA.*?(\d+[.,]\d+)\s*KG.*?(\d{8})',
+        text,
+        re.DOTALL
+    )
+
+    for qty, weight, code in matches:
+        try:
+            qty = float(qty.replace(",", ""))
+            weight = float(weight.replace(",", "."))
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": 1,
+                "kolichestvo": qty,
+                "тегло": weight
+            })
+        except:
+            pass
+
+    return pd.DataFrame(rows)
 # ======================================================
 # ✅ PROCESS
 # ======================================================
@@ -389,7 +418,7 @@ if uploaded_files:
                 df = parse_motul(text)
 
         else:
-            # ✅ FIX за Excel (ключовото)
+            # ✅ FIX за Excel
             df_raw = pd.read_excel(file)
 
             df = pd.DataFrame({
