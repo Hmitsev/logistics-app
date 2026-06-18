@@ -100,136 +100,108 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ TRUE CUSTOM BUTTONS (WORKING 100%)
+# ✅ FINAL UI (STABLE VERSION)
 # ======================================================
 
-# ✅ state
+st.markdown("""
+<style>
+.source-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ✅ заглавие
+st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
+
+
+# ✅ STATE
 if "source_type" not in st.session_state:
     st.session_state["source_type"] = "PDF"
+
+
+# ✅ БУТОНИ
+col1, col2 = st.columns(2)
+
+with col1:
+    pdf_clicked = st.button("PDF", use_container_width=True)
+
+with col2:
+    excel_clicked = st.button("Excel", use_container_width=True)
+
+
+# ✅ ЛОГИКА
+if pdf_clicked:
+    st.session_state["source_type"] = "PDF"
+
+if excel_clicked:
+    st.session_state["source_type"] = "Excel"
 
 source_type = st.session_state["source_type"]
 
 
-# ✅ цветове
+# ✅ ОЦВЕТЯВАНЕ (работещо 100%)
 if source_type == "PDF":
-    pdf_color = "#ff3b3b"
-    excel_color = "#444"
+    st.markdown("""
+        <style>
+        button[data-testid="baseButton-secondary"] {
+            background-color: #444;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <style>
+        div[data-testid="column"]:nth-of-type(1) button {
+            background-color: #ff3b3b !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 else:
-    pdf_color = "#444"
-    excel_color = "#36c165"
+    st.markdown("""
+        <style>
+        button[data-testid="baseButton-secondary"] {
+            background-color: #444;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <style>
+        div[data-testid="column"]:nth-of-type(2) button {
+            background-color: #36c165 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
 
-# ✅ HTML + click чрез form submit
-st.markdown(f"""
-<form method="post">
-    <div style="display:flex; gap:10px;">
-        
-        <button name="source" value="PDF" style="
-            flex:1;
-            padding:15px;
-            border:none;
-            border-radius:12px;
-            background:{pdf_color};
-            color:white;
-            font-weight:800;
-            font-size:16px;
-            cursor:pointer;
-        ">
-            PDF
-        </button>
-
-        <button name="source" value="Excel" style="
-            flex:1;
-            padding:15px;
-            border:none;
-            border-radius:12px;
-            background:{excel_color};
-            color:white;
-            font-weight:800;
-            font-size:16px;
-            cursor:pointer;
-        ">
-            Excel
-        </button>
-
-    </div>
-</form>
-""", unsafe_allow_html=True)
+# ✅ STATUS
+if source_type == "PDF":
+    st.markdown("<div style='color:#ff3b3b; font-weight:900;'>You Chose: PDF</div>", unsafe_allow_html=True)
+else:
+    st.markdown("<div style='color:#36c165; font-weight:900;'>You Chose: Excel</div>", unsafe_allow_html=True)
 
 
-# ✅ обработка на click
-if "source" in st.query_params:
-    chosen = st.query_params["source"]
-
-    if chosen in ["PDF", "Excel"]:
-        st.session_state["source_type"] = chosen
-        st.query_params.clear()
-        st.rerun()
+# ✅ ADD FILE
+st.markdown(
+    "<div style='font-size:20px; font-weight:900; color:white; margin-top:15px;'>Add file</div>",
+    unsafe_allow_html=True
+)
 
 
-# ======================================================
-# ✅ MOTUL
-# ======================================================
-def parse_motul(text):
+# ✅ UPLOADER
+uploaded_files = st.file_uploader(
+    "",
+    type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
+    accept_multiple_files=True
+)
 
-    rows = []
-    lines = text.split("\n")
 
-    current_qty = 0
-    current_weight = 0
-    liters_per_unit = 0
-    units_in_box = 1
-
-    for line in lines:
-
-        match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
-        if match:
-            try:
-                current_qty = int(match.group(1))
-            except:
-                pass
-
-        weights = re.findall(r"\d+,\d+", line)
-        if weights:
-            try:
-                current_weight = float(weights[0].replace(",", "."))
-            except:
-                pass
-
-        multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
-        single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
-
-        if multi:
-            units_in_box = int(multi[-1][0])
-            liters_per_unit = float(multi[-1][1].replace(",", "."))
-        elif single:
-            units_in_box = 1
-            liters_per_unit = float(single.group(1).replace(",", "."))
-
-        if "HS code" in line:
-            code = re.search(r"HS code\s*:\s*(\d+)", line)
-
-            if code:
-
-                code_value = code.group(1)[:8]
-
-                if current_qty * units_in_box * liters_per_unit > 100000:
-                    real_qty = current_qty
-                else:
-                    if units_in_box > 1 and liters_per_unit <= 5:
-                        real_qty = current_qty * units_in_box
-                    else:
-                        real_qty = current_qty
-
-                rows.append({
-                    "Тарифен код": code_value,
-                    "Количество": real_qty,
-                    "wid": liters_per_unit,
-                    "kolichestvo": real_qty * liters_per_unit,
-                    "тегло": current_weight
-                })
-
-    return pd.DataFrame(rows)
+# ✅ SIDEBAR
+menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
 
 
 # ======================================================
