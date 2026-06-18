@@ -394,18 +394,22 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
-        # ======================================================
-        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+# ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
+# ======================================================
+weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        # ✅ взимаме само първото валидно тегло
-        if weights and current_weight == 0:
-            try:
-                current_weight = float(
-                    weights[0].replace(" ", "").replace(",", ".")
-                )
-            except:
-                pass
+# ✅ взимаме правилното тегло (най-малкото число от реда)
+if weights and current_weight == 0:
+    try:
+        values = [
+            float(w.replace(" ", "").replace(",", "."))
+            for w in weights
+        ]
+
+        current_weight = min(values)
+
+    except:
+        pass
 
         # ======================================================
         # ✅ РАЗФАСОВКА (wid)
