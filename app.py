@@ -111,8 +111,8 @@ st.markdown("""
 <style>
 div[data-testid="column"]:nth-of-type(3) {
     position: fixed;
-top: 5px;
-right: 50px;
+top: 4px;
+right: 40px;
     z-index: 9999;
 }
 </style>
