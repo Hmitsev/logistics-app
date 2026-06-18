@@ -221,7 +221,7 @@ if "prev_supplier" not in st.session_state:
 
 # ✅ АКО смениш supplier → reset
 if st.session_state["prev_supplier"] != menu:
-    st.session_state["source_type"] = ""
+    st.session_state["source_type"] = ""   # reset PDF/Excel
     st.session_state["prev_supplier"] = menu
 
 
@@ -326,17 +326,16 @@ with col2:
     """, unsafe_allow_html=True)
 
 
-# ✅ ✅ ADD FILE
+# ✅ ✅ ADD FILE НАД UPLOAD (малък)
 st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
 
 
-# ✅ UPLOAD
+# ✅ UPLOAD (под него)
 uploaded_files = st.file_uploader(
     "",
     type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
     accept_multiple_files=True
 )
-
 
 # ======================================================
 # ✅ PROCESS
