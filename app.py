@@ -152,67 +152,53 @@ if "source_type" not in st.session_state:
     st.session_state["source_type"] = "PDF"
 
 
-# ✅ цветове
+# ✅ БУТОНИ (реални, НЕ крити)
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("PDF", use_container_width=True):
+        st.session_state["source_type"] = "PDF"
+        st.rerun()
+
+with col2:
+    if st.button("Excel", use_container_width=True):
+        st.session_state["source_type"] = "Excel"
+        st.rerun()
+
+
+# ✅ ЦВЕТОВЕ
 if st.session_state["source_type"] == "PDF":
-    pdf_color = "#ff3b3b"   # червен
+    pdf_color = "#ff3b3b"
     excel_color = "#444"
 else:
     pdf_color = "#444"
-    excel_color = "#36c165" # зелен
+    excel_color = "#36c165"
 
 
-# ✅ CSS → СКРИВАМЕ истинските бутони
-st.markdown("""
+# ✅ СТИЛ НА БУТОНИТЕ (dynamic)
+st.markdown(f"""
 <style>
-button[kind="secondary"] {
-    opacity: 0;
-    height: 0px;
-    padding: 0px;
-    margin: 0px;
-}
+
+/* PDF бутон */
+div[data-testid="column"]:nth-of-type(1) button {{
+    background-color: {pdf_color};
+    color: white;
+    font-weight: 800;
+    border-radius: 12px;
+    height: 55px;
+}}
+
+/* Excel бутон */
+div[data-testid="column"]:nth-of-type(2) button {{
+    background-color: {excel_color};
+    color: white;
+    font-weight: 800;
+    border-radius: 12px;
+    height: 55px;
+}}
+
 </style>
 """, unsafe_allow_html=True)
-
-
-# ✅ layout
-col1, col2 = st.columns([1,1])
-
-with col1:
-    if st.button("PDF"):
-        st.session_state["source_type"] = "PDF"
-
-    st.markdown(f"""
-        <div style="
-            background:{pdf_color};
-            padding: 14px;
-            border-radius: 12px;
-            text-align:center;
-            font-weight:800;
-            color:white;
-            cursor:pointer;
-        ">
-            PDF
-        </div>
-    """, unsafe_allow_html=True)
-
-
-with col2:
-    if st.button("Excel"):
-        st.session_state["source_type"] = "Excel"
-
-    st.markdown(f"""
-        <div style="
-            background:{excel_color};
-            padding: 14px;
-            border-radius: 12px;
-            text-align:center;
-            font-weight:800;
-            color:white;
-            cursor:pointer;
-        ">
-            Excel
-        </div>
-    """, unsafe_allow_html=True)
 
 
 source_type = st.session_state["source_type"]
