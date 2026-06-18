@@ -94,20 +94,20 @@ if not check_login():
 set_bg("background.png")
 
 # ======================================================
-# ✅ LOGOUT BUTTON (TOP RIGHT)
+# ✅ TOP RIGHT LOGOUT (REAL FIXED BUTTON)
 # ======================================================
 
 st.markdown("""
 <style>
 .logout-btn {
     position: fixed;
-    top: 10px;
-    right: 100px;
-    background: rgba(255,255,255,0.1);
+    top: 8px;
+    right: 180px;
+    background: rgba(20,20,20,0.8);
     color: white;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
     cursor: pointer;
     z-index: 9999;
 }
@@ -117,10 +117,23 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ✅ бутон
-if st.button("🚪 Logout"):
+
+# ✅ HTML бутон
+logout_click = st.markdown(
+    """
+    <form action="" method="post">
+        <button class="logout-btn">🚪 Logout</button>
+    </form>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ✅ логика за logout
+if st.session_state.get("logout_clicked"):
     st.session_state["logged_in"] = False
     st.rerun()
+
 
 
 
