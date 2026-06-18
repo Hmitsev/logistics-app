@@ -100,7 +100,7 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (CLEAN + ALIGNED + FIXED)
+# ✅ FINAL UI (PERFECT ALIGNMENT FIX)
 # ======================================================
 
 st.markdown("""
@@ -111,18 +111,23 @@ st.markdown("""
     color: white;
 }
 
-/* ✅ Add file box */
-.add-box {
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(6px);
-    border-radius: 10px;
-    padding: 10px;
+/* ✅ по-малък и по-прозрачен Add file */
+.add-file {
+    display:inline-block;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 4px 10px;
     color: white;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 400;
-    text-align: center;
-    margin-top: 15px;
+    margin-top: 6px;
 }
+
+/* ✅ скриваме оригиналния текст от бутона */
+button[data-testid="baseButton-secondary"] p {
+    opacity: 0;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,7 +141,7 @@ if "source_type" not in st.session_state:
     st.session_state["source_type"] = ""
 
 
-# ✅ БУТОНИ
+# ✅ бутоните
 col1, col2 = st.columns(2)
 
 with col1:
@@ -149,69 +154,69 @@ with col2:
         st.session_state["source_type"] = "Excel"
         st.rerun()
 
-
 source_type = st.session_state["source_type"]
 
 
-# ✅ цветове
+# ✅ цветове + текст
 if source_type == "PDF":
     pdf_color = "#ff3b3b"
     excel_color = "#444"
-    pdf_text = "<span style='color:#ff3b3b;'>You chose: PDF</span>"
-    excel_text = ""
+
+    pdf_overlay = "<span style='color:#ff3b3b;'>You chose: PDF</span>"
+    excel_overlay = "<span style='color:white;'>Excel</span>"
 
 elif source_type == "Excel":
     pdf_color = "#444"
     excel_color = "#36c165"
-    pdf_text = ""
-    excel_text = "<span style='color:#36c165;'>You chose: Excel</span>"
+
+    pdf_overlay = "<span style='color:white;'>PDF</span>"
+    excel_overlay = "<span style='color:#36c165;'>You chose: Excel</span>"
 
 else:
     pdf_color = "#444"
     excel_color = "#444"
-    pdf_text = ""
-    excel_text = ""
+
+    pdf_overlay = "<span style='color:white;'>PDF</span>"
+    excel_overlay = "<span style='color:white;'>Excel</span>"
 
 
-# ✅ style на бутоните + избутване на текста вдясно
+# ✅ стил на бутоните
 st.markdown(f"""
 <style>
 
 /* PDF */
 div[data-testid="column"]:nth-of-type(1) button {{
-    background-color: {pdf_color} !important;
-    color: white !important;
-    border-radius: 12px !important;
-    height: 60px !important;
-    text-align: right !important;
-    padding-right: 20px !important;
+    background-color: {pdf_color};
+    height: 60px;
+    border-radius: 12px;
 }}
 
 /* Excel */
 div[data-testid="column"]:nth-of-type(2) button {{
-    background-color: {excel_color} !important;
-    color: white !important;
-    border-radius: 12px !important;
-    height: 60px !important;
-    text-align: right !important;
-    padding-right: 20px !important;
+    background-color: {excel_color};
+    height: 60px;
+    border-radius: 12px;
 }}
 
 </style>
 """, unsafe_allow_html=True)
 
 
-# ✅ overlay текст (центриран)
+# ✅ overlay текстове
 col1, col2 = st.columns(2)
 
 with col1:
     st.markdown(f"""
     <div style="
         margin-top:-65px;
-        text-align:center;
+        display:flex;
+        justify-content:space-between;
+        padding:0 20px;
         pointer-events:none;
+        color:white;
     ">
-        {pdf_text}
+        <div></div>
+        <div>{pdf_overlay}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -219,19 +224,16 @@ with col2:
     st.markdown(f"""
     <div style="
         margin-top:-65px;
-        text-align:center;
+        display:flex;
+        justify-content:space-between;
+        padding:0 20px;
         pointer-events:none;
+        color:white;
     ">
-        {excel_text}
+        <div></div>
+        <div>{excel_overlay}</div>
     </div>
     """, unsafe_allow_html=True)
-
-
-# ✅ ADD FILE (прозрачен box, не bold)
-st.markdown(
-    "<div class='add-box'>Add file</div>",
-    unsafe_allow_html=True
-)
 
 
 # ✅ uploader
@@ -242,8 +244,13 @@ uploaded_files = st.file_uploader(
 )
 
 
+# ✅ Add file под uploader (малък и прозрачен)
+st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
+
+
 # ✅ sidebar
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
+
 
 
 
