@@ -525,11 +525,8 @@ def parse_valvoline_excel(file):
     # ✅ чистим колоните
     df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ")
 
-    # ✅ DEBUG ако трябва:
-    # st.write(df.columns)
-
     # ======================================================
-    # ✅ COLUMN MAP (сега вече ще работи)
+    # ✅ COLUMN MAP
     # ======================================================
     column_map = {}
 
@@ -550,7 +547,6 @@ def parse_valvoline_excel(file):
 
     df = df.rename(columns=column_map)
 
-    # ✅ защита
     required = ["code", "pack", "qty", "weight"]
     missing = [c for c in required if c not in df.columns]
 
@@ -565,7 +561,7 @@ def parse_valvoline_excel(file):
 
     for _, r in df.iterrows():
 
-        code = str(r["code"])[:8]  # ✅ махаме последните 2 цифри
+        code = str(r["code"])[:8]
         qty = r["qty"]
         weight = r["weight"]
         pack = str(r["pack"])
@@ -575,20 +571,34 @@ def parse_valvoline_excel(file):
         multi = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
         single = re.search(r"(\d+)\s*L", pack, re.I)
 
+        # ======================================================
+        # ✅ FIX ЗА VALVOLINE (qty = вече литри ✅)
+        # ======================================================
         if multi:
             units = int(multi.group(1))
             liters = int(multi.group(2))
+
             wid = liters
-            qty = qty * units
+
+            kolichestvo = qty                  # ✅ НЕ умножаваме повече
+            real_qty = qty / liters            # ✅ брой кутии
 
         elif single:
             wid = int(single.group(1))
 
+            kolichestvo = qty
+            real_qty = qty / wid
+
+        else:
+            wid = 1
+            kolichestvo = qty
+            real_qty = qty
+
         rows.append({
             "Тарифен код": code,
-            "Количество": qty,
+            "Количество": real_qty,
             "wid": wid,
-            "kolichestvo": qty * wid,
+            "kolichestvo": kolichestvo,
             "тегло": weight
         })
 
@@ -604,7 +614,6 @@ def parse_valvoline_excel(file):
     })
 
     return df
-
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
