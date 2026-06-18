@@ -582,12 +582,13 @@ def parse_valvoline_excel(file):
 
             wid = liters
 
-            if liters >= 20:
-                # ✅ qty = литри (20L, 208L)
+            # ✅ SMART CHECK (ТУК Е FIX)
+            if qty % liters == 0:
+                # ✅ qty already liters
                 kolichestvo = qty
                 real_qty = qty / liters
             else:
-                # ✅ qty = бройки (4L, 5L)
+                # ✅ qty = boxes
                 kolichestvo = qty * liters
                 real_qty = qty
 
@@ -597,7 +598,7 @@ def parse_valvoline_excel(file):
         elif single:
             wid = int(single.group(1))
 
-            if wid >= 20:
+            if qty % wid == 0:
                 kolichestvo = qty
                 real_qty = qty / wid
             else:
@@ -605,7 +606,7 @@ def parse_valvoline_excel(file):
                 real_qty = qty
 
         # ======================================================
-        # ✅ GRAMS (ГРЕС)
+        # ✅ GRAMS
         # ======================================================
         elif grams:
             wid = 1
