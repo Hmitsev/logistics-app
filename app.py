@@ -489,8 +489,8 @@ if uploaded_files:
     final_df = pd.concat(all_data, ignore_index=True)
 
     if "Code" not in final_df.columns:
-    st.error("❌ Липсва 'Code'")
-    st.stop()
+        st.error("❌ Липсва 'Code'")
+        st.stop()
 
 
     final_df["Code"] = final_df["Code"].astype(str)
