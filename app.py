@@ -559,25 +559,46 @@ def parse_valvoline_excel(file):
     for _, r in df.iterrows():
 
         code = str(r["code"])[:8]
-        pack = str(r["pack"])
-        qty = float(r["qty"])          # ✅ това е kolic
+        pack = str(r["pack"]).upper()
+        qty = float(r["qty"])
         weight = float(r["weight"])
 
-        # ✅ wid извличане
-        multi_L = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
-        multi_G = re.search(r"(\d+)\s*x\s*(\d+)\s*G", pack, re.I)
-        single_L = re.search(r"(\d+)\s*L", pack, re.I)
+        # ======================================================
+        # ✅ CLEAN wid extraction (FIXED FINAL)
+        # ======================================================
+        wid = 1
 
-        if multi_L:
-            wid = int(multi_L.group(2))
-        elif multi_G:
-            wid = int(multi_G.group(2))
-        elif single_L:
-            wid = int(single_L.group(1))
+        # 4x5L
+        if "X" in pack and "L" in pack:
+            try:
+                wid = int(re.findall(r"\d+", pack)[1])
+            except:
+                wid = 1
+
+        # 24x400G
+        elif "X" in pack and "G" in pack:
+            try:
+                wid = int(re.findall(r"\d+", pack)[1])
+            except:
+                wid = 1
+
+        # 20L / 208L
+        elif "L" in pack:
+            try:
+                wid = int(re.findall(r"\d+", pack)[0])
+            except:
+                wid = 1
+
+        # fallback
         else:
-            wid = 1
+            try:
+                wid = int(re.findall(r"\d+", pack)[0])
+            except:
+                wid = 1
 
-        # ✅ ФИНАЛНА СМЕТКА
+        # ======================================================
+        # ✅ FINAL CALCULATION (ТВОЯТА ЛОГИКА)
+        # ======================================================
         if wid != 0:
             broj = qty / wid
         else:
@@ -585,11 +606,12 @@ def parse_valvoline_excel(file):
 
         rows.append({
             "Тарифен код": code,
-            "Количество": broj,        # ✅ broj
+            "Количество": broj,
             "wid": wid,
-            "kolichestvo": qty,        # ✅ kolic
+            "kolichestvo": qty,
             "тегло": weight
         })
+
 
 
     df = pd.DataFrame(rows)
