@@ -100,7 +100,7 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (PERFECT ALIGNMENT FIX)
+# ✅ FINAL UI (RESET + FIXED ORDER)
 # ======================================================
 
 st.markdown("""
@@ -111,25 +111,32 @@ st.markdown("""
     color: white;
 }
 
-/* ✅ по-малък и по-прозрачен Add file */
+/* ✅ Add file малък и прозрачен */
 .add-file {
     display:inline-block;
-    background: rgba(255,255,255,0.05);
-    border-radius: 8px;
-    padding: 4px 10px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    padding: 3px 10px;
     color: white;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 400;
-    margin-top: 6px;
+    margin-bottom: 6px;
 }
-
-/* ✅ скриваме оригиналния текст от бутона */
-button[data-testid="baseButton-secondary"] p {
-    opacity: 0;
-}
-
 </style>
 """, unsafe_allow_html=True)
+
+
+# ✅ SIDEBAR (с reset логика)
+menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
+
+# ✅ пазим предишния supplier
+if "prev_supplier" not in st.session_state:
+    st.session_state["prev_supplier"] = menu
+
+# ✅ АКО смениш supplier → reset
+if st.session_state["prev_supplier"] != menu:
+    st.session_state["source_type"] = ""   # reset PDF/Excel
+    st.session_state["prev_supplier"] = menu
 
 
 # ✅ заглавие
@@ -141,7 +148,7 @@ if "source_type" not in st.session_state:
     st.session_state["source_type"] = ""
 
 
-# ✅ бутоните
+# ✅ бутони
 col1, col2 = st.columns(2)
 
 with col1:
@@ -153,6 +160,7 @@ with col2:
     if st.button("Excel", use_container_width=True):
         st.session_state["source_type"] = "Excel"
         st.rerun()
+
 
 source_type = st.session_state["source_type"]
 
@@ -180,7 +188,7 @@ else:
     excel_overlay = "<span style='color:white;'>Excel</span>"
 
 
-# ✅ стил на бутоните
+# ✅ бутон стил
 st.markdown(f"""
 <style>
 
@@ -202,7 +210,7 @@ div[data-testid="column"]:nth-of-type(2) button {{
 """, unsafe_allow_html=True)
 
 
-# ✅ overlay текстове
+# ✅ overlay текст вдясно
 col1, col2 = st.columns(2)
 
 with col1:
@@ -210,13 +218,11 @@ with col1:
     <div style="
         margin-top:-65px;
         display:flex;
-        justify-content:space-between;
-        padding:0 20px;
+        justify-content:flex-end;
+        padding-right:20px;
         pointer-events:none;
-        color:white;
     ">
-        <div></div>
-        <div>{pdf_overlay}</div>
+        {pdf_overlay}
     </div>
     """, unsafe_allow_html=True)
 
@@ -225,34 +231,25 @@ with col2:
     <div style="
         margin-top:-65px;
         display:flex;
-        justify-content:space-between;
-        padding:0 20px;
+        justify-content:flex-end;
+        padding-right:20px;
         pointer-events:none;
-        color:white;
     ">
-        <div></div>
-        <div>{excel_overlay}</div>
+        {excel_overlay}
     </div>
     """, unsafe_allow_html=True)
 
 
-# ✅ uploader
+# ✅ ✅ ADD FILE НАД UPLOAD (малък)
+st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
+
+
+# ✅ UPLOAD (под него)
 uploaded_files = st.file_uploader(
     "",
     type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
     accept_multiple_files=True
 )
-
-
-# ✅ Add file под uploader (малък и прозрачен)
-st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
-
-
-# ✅ sidebar
-menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
-
-
-
 
 # ======================================================
 # ✅ PROCESS
