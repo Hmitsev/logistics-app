@@ -100,7 +100,7 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (CLEAN WORKING BUTTONS)
+# ✅ FINAL UI (WORKING + COLORED TEXT INSIDE)
 # ======================================================
 
 st.markdown("""
@@ -122,27 +122,39 @@ if "source_type" not in st.session_state:
     st.session_state["source_type"] = ""
 
 
-# ✅ Определяме текстовете вътре в бутоните
+# ✅ ЛОГИКА ЗА ТЕКСТ + ЦВЯТ
 if st.session_state["source_type"] == "PDF":
     pdf_label = "You chose: PDF"
     excel_label = "Excel"
+
     pdf_color = "#ff3b3b"
     excel_color = "#444"
+
+    pdf_text_color = "#ff3b3b"
+    excel_text_color = "white"
 
 elif st.session_state["source_type"] == "Excel":
     pdf_label = "PDF"
     excel_label = "You chose: Excel"
+
     pdf_color = "#444"
     excel_color = "#36c165"
+
+    pdf_text_color = "white"
+    excel_text_color = "#36c165"
 
 else:
     pdf_label = "PDF"
     excel_label = "Excel"
+
     pdf_color = "#444"
     excel_color = "#444"
 
+    pdf_text_color = "white"
+    excel_text_color = "white"
 
-# ✅ БУТОНИ С ДИНАМИЧЕН ТЕКСТ
+
+# ✅ БУТОНИ
 col1, col2 = st.columns(2)
 
 with col1:
@@ -156,23 +168,23 @@ with col2:
         st.rerun()
 
 
-# ✅ ЦВЕТНА СМЯНА (СТАБИЛНА)
+# ✅ ОЦВЕТЯВАНЕ НА БУТОНИТЕ + ТЕКСТА
 st.markdown(f"""
 <style>
 
 /* PDF бутон */
-button[key="pdf_btn"], button[id*="pdf_btn"] {{
+button#pdf_btn {{
     background-color: {pdf_color} !important;
-    color: white !important;
+    color: {pdf_text_color} !important;
     font-weight: 500 !important;
     border-radius: 12px !important;
     height: 60px !important;
 }}
 
 /* Excel бутон */
-button[key="excel_btn"], button[id*="excel_btn"] {{
+button#excel_btn {{
     background-color: {excel_color} !important;
-    color: white !important;
+    color: {excel_text_color} !important;
     font-weight: 500 !important;
     border-radius: 12px !important;
     height: 60px !important;
@@ -199,59 +211,6 @@ uploaded_files = st.file_uploader(
 
 # ✅ SIDEBAR
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
-# ======================================================
-# ✅ REPORT
-# ======================================================
-def build_final_report(df):
-
-    df["wid"] = df["wid"].astype(float).round(3)
-
-    df["ratio"] = df["тегло"] / df["kolichestvo"]
-    df["correct_weight"] = df["kolichestvo"] * df["ratio"]
-
-    grouped = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "correct_weight": "sum"
-    })
-
-    grouped = grouped.rename(columns={"correct_weight": "тегло"})
-
-    rows = []
-
-    for code, group in grouped.groupby("Тарифен код"):
-
-        for _, r in group.iterrows():
-            rows.append(r.to_dict())
-
-        rows.append({
-            "Тарифен код": str(code) + " -",
-            "wid": "",
-            "Количество": "",
-            "kolichestvo": group["kolichestvo"].sum(),
-            "тегло": group["тегло"].sum()
-        })
-
-        rows.append({
-            "Тарифен код": "",
-            "wid": "",
-            "Количество": "",
-            "kolichestvo": "",
-            "тегло": ""
-        })
-
-    rows.append({
-        "Тарифен код": "GRAND TOTAL",
-        "wid": "",
-        "Количество": "",
-        "kolichestvo": grouped["kolichestvo"].sum(),
-        "тегло": grouped["тегло"].sum()
-    })
-
-    return pd.DataFrame(rows)
 
 
 # ======================================================
