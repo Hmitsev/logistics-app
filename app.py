@@ -228,7 +228,6 @@ uploaded_files = st.file_uploader(
 
 # ✅ sidebar
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
-``
 
 
 # ======================================================
