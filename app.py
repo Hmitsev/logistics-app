@@ -352,10 +352,15 @@ if uploaded_files:
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
+            # ✅ FIX: добавяме FUCHS тук
             if menu == "Castrol":
                 df = parse_castrol(text)
-            else:
+
+            elif menu == "MOTUL":
                 df = parse_motul(text)
+
+            elif menu == "FUCHS":
+                df = parse_fuchs(text)
 
         else:
             df = pd.read_excel(file)
