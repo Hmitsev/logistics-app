@@ -368,9 +368,8 @@ def parse_castrol(text):
     return pd.DataFrame(rows)
 
 # ======================================================
-# ✅ MOTUL (РАБОТЕЩ)
+# ✅ MOTUL (СТАБИЛЕН FINAL)
 # ======================================================
-
 def parse_motul(text):
 
     rows = []
@@ -394,22 +393,20 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-# ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
-# ======================================================
-weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
+        # ======================================================
+        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-# ✅ взимаме правилното тегло (най-малкото число от реда)
-if weights and current_weight == 0:
-    try:
-        values = [
-            float(w.replace(" ", "").replace(",", "."))
-            for w in weights
-        ]
-
-        current_weight = min(values)
-
-    except:
-        pass
+        # ✅ взимаме правилното тегло (най-малкото)
+        if weights and current_weight == 0:
+            try:
+                values = [
+                    float(w.replace(" ", "").replace(",", "."))
+                    for w in weights
+                ]
+                current_weight = min(values)
+            except:
+                pass
 
         # ======================================================
         # ✅ РАЗФАСОВКА (wid)
@@ -433,7 +430,7 @@ if weights and current_weight == 0:
             if code:
                 code_value = code.group(1)[:8]
 
-                # ✅ qty логика
+                # ✅ логика за количество
                 if current_qty * units_in_box * liters_per_unit > 100000:
                     real_qty = current_qty
                 else:
@@ -456,8 +453,8 @@ if weights and current_weight == 0:
                 liters_per_unit = 0
                 units_in_box = 1
 
-       return pd.DataFrame(rows)
-
+    # ✅ ВАЖНО: вътре във функцията!
+    return pd.DataFrame(rows)
 
 
 # ======================================================
