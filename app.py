@@ -337,14 +337,6 @@ uploaded_files = st.file_uploader(
     accept_multiple_files=True
 )
 def parse_motul(text):
-    st.warning("⚠️ parse_motul временно липсва")
-    return pd.DataFrame({
-        "Тарифен код": [],
-        "Количество": [],
-        "wid": [],
-        "kolichestvo": [],
-        "тегло": []
-    })
 # ======================================================
 # ✅ PROCESS
 # ======================================================
