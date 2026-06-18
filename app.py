@@ -485,6 +485,9 @@ def parse_neste_excel(file):
 # ======================================================
 def parse_valvoline_excel(file):
 
+    import pandas as pd
+    import re
+
     xls = pd.ExcelFile(file)
 
     # ✅ намираме PL sheet
@@ -498,14 +501,36 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен PL sheet")
         st.stop()
 
-    df = xls.parse(sheet_name)
+    # ======================================================
+    # ✅ НАМИРАМЕ HEADER ROW АВТОМАТИЧНО
+    # ======================================================
+    raw = xls.parse(sheet_name, header=None)
 
-    # ✅ CLEAN всички колони брутално
-    df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ").str.replace("  ", " ")
+    header_row = None
 
-    # ✅ DEBUG (ако трябва)
+    for i, row in raw.iterrows():
+        row_text = " ".join([str(x) for x in row])
+
+        if "Tariff" in row_text and "Qty" in row_text:
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ Не е намерен header ред")
+        st.stop()
+
+    # ✅ четем пак, но със правилния header
+    df = xls.parse(sheet_name, header=header_row)
+
+    # ✅ чистим колоните
+    df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ")
+
+    # ✅ DEBUG ако трябва:
     # st.write(df.columns)
 
+    # ======================================================
+    # ✅ COLUMN MAP (сега вече ще работи)
+    # ======================================================
     column_map = {}
 
     for col in df.columns:
@@ -517,7 +542,7 @@ def parse_valvoline_excel(file):
         elif "pack" in c:
             column_map[col] = "pack"
 
-        elif c.strip() == "qty":
+        elif "qty" in c:
             column_map[col] = "qty"
 
         elif "net" in c:
@@ -525,7 +550,7 @@ def parse_valvoline_excel(file):
 
     df = df.rename(columns=column_map)
 
-    # ✅ защита (сега вече ще мине)
+    # ✅ защита
     required = ["code", "pack", "qty", "weight"]
     missing = [c for c in required if c not in df.columns]
 
@@ -540,7 +565,7 @@ def parse_valvoline_excel(file):
 
     for _, r in df.iterrows():
 
-        code = str(r["code"])[:8]
+        code = str(r["code"])[:8]  # ✅ махаме последните 2 цифри
         qty = r["qty"]
         weight = r["weight"]
         pack = str(r["pack"])
