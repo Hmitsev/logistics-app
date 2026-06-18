@@ -336,38 +336,9 @@ uploaded_files = st.file_uploader(
     type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
     accept_multiple_files=True
 )
+
 # ======================================================
-# ✅ MOTUL PARSER (FIXED)
-# ======================================================
-def parse_motul(text):
-
-    rows = []
-
-    for line in text.split("\n"):
-
-        try:
-            qty_match = re.search(r'(\d+[.,]?\d*)\s*EA', line)
-            kg_match = re.search(r'(\d+[.,]\d+)\s*KG', line)
-            code_match = re.search(r'\d{8}', line)
-
-            if qty_match and kg_match and code_match:
-                qty = float(qty_match.group(1).replace(",", ""))
-                weight = float(kg_match.group(1).replace(",", "."))
-
-                rows.append({
-                    "Тарифен код": code_match.group(0),
-                    "Количество": qty,
-                    "wid": 1,
-                    "kolichestvo": qty,
-                    "тегло": weight
-                })
-
-        except:
-            pass
-
-    return pd.DataFrame(rows)
-    # ======================================================
-# ✅ MOTUL PARSER (FIXED)
+# ✅ MOTUL PARSER (FINAL STABLE)
 # ======================================================
 def parse_motul(text):
 
@@ -394,9 +365,16 @@ def parse_motul(text):
         except:
             pass
 
+    # ✅ ВАЖЕН FIX – ако няма редове
+    if not rows:
+        return pd.DataFrame(columns=[
+            "Тарифен код","Количество","wid","kolichestvo","тегло"
+        ])
+
     return pd.DataFrame(rows)
+
 # ======================================================
-# ✅ PROCESS
+# ✅ PROCESS (FINAL STABLE)
 # ======================================================
 if uploaded_files:
 
@@ -418,7 +396,6 @@ if uploaded_files:
                 df = parse_motul(text)
 
         else:
-            # ✅ FIX за Excel
             df_raw = pd.read_excel(file)
 
             df = pd.DataFrame({
@@ -431,7 +408,17 @@ if uploaded_files:
 
         all_data.append(df)
 
+    # ✅ FIX ако няма валидни данни
+    if not all_data:
+        st.warning("⚠️ Няма обработени данни")
+        st.stop()
+
     final_df = pd.concat(all_data, ignore_index=True)
+
+    # ✅ FIX ако няма колона
+    if "Тарифен код" not in final_df.columns:
+        st.error("❌ Липсва 'Тарифен код' – parser-ът не е извлякъл данни")
+        st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
