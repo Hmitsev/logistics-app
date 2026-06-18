@@ -355,38 +355,13 @@ if uploaded_files:
 
             if menu == "Castrol":
                 df = parse_castrol(text)
-
-            elif menu == "MOTUL":
+            else:
                 df = parse_motul(text)
 
-            elif menu == "FUCHS":
-                df = parse_fuchs(text)
-
         else:
-            # ✅ EXCEL логика
-            if menu == "FUCHS":
-                df = parse_fuchs_excel(file)
-            else:
-                df = pd.read_excel(file)
-
-
-        # ✅ ✅ DEBUG + FIX (важно)
-        # показва какви колони има (махни после)
-        st.write("DEBUG columns:", df.columns)
-
-        # ✅ защита от crash
-        if "Тарифен код" not in df.columns:
-            st.error("❌ Няма колона 'Тарифен код' – файлът не е разчетен правилно")
-            continue
-
+            df = pd.read_excel(file)
 
         all_data.append(df)
-
-
-    if not all_data:
-        st.warning("⚠️ Няма валидни данни")
-        st.stop()
-
 
     final_df = pd.concat(all_data, ignore_index=True)
 
