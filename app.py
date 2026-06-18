@@ -213,7 +213,7 @@ st.markdown("""
 
 
 # ✅ SIDEBAR (с reset логика)
-menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL", "FUCHS"])
+menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
 
 # ✅ пазим предишния supplier
 if "prev_supplier" not in st.session_state:
