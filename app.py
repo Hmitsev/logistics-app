@@ -175,26 +175,26 @@ else:
     excel_color = "#36c165"
 
 
-# ✅ СТИЛ НА БУТОНИТЕ (dynamic)
+# ✅ динамичен стил за бутони
 st.markdown(f"""
 <style>
 
-/* PDF бутон */
-div[data-testid="column"]:nth-of-type(1) button {{
-    background-color: {pdf_color};
-    color: white;
-    font-weight: 800;
-    border-radius: 12px;
-    height: 55px;
+/* Първи бутон (PDF) */
+div[data-testid="column"] > div:nth-child(1) button {{
+    background-color: {pdf_color} !important;
+    color: white !important;
+    font-weight: 800 !important;
+    border-radius: 12px !important;
+    height: 60px !important;
 }}
 
-/* Excel бутон */
+/* Втори бутон (Excel) */
 div[data-testid="column"]:nth-of-type(2) button {{
-    background-color: {excel_color};
-    color: white;
-    font-weight: 800;
-    border-radius: 12px;
-    height: 55px;
+    background-color: {excel_color} !important;
+    color: white !important;
+    font-weight: 800 !important;
+    border-radius: 12px !important;
+    height: 60px !important;
 }}
 
 </style>
