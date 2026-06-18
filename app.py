@@ -106,7 +106,7 @@ section[data-testid="stSidebar"] {
 
 /* ✅ вътрешен контейнер */
 section[data-testid="stSidebar"] > div {
-    background: rgba(0,0,0,0.15) !important;  /* прозрачно */
+    background: rgba(0,0,0,0.05)
     backdrop-filter: blur(10px);              /* glass */
     -webkit-backdrop-filter: blur(10px);
 
