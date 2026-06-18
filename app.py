@@ -43,7 +43,7 @@ ALLOWED_CODES = [
 # ======================================================
 # ✅ UI
 # ======================================================
-st.title("📦 Приложение за Митница")
+st.title("📦 CustomsFlow")
 
 source_type = st.radio("👉 Избери източник", ["PDF", "Excel"])
 menu = st.sidebar.selectbox("Доставчик", ["Castrol", "MOTUL"])
