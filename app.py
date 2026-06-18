@@ -27,10 +27,11 @@ def set_bg(image_file):
         )
     except:
         pass
-# ======================================================
-# ✅ LOGOUT BUTTON (FIXED TOP RIGHT)
-# ======================================================
 
+
+# ======================================================
+# ✅ LOGOUT BUTTON
+# ======================================================
 logout_col1, logout_col2, logout_col3 = st.columns([8,1,1])
 
 with logout_col3:
@@ -51,30 +52,21 @@ div[data-testid="column"]:nth-of-type(3) {
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (FINAL INLINE LOGO WORKING)
+# ✅ LOGIN
 # ======================================================
 def check_login():
-
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
 
     if not st.session_state["logged_in"]:
 
-        # ✅ background
         set_bg("background_login.png")
 
-        # ✅ HEADER В 1 РЕД (чрез columns, но правилно оразмерени)
         col1, col2 = st.columns([4,1])
 
         with col1:
             st.markdown("""
-            <div style="
-                text-align:right;
-                font-size:32px;
-                font-weight:900;
-                color:white;
-                white-space:nowrap;
-            ">
+            <div style="text-align:right;font-size:32px;font-weight:900;color:white;">
                 CustomsFlow
             </div>
             """, unsafe_allow_html=True)
@@ -82,20 +74,13 @@ def check_login():
         with col2:
             st.image("Screenshot 2026-06-18 093459.png", width=60)
 
-        # ✅ леко spacing
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ✅ Login title
-        st.markdown(
-            "<h1 style='text-align:center; color:white;'>🔐 Вход</h1>",
-            unsafe_allow_html=True
-        )
+        st.markdown("<h1 style='text-align:center;color:white;'>🔐 Вход</h1>", unsafe_allow_html=True)
 
-        # ✅ Inputs
         username = st.text_input("Потребител")
         password = st.text_input("Парола", type="password")
 
-        # ✅ Button
         if st.button("Вход"):
             if username == "mitnica" and password == "Intercars2026":
                 st.session_state["logged_in"] = True
@@ -104,75 +89,91 @@ def check_login():
                 st.error("❌ Грешно име или парола")
 
         return False
-
     return True
 
 
 if not check_login():
     st.stop()
 
-# ✅ main background
 set_bg("background.png")
+
+
 # ======================================================
-# ✅ ULTRA GLASS SIDEBAR (PRO VERSION)
+# ✅ FUCHS PARSER (НОВИЯ ДОСТАВЧИК)
 # ======================================================
+def parse_fuchs_pdf(text):
 
-st.markdown("""
-<style>
+    rows = []
+    current_tariff = None
+    current_pack = None
 
-/* ✅ Sidebar container */
-section[data-testid="stSidebar"] {
-    background: transparent !important;
-}
+    lines = text.split("\n")
 
-/* ✅ GLASS EFFECT */
-section[data-testid="stSidebar"] > div {
-    background: rgba(0,0,0,0.01) !important;  /* почти прозрачно */
+    for line in lines:
 
-    backdrop-filter: blur(18px) saturate(140%);
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
+        # ✅ Material (взимаме разфасовка)
+        if "Material" in line and "TITAN" in line:
+            pack_match = re.search(r'(\d+L|\d+G)', line)
+            if pack_match:
+                current_pack = pack_match.group(1)
 
-    border-right: 4px solid rgba(255,255,255,0.7);  /* силен метален борд */
+        # ✅ Commodity Code
+        elif "Commodity Code" in line:
+            code = re.findall(r'\d{8}', line)
+            if code:
+                current_tariff = code[0]
 
-    /* ✅ вътрешен glow */
-    box-shadow:
-        inset 0 0 10px rgba(255,255,255,0.05),
-        0 0 20px rgba(255,255,255,0.1);
-}
+        # ✅ Quantity/net/gross
+        elif "Quantity/net/gross" in line:
+            nums = re.findall(r'[\d,.]+', line)
+            if len(nums) >= 2:
+                qty = float(nums[0].replace(",", ""))
+                kg = float(nums[1].replace(",", ""))
+
+                rows.append({
+                    "Тарифен код": current_tariff,
+                    "Количество": qty,
+                    "wid": current_pack,
+                    "kolichestvo": qty,
+                    "тегло": kg
+                })
+
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        return df
+
+    # ✅ събира batch редовете
+    df = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
 
 
-/* ✅ текст */
-section[data-testid="stSidebar"] * {
-    color: white !important;
-}
+def parse_fuchs_excel(file):
 
+    df = pd.read_excel(file, engine="openpyxl")
 
-/* ✅ SELECT BOX */
-div[data-baseweb="select"] {
-    background: rgba(255,255,255,0.04) !important;
-    backdrop-filter: blur(8px);
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.25);
+    df_out = df.rename(columns={
+        "Comm./imp. code no.": "Тарифен код",
+        "Delivery quantity": "Количество",
+        "Net Weight": "тегло"
+    })
 
-    cursor: pointer !important;
-}
+    df_out["wid"] = df["Description"].str.extract(r'(\d+L|\d+G)')
+    df_out["kolichestvo"] = df_out["Количество"]
 
+    df_out = df_out.groupby(["Тарифен код", "wid"], as_index=False).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
 
-/* ✅ hover ефект (много фин) */
-div[data-baseweb="select"]:hover {
-    background: rgba(255,255,255,0.08) !important;
-    border: 1px solid rgba(255,255,255,0.4);
-    box-shadow: 0 0 8px rgba(255,255,255,0.2);
-}
+    return df_out
 
-
-/* ✅ pointer fix */
-div[data-baseweb="select"] * {
-    cursor: inherit !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
 
 # ======================================================
 # ✅ КОДОВЕ
@@ -186,156 +187,27 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (RESET + FIXED ORDER)
+# ✅ SIDEBAR
 # ======================================================
-
-st.markdown("""
-<style>
-.source-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: white;
-}
-
-/* ✅ Add file малък и прозрачен */
-.add-file {
-    display:inline-block;
-    background: rgba(255,255,255,0.04);
-    border-radius: 6px;
-    padding: 3px 10px;
-    color: white;
-    font-size: 14px;
-    font-weight: 400;
-    margin-bottom: 6px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
-# ✅ SIDEBAR (с reset логика)
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL", "FUCHS"])
 
-# ✅ пазим предишния supplier
 if "prev_supplier" not in st.session_state:
     st.session_state["prev_supplier"] = menu
 
-# ✅ АКО смениш supplier → reset
 if st.session_state["prev_supplier"] != menu:
-    st.session_state["source_type"] = ""   # reset PDF/Excel
+    st.session_state["source_type"] = ""
     st.session_state["prev_supplier"] = menu
 
 
-# ✅ заглавие
-st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
-
-
-# ✅ STATE
-if "source_type" not in st.session_state:
-    st.session_state["source_type"] = ""
-
-
-# ✅ бутони
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("PDF", use_container_width=True):
-        st.session_state["source_type"] = "PDF"
-        st.rerun()
-
-with col2:
-    if st.button("Excel", use_container_width=True):
-        st.session_state["source_type"] = "Excel"
-        st.rerun()
-
-
-source_type = st.session_state["source_type"]
-
-
-# ✅ цветове + текст
-if source_type == "PDF":
-    pdf_color = "#ff3b3b"
-    excel_color = "#444"
-
-    pdf_overlay = "<span style='color:#ff3b3b;'>You chose: PDF</span>"
-    excel_overlay = "<span style='color:white;'>Excel</span>"
-
-elif source_type == "Excel":
-    pdf_color = "#444"
-    excel_color = "#36c165"
-
-    pdf_overlay = "<span style='color:white;'>PDF</span>"
-    excel_overlay = "<span style='color:#36c165;'>You chose: Excel</span>"
-
-else:
-    pdf_color = "#444"
-    excel_color = "#444"
-
-    pdf_overlay = "<span style='color:white;'>PDF</span>"
-    excel_overlay = "<span style='color:white;'>Excel</span>"
-
-
-# ✅ бутон стил
-st.markdown(f"""
-<style>
-
-/* PDF */
-div[data-testid="column"]:nth-of-type(1) button {{
-    background-color: {pdf_color};
-    height: 60px;
-    border-radius: 12px;
-}}
-
-/* Excel */
-div[data-testid="column"]:nth-of-type(2) button {{
-    background-color: {excel_color};
-    height: 60px;
-    border-radius: 12px;
-}}
-
-</style>
-""", unsafe_allow_html=True)
-
-
-# ✅ overlay текст вдясно
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown(f"""
-    <div style="
-        margin-top:-65px;
-        display:flex;
-        justify-content:flex-end;
-        padding-right:20px;
-        pointer-events:none;
-    ">
-        {pdf_overlay}
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.markdown(f"""
-    <div style="
-        margin-top:-65px;
-        display:flex;
-        justify-content:flex-end;
-        padding-right:20px;
-        pointer-events:none;
-    ">
-        {excel_overlay}
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ✅ ✅ ADD FILE НАД UPLOAD (малък)
-st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
-
-
-# ✅ UPLOAD (под него)
+# ======================================================
+# ✅ UPLOAD
+# ======================================================
 uploaded_files = st.file_uploader(
     "",
-    type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
+    type=["pdf", "xlsx", "xls"],
     accept_multiple_files=True
 )
+
 
 # ======================================================
 # ✅ PROCESS
@@ -346,19 +218,22 @@ if uploaded_files:
 
     for file in uploaded_files:
 
-        if source_type == "PDF":
+        if file.type == "application/pdf":
             reader = PdfReader(file)
             text = ""
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            if menu == "Castrol":
-                df = parse_castrol(text)
+            if menu == "FUCHS":
+                df = parse_fuchs_pdf(text)
             else:
-                df = parse_motul(text)
+                continue
 
         else:
-            df = pd.read_excel(file)
+            if menu == "FUCHS":
+                df = parse_fuchs_excel(file)
+            else:
+                df = pd.read_excel(file)
 
         all_data.append(df)
 
@@ -368,15 +243,13 @@ if uploaded_files:
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
     final_df = final_df[final_df["тегло"] > 0]
 
-    report = build_final_report(final_df)
-
     st.subheader("📊 Финален отчет")
-    st.dataframe(report)
+    st.dataframe(final_df)
 
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
+        final_df.to_excel(writer, index=False)
 
     st.download_button(
         "📥 Изтегли Excel",
