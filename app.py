@@ -625,6 +625,11 @@ if uploaded_files and len(uploaded_files) > 0:
 
             df = parse_neste_excel(file)
 
+        # ✅ VALVOLINE → Excel (PL sheet)
+        elif menu == "VALVOLINE":
+
+            df = parse_valvoline_excel(file)
+
         # ✅ PDF (Castrol + MOTUL)
         elif source_type == "PDF":
 
