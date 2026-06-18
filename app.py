@@ -30,7 +30,7 @@ def set_bg(image_file):
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM
+# ✅ LOGIN SYSTEM (UPDATED UI)
 # ======================================================
 def check_login():
 
@@ -42,11 +42,45 @@ def check_login():
         # ✅ login background
         set_bg("background_login.png")
 
-        st.markdown("<h1 style='text-align:center; color:white;'>🔐 Вход</h1>", unsafe_allow_html=True)
+        # ✅ header горе вдясно (свален надолу)
+        st.markdown(
+            """
+            <div style="
+                position: fixed;
+                top: 50px;
+                right: 30px;
+                font-size: 32px;
+                font-weight: 900;
+                color: white;
+                z-index: 1000;
+            ">
+                CustomsFlow
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
+        # ✅ Централен блок (лого + текст)
+        st.markdown("""
+        <div style='text-align:center; margin-bottom:20px;'>
+            <img src="logo.png" width="120">
+            <div style='font-size:26px; font-weight:800; color:white; margin-top:10px;'>
+                CustomsFlow
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ✅ Заглавие
+        st.markdown(
+            "<h1 style='text-align:center; color:white;'>🔐 Вход</h1>",
+            unsafe_allow_html=True
+        )
+
+        # ✅ input полета
         username = st.text_input("Потребител")
         password = st.text_input("Парола", type="password")
 
+        # ✅ бутон
         if st.button("Вход"):
             if username == "mitnica" and password == "Intercars2026":
                 st.session_state["logged_in"] = True
@@ -62,7 +96,7 @@ def check_login():
 if not check_login():
     st.stop()
 
-# ✅ main background
+# ✅ main background (след login)
 set_bg("background.png")
 
 
