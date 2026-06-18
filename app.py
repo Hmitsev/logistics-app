@@ -93,63 +93,43 @@ if not check_login():
 # ✅ main background
 set_bg("background.png")
 # ======================================================
-# ✅ TRANSPARENT SIDEBAR (GLASS EFFECT)
+# ✅ TRUE GLASS SIDEBAR (REAL TRANSPARENCY)
 # ======================================================
 
 st.markdown("""
 <style>
 
-/* ✅ Sidebar контейнер */
+/* ✅ Махаме ВСИЧКИ фонoве */
 section[data-testid="stSidebar"] {
-    background: rgba(255,255,255,0.05) !important;
-    backdrop-filter: blur(12px) !important;
-    border-right: 1px solid rgba(255,255,255,0.1);
-}
-
-/* ✅ махаме плътния background */
-section[data-testid="stSidebar"] > div {
     background: transparent !important;
 }
 
-/* ✅ текстът вътре */
+/* ✅ ВЪТРЕШЕН контейнер */
+section[data-testid="stSidebar"] > div {
+    background: rgba(0,0,0,0.2) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+/* ✅ маха рамки и линии */
 section[data-testid="stSidebar"] * {
+    border: none !important;
+}
+
+/* ✅ текст */
+section[data-testid="stSidebar"] {
     color: white !important;
 }
 
-/* ✅ selectbox стил */
+/* ✅ selectbox */
 div[data-baseweb="select"] {
-    background: rgba(255,255,255,0.08) !important;
+    background: rgba(255,255,255,0.07) !important;
+    backdrop-filter: blur(6px);
     border-radius: 10px;
 }
 
 </style>
 """, unsafe_allow_html=True)
-
-# ======================================================
-# ✅ TOP RIGHT LOGOUT (VISIBLE FIX)
-# ======================================================
-
-# ✅ контейнер най-горе
-logout_col1, logout_col2, logout_col3 = st.columns([8,1,1])
-
-with logout_col3:
-    if st.button("🚪", help="Logout"):
-        st.session_state["logged_in"] = False
-        st.rerun()
-
-
-# ✅ CSS за position
-st.markdown("""
-<style>
-div[data-testid="column"]:nth-of-type(3) {
-    position: fixed;
-top: 4px;
-right: 40px;
-    z-index: 9999;
-}
-</style>
-""", unsafe_allow_html=True)
-
 
 # ======================================================
 # ✅ HEADER
