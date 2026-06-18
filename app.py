@@ -5,7 +5,6 @@ from PyPDF2 import PdfReader
 import io
 import base64
 
-
 # ======================================================
 # ✅ BACKGROUND FUNCTION
 # ======================================================
@@ -31,28 +30,24 @@ def set_bg(image_file):
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (с различен background)
+# ✅ LOGIN SYSTEM
 # ======================================================
 def check_login():
 
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
 
-    # ✅ ако НЕ е логнат → login фон
     if not st.session_state["logged_in"]:
 
+        # ✅ login background
         set_bg("background_login.png")
 
-        st.markdown(
-            "<h1 style='text-align:center; color:white;'>🔐 Вход в системата</h1>",
-            unsafe_allow_html=True
-        )
+        st.markdown("<h1 style='text-align:center; color:white;'>🔐 Вход</h1>", unsafe_allow_html=True)
 
         username = st.text_input("Потребител")
         password = st.text_input("Парола", type="password")
 
         if st.button("Вход"):
-
             if username == "mitnica" and password == "Intercars2026":
                 st.session_state["logged_in"] = True
                 st.rerun()
@@ -64,31 +59,16 @@ def check_login():
     return True
 
 
-# ✅ ако не е логнат → спира всичко
 if not check_login():
     st.stop()
 
-
-# ======================================================
-# ✅ MAIN APP BACKGROUND (след login)
-# ======================================================
+# ✅ main background
 set_bg("background.png")
-# ======================================================
-# ✅ МИТНИЧЕСКИ КОДОВЕ
-# ======================================================
-ALLOWED_CODES = [
-    "27101991","27101981","27101983","27101987",
-    "27101993","27101999","34031910","34039900",
-    "34031980","38119000","38112100","38249992",
-    "27101225","38140090"
-]
 
 
 # ======================================================
-# ✅ UI
+# ✅ HEADER
 # ======================================================
-
-# ✅ Header (CustomsFlow горе вдясно)
 st.markdown(
     """
     <div style="
@@ -107,18 +87,152 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ✅ (по желание) лого – ако файлът съществува
-try:
-    st.image("logo.png", width=120)
-except:
-    pass
-
-# ✅ Основни избори
-source_type = st.radio("👉 Избери източник", ["PDF", "Excel"])
-menu = st.sidebar.selectbox("Доставчик", ["Castrol", "MOTUL"])
 
 # ======================================================
-# ✅ MOTUL (ФИНАЛЕН 100%)
+# ✅ КОДОВЕ
+# ======================================================
+ALLOWED_CODES = [
+    "27101991","27101981","27101983","27101987",
+    "27101993","27101999","34031910","34039900",
+    "34031980","38119000","38112100","38249992",
+    "27101225","38140090"
+]
+
+
+# ======================================================
+# ✅ CUSTOM UI
+# ======================================================
+st.markdown("""
+<style>
+
+.custom-box {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(6px);
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+}
+
+.bold-text {
+    font-weight: 700;
+    color: white;
+}
+
+.upload-box {
+    background: rgba(255,255,255,0.08);
+    padding: 25px;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.stFileUploader > div {
+    background: rgba(255,255,255,0.08) !important;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.stFileUploader label {
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+}
+
+.stFileUploader {
+    max-width: 450px;
+    margin: auto;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ✅ избор
+st.markdown("""
+<div class="custom-box">
+    <div class="bold-text">👉 Избери източник</div>
+</div>
+""", unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    pdf_selected = st.button("PDF")
+
+with col2:
+    excel_selected = st.button("Excel")
+
+if "source_type" not in st.session_state:
+    st.session_state["source_type"] = "PDF"
+
+if pdf_selected:
+    st.session_state["source_type"] = "PDF"
+
+if excel_selected:
+    st.session_state["source_type"] = "Excel"
+
+source_type = st.session_state["source_type"]
+
+st.markdown(f"""
+<div class="custom-box">
+    <div class="bold-text">Избран: {source_type}</div>
+</div>
+""", unsafe_allow_html=True)
+
+# ✅ upload зона
+st.markdown("""
+<div class="upload-box">
+    <div class="bold-text" style="font-size:20px;">Качи файл</div>
+</div>
+""", unsafe_allow_html=True)
+
+uploaded_files = st.file_uploader(
+    "",
+    type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
+    accept_multiple_files=True
+)
+
+# ✅ доставчик (оставяме го!)
+menu = st.sidebar.selectbox("Доставчик", ["Castrol", "MOTUL"])
+
+
+# ======================================================
+# ✅ CASTROL
+# ======================================================
+def parse_castrol(text):
+
+    rows = []
+    lines = text.split("\n")
+    current_liters = 0
+
+    for line in lines:
+
+        multi = re.search(r"(\d+)X(\d+)L", line)
+        single = re.search(r"(\d+)L", line)
+
+        if multi:
+            current_liters = int(multi.group(1)) * int(multi.group(2))
+        elif single:
+            current_liters = int(single.group(1))
+
+        if "Cod Vamal" in line:
+            try:
+                code = re.search(r"Cod Vamal:(\d+)", line).group(1)
+                qty = int(re.search(r"ST\s*(\d+)", line).group(1))
+
+                rows.append({
+                    "Тарифен код": code,
+                    "Количество": qty,
+                    "wid": current_liters,
+                    "kolichestvo": qty * current_liters,
+                    "тегло": 0
+                })
+            except:
+                pass
+
+    return pd.DataFrame(rows)
+
+
+# ======================================================
+# ✅ MOTUL
 # ======================================================
 def parse_motul(text):
 
@@ -132,7 +246,6 @@ def parse_motul(text):
 
     for line in lines:
 
-        # ✅ количество
         match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
         if match:
             try:
@@ -140,7 +253,6 @@ def parse_motul(text):
             except:
                 pass
 
-        # ✅ тегло (само със запетая)
         weights = re.findall(r"\d+,\d+", line)
         if weights:
             try:
@@ -148,28 +260,23 @@ def parse_motul(text):
             except:
                 pass
 
-        # ✅ multipack (L + kg + 0,300)
         multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
         single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
 
         if multi:
             units_in_box = int(multi[-1][0])
             liters_per_unit = float(multi[-1][1].replace(",", "."))
-
         elif single:
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
 
-        # ✅ код
         if "HS code" in line:
             code = re.search(r"HS code\s*:\s*(\d+)", line)
 
             if code:
 
-                # ✅ ✅ ключов FIX: нормализиране до 8 цифри
                 code_value = code.group(1)[:8]
 
-                # ✅ защита от двойно умножение
                 if current_qty * units_in_box * liters_per_unit > 100000:
                     real_qty = current_qty
                 else:
@@ -188,14 +295,14 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 
+
 # ======================================================
-# ✅ FINAL REPORT
+# ✅ REPORT
 # ======================================================
 def build_final_report(df):
 
     df["wid"] = df["wid"].astype(float).round(3)
 
-    # ✅ row-level density (най-точното)
     df["ratio"] = df["тегло"] / df["kolichestvo"]
     df["correct_weight"] = df["kolichestvo"] * df["ratio"]
 
@@ -243,26 +350,19 @@ def build_final_report(df):
 
     return pd.DataFrame(rows)
 
+
 # ======================================================
-# ✅ PDF
+# ✅ PROCESS
 # ======================================================
-if source_type == "PDF":
+if uploaded_files:
 
-    uploaded_files = st.file_uploader(
-        "Качи PDF файлове",
-        type=["pdf"],
-        accept_multiple_files=True
-    )
+    all_data = []
 
-    if uploaded_files:
+    for file in uploaded_files:
 
-        all_data = []
-
-        for file in uploaded_files:
-
+        if source_type == "PDF":
             reader = PdfReader(file)
             text = ""
-
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
@@ -271,91 +371,29 @@ if source_type == "PDF":
             else:
                 df = parse_motul(text)
 
-            all_data.append(df)
+        else:
+            df = pd.read_excel(file)
 
-        final_df = pd.concat(all_data, ignore_index=True)
+        all_data.append(df)
 
-        # ✅ филтър по кодове
-        final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-        final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = pd.concat(all_data, ignore_index=True)
 
-        final_df = final_df[final_df["тегло"] > 0]
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
 
-        report = build_final_report(final_df)
+    report = build_final_report(final_df)
 
-        st.subheader("📊 Финален отчет")
-        st.dataframe(report)
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
 
-        output = io.BytesIO()
+    output = io.BytesIO()
 
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            report.to_excel(writer, index=False)
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        report.to_excel(writer, index=False)
 
-        st.download_button(
-            "📥 Изтегли Excel",
-            data=output.getvalue(),
-            file_name="pdf_final_report.xlsx"
-        )
-
-# ======================================================
-# ✅ EXCEL
-# ======================================================
-elif source_type == "Excel":
-
-    excel_file = st.file_uploader("Качи Excel", type=["xlsx", "xls"])
-
-    if excel_file:
-
-        df = pd.read_excel(excel_file)
-        df.columns = df.columns.str.strip()
-
-        column_map = {}
-
-        for col in df.columns:
-            c = col.lower()
-
-            if "commodity" in c:
-                column_map[col] = "Commodity code"
-            elif "pack" in c:
-                column_map[col] = "Type of packaging"
-            elif "delivery quantity" in c:
-                column_map[col] = "Delivery quantity"
-            elif "volume" in c:
-                column_map[col] = "Volume"
-            elif "net weight" in c:
-                column_map[col] = "Net Weight"
-
-        df = df.rename(columns=column_map)
-
-        df_common = df.groupby(
-            ["Commodity code", "Type of packaging"],
-            as_index=False
-        ).agg({
-            "Delivery quantity": "sum",
-            "Volume": "sum",
-            "Net Weight": "sum"
-        })
-
-        df_common = df_common.rename(columns={
-            "Commodity code": "Тарифен код",
-            "Type of packaging": "wid",
-            "Delivery quantity": "Количество",
-            "Volume": "kolichestvo",
-            "Net Weight": "тегло"
-        })
-
-        report = build_final_report(df_common)
-
-        st.subheader("📊 Финален отчет")
-        st.dataframe(report)
-
-        output = io.BytesIO()
-
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            report.to_excel(writer, index=False)
-
-        st.download_button(
-            "📥 Изтегли Excel",
-            data=output.getvalue(),
-            file_name="excel_final_report.xlsx"
-        )
+    st.download_button(
+        "📥 Изтегли Excel",
+        data=output.getvalue(),
+        file_name="final_report.xlsx"
+    )
