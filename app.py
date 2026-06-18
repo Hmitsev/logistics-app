@@ -488,19 +488,18 @@ if uploaded_files:
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    if "Code" not in final_df.columns:
-        st.error("❌ Липсва 'Code'")
-        st.stop()
+# ✅ защита
+if "Code" not in final_df.columns:
+    st.error("❌ Липсва 'Code'")
+    st.stop()
 
-
-    final_df["Code"] = final_df["Code"].astype(str)
+final_df["Code"] = final_df["Code"].astype(str)
 final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
 final_df = final_df[final_df["teglo"] > 0]
 
-    report = final_df
-
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
+# ✅ временно показваме raw данните (без report)
+st.subheader("📊 RAW DATA")
+st.dataframe(final_df)
 
     output = io.BytesIO()
 
