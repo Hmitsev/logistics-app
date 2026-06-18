@@ -151,18 +151,18 @@ st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_h
 if "source_type" not in st.session_state:
     st.session_state["source_type"] = "PDF"
 
-# ✅ цветове според избора
-pdf_color = "#444"      # default сив
-excel_color = "#444"
 
+# ✅ стилове според избор
 if st.session_state["source_type"] == "PDF":
-    pdf_color = "#ff3b3b"   # червен
+    pdf_style = "background-color:#ff3b3b; color:white;"
+    excel_style = "background-color:#444; color:white;"
 else:
-    excel_color = "#36c165" # зелен
+    pdf_style = "background-color:#444; color:white;"
+    excel_style = "background-color:#36c165; color:white;"
 
 
 # ✅ layout
-col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns([1,1])
 
 with col1:
     if st.button("PDF", use_container_width=True):
@@ -170,12 +170,18 @@ with col1:
 
     st.markdown(f"""
         <div style="
-            background:{pdf_color};
-            height:10px;
-            border-radius:5px;
-            margin-top:-8px;
-        "></div>
+            {pdf_style}
+            padding: 12px;
+            border-radius: 10px;
+            text-align:center;
+            font-weight:700;
+            margin-top:-48px;
+            pointer-events:none;
+        ">
+            PDF
+        </div>
     """, unsafe_allow_html=True)
+
 
 with col2:
     if st.button("Excel", use_container_width=True):
@@ -183,12 +189,18 @@ with col2:
 
     st.markdown(f"""
         <div style="
-            background:{excel_color};
-            height:10px;
-            border-radius:5px;
-            margin-top:-8px;
-        "></div>
+            {excel_style}
+            padding: 12px;
+            border-radius: 10px;
+            text-align:center;
+            font-weight:700;
+            margin-top:-48px;
+            pointer-events:none;
+        ">
+            Excel
+        </div>
     """, unsafe_allow_html=True)
+
 
 source_type = st.session_state["source_type"]
 
