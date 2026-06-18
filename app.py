@@ -88,8 +88,6 @@ if not check_login():
 
 # ✅ main background
 set_bg("background.png")
-``
-
 
 
 # ======================================================
