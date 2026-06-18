@@ -556,61 +556,41 @@ def parse_valvoline_excel(file):
 
     rows = []
 
-    for _, r in df.iterrows():
+for _, r in df.iterrows():
 
-        code = str(r["code"])[:8]
-        pack = str(r["pack"]).upper()
-        qty = float(r["qty"])
-        weight = float(r["weight"])
+    code = str(r["code"])[:8]
+    pack = str(r["pack"]).upper()
+    qty = float(r["qty"])
+    weight = float(r["weight"])
 
-        # ======================================================
-        # ✅ CLEAN wid extraction (FIXED FINAL)
-        # ======================================================
+    wid = 1
+
+    if "X" in pack and "L" in pack:
+        wid = int(re.findall(r"\d+", pack)[1])
+
+    elif "X" in pack and "G" in pack:
+        wid = int(re.findall(r"\d+", pack)[1])
+
+    elif "L" in pack:
+        wid = int(re.findall(r"\d+", pack)[0])
+
+    elif "G" in pack:
+        wid = int(re.findall(r"\d+", pack)[0])
+
+    else:
         wid = 1
 
-        # 4x5L
-        if "X" in pack and "L" in pack:
-            try:
-                wid = int(re.findall(r"\d+", pack)[1])
-            except:
-                wid = 1
+    # ✅ ФИНАЛНА ЛОГИКА (ИСТИНСКАТА)
+    broj = qty
+    kolichestvo = qty * wid
 
-        # 24x400G
-        elif "X" in pack and "G" in pack:
-            try:
-                wid = int(re.findall(r"\d+", pack)[1])
-            except:
-                wid = 1
-
-        # 20L / 208L
-        elif "L" in pack:
-            try:
-                wid = int(re.findall(r"\d+", pack)[0])
-            except:
-                wid = 1
-
-        # fallback
-        else:
-            try:
-                wid = int(re.findall(r"\d+", pack)[0])
-            except:
-                wid = 1
-
-        # ======================================================
-        # ✅ FINAL CALCULATION (ТВОЯТА ЛОГИКА)
-        # ======================================================
-        if wid != 0:
-            broj = qty / wid
-        else:
-            broj = qty
-
-        rows.append({
-            "Тарифен код": code,
-            "Количество": broj,
-            "wid": wid,
-            "kolichestvo": qty,
-            "тегло": weight
-        })
+    rows.append({
+        "Тарифен код": code,
+        "Количество": broj,
+        "wid": wid,
+        "kolichestvo": kolichestvo,
+        "тегло": weight
+    })
 
 
 
