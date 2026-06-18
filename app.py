@@ -127,7 +127,7 @@ section[data-testid="stSidebar"] {
 
 /* ✅ GLASS EFFECT */
 section[data-testid="stSidebar"] > div {
-    background: rgba(255,255,255,0.03) !important;  /* почти прозрачно */
+    background: rgba(255,255,255,0.01) !important;  /* почти прозрачно */
 
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
