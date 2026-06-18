@@ -534,7 +534,7 @@ def parse_valvoline_excel(file):
 
     rows = []
 
-    for
+    for _, r in df.iterrows():
 
         code = str(r["code"])[:8]  # ✅ махаме последните 2 цифри
         qty = r["qty"]
