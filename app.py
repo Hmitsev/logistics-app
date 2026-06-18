@@ -377,9 +377,9 @@ def parse_motul(text):
     lines = text.split("\n")
 
     current_qty = 0
+    current_weight = 0
     liters_per_unit = 0
     units_in_box = 1
-    last_weight = 0
 
     for line in lines:
 
@@ -394,26 +394,19 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
+        # ✅ ТЕГЛО (ВРЪЩАМЕ СТАБИЛНИЯ МЕТОД)
         # ======================================================
-        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+        weights = re.findall(r"\d+,\d+", line)
 
-        # ✅ взимаме САМО първото валидно тегло за продукта
-        if len(weights) >= 2 and last_weight == 0:
+        if weights:
             try:
-                clean_weights = [
-                    float(w.replace(" ", "").replace(",", "."))
-                    for w in weights
-                ]
-
-                # ✅ теглото е по-малкото число
-                last_weight = min(clean_weights)
-
+                # ✅ ВИНАГИ първото число
+                current_weight = float(weights[0].replace(",", "."))
             except:
                 pass
 
         # ======================================================
-        # ✅ РАЗФАСОВКА (wid)
+        # ✅ РАЗФАСОВКА
         # ======================================================
         multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
         single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
@@ -426,7 +419,7 @@ def parse_motul(text):
             liters_per_unit = float(single.group(1).replace(",", "."))
 
         # ======================================================
-        # ✅ КОД + ЗАПИС
+        # ✅ HS CODE И ЗАПИС
         # ======================================================
         if "HS code" in line:
             code = re.search(r"HS code\s*:\s*(\d+)", line)
@@ -434,7 +427,7 @@ def parse_motul(text):
             if code:
                 code_value = code.group(1)[:8]
 
-                # ✅ логика за количество
+                # ✅ правилната логика за qty
                 if current_qty * units_in_box * liters_per_unit > 100000:
                     real_qty = current_qty
                 else:
@@ -448,14 +441,14 @@ def parse_motul(text):
                     "Количество": real_qty,
                     "wid": liters_per_unit,
                     "kolichestvo": real_qty * liters_per_unit,
-                    "тегло": last_weight
+                    "тегло": current_weight
                 })
 
-                # ✅ RESET (КРИТИЧНО)
+                # ✅ RESET
                 current_qty = 0
+                current_weight = 0
                 liters_per_unit = 0
                 units_in_box = 1
-                last_weight = 0
 
     return pd.DataFrame(rows)
 
