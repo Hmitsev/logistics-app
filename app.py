@@ -332,13 +332,12 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ CASTROL FINAL (UNIFIED FORMAT)
+# ✅ CASTROL
 # ======================================================
 def parse_castrol(text):
 
     rows = []
     lines = text.split("\n")
-
     current_liters = 0
 
     for line in lines:
@@ -347,52 +346,26 @@ def parse_castrol(text):
         single = re.search(r"(\d+)L", line)
 
         if multi:
-            units = int(multi.group(1))
-            liters = int(multi.group(2))
-            wid = liters
-
+            current_liters = int(multi.group(1)) * int(multi.group(2))
         elif single:
-            units = 1
-            liters = int(single.group(1))
-            wid = liters
+            current_liters = int(single.group(1))
 
-        # ✅ когато намерим код
         if "Cod Vamal" in line:
             try:
-                code = re.search(r"Cod Vamal:(\d+)", line).group(1)[:8]
-                qty = float(re.search(r"ST\s*(\d+)", line).group(1))  # ✅ BROJ
-
-                # ✅ сметка
-                broj = qty
-                colic = qty * wid
-                teglo = 0  # CASTROL няма weight в PDF
+                code = re.search(r"Cod Vamal:(\d+)", line).group(1)
+                qty = int(re.search(r"ST\s*(\d+)", line).group(1))
 
                 rows.append({
-                    "Code": code,
-                    "wid": wid,
-                    "teglo": teglo,
-                    "colic": colic,
-                    "Broj": broj
+                    "Тарифен код": code,
+                    "Количество": qty,
+                    "wid": current_liters,
+                    "kolichestvo": qty * current_liters,
+                    "тегло": 0
                 })
-
             except:
                 pass
 
-    df = pd.DataFrame(rows)
-
-    if df.empty:
-        return df
-
-    df = df.groupby(
-        ["Code", "wid"],
-        as_index=False
-    ).agg({
-        "Broj": "sum",
-        "colic": "sum",
-        "teglo": "sum"
-    })
-
-    return df
+    return pd.DataFrame(rows)
 
 # ======================================================
 # ✅ MOTUL (FINAL REAL WORKING)
@@ -508,7 +481,7 @@ def parse_neste_excel(file):
     return df
 
 # ======================================================
-# ✅ VALVOLINE FINAL
+# ✅ VALVOLINE (EXCEL ONLY ✅)
 # ======================================================
 def parse_valvoline_excel(file):
 
@@ -527,176 +500,228 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен PL sheet")
         st.stop()
 
-    raw = xls.parse(sheet_name, header=None)
+    df = xls.parse(sheet_name)
+    df.columns = df.columns.str.strip()
 
-    header_row = None
-    for i, row in raw.iterrows():
-        row_text = " ".join([str(x) for x in row])
-        if "Tariff" in row_text and "Qty" in row_text:
-            header_row = i
-            break
+    df = df.rename(columns={
+        "Tariff No.": "code",
+        "Packaging": "pack",
+        "Qty": "qty",
+        "Net Kg": "weight"
+    })
 
-    if header_row is None:
-        st.error("❌ Не е намерен header ред")
-        st.stop()
-
-    df = xls.parse(sheet_name, header=header_row)
-    df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ")
-
-    column_map = {}
-    for col in df.columns:
-        c = col.lower()
-        if "tariff" in c:
-            column_map[col] = "code"
-        elif "pack" in c:
-            column_map[col] = "pack"
-        elif "qty" in c:
-            column_map[col] = "qty"
-        elif "net" in c:
-            column_map[col] = "weight"
-
-    df = df.rename(columns=column_map)
     df = df.dropna(subset=["code"])
 
     rows = []
 
     for _, r in df.iterrows():
 
-        code = str(r["code"])[:8]
-        pack = str(r["pack"]).upper()
-        qty = float(r["qty"])  # ✅ BROJ
-        weight = float(r["weight"])
+        code = str(r["code"])[:8]  # ✅ махаме последните 2 цифри
+        qty = r["qty"]
+        weight = r["weight"]
+        pack = str(r["pack"])
 
-        numbers = re.findall(r"\d+", pack)
+        wid = 1
 
-        if "X" in pack and len(numbers) >= 2:
-            wid = int(numbers[1])
-        elif numbers:
-            wid = int(numbers[0])
+        multi = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
+        single = re.search(r"(\d+)\s*L", pack, re.I)
+
+        if multi:
+            units = int(multi.group(1))
+            liters = int(multi.group(2))
+            wid = liters
+            qty = qty * units
+
+        elif single:
+            wid = int(single.group(1))
+
         else:
             wid = 1
 
-        broj = qty
-        colic = qty * wid
-
         rows.append({
-            "Code": code,
+            "Тарифен код": code,
+            "Количество": qty,
             "wid": wid,
-            "teglo": weight,
-            "colic": colic,
-            "Broj": broj
+            "kolichestvo": qty * wid,
+            "тегло": weight
         })
 
-    result = pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
 
-    result = result.groupby(
-        ["Code", "wid"],
+    df = df.groupby(
+        ["Тарифен код", "wid"],
         as_index=False
     ).agg({
-        "Broj": "sum",
-        "colic": "sum",
-        "teglo": "sum"
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
     })
 
-    return result
+    return df
+
+# ======================================================
+# ✅ FINAL REPORT
+# ======================================================
+def build_final_report(df):
+
+    grouped = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    rows = []
+
+    for code, group in grouped.groupby("Тарифен код"):
+
+        for _, r in group.iterrows():
+            rows.append(r.to_dict())
+
+        rows.append({
+            "Тарифен код": str(code) + " -",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": group["kolichestvo"].sum(),
+            "тегло": group["тегло"].sum()
+        })
+
+        rows.append({
+            "Тарифен код": "",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": "",
+            "тегло": ""
+        })
+
+    rows.append({
+        "Тарифен код": "GRAND TOTAL",
+        "wid": "",
+        "Количество": "",
+        "kolichestvo": grouped["kolichestvo"].sum(),
+        "тегло": grouped["тегло"].sum()
+    })
+
+    return pd.DataFrame(rows)
 
 
 # ======================================================
-# ✅ PROCESS (FINAL – FULL SAFE VERSION)
+# ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
 # ======================================================
-
 if uploaded_files and len(uploaded_files) > 0:
 
     all_data = []
 
     for file in uploaded_files:
-        ...
+
+        # ======================================================
+        # ✅ FILE PROCESSING
+        # ======================================================
+
+        # ✅ NESTE → Excel
+        if menu == "NESTE":
+
+            df = parse_neste_excel(file)
+
+        # ✅ PDF (Castrol + MOTUL)
+        elif source_type == "PDF":
+
+            reader = PdfReader(file)
+            text = ""
+
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+
+            if menu == "Castrol":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
+
+        # ✅ Excel fallback (GENERIC)
+        else:
+
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
+
+            column_map = {}
+
+            for col in df.columns:
+                c = col.lower()
+
+                if "comm" in c or "code" in c:
+                    column_map[col] = "Commodity code"
+
+                elif "pack" in c:
+                    column_map[col] = "Type of packaging"
+
+                elif "delivery quantity" in c or "qty" in c or "quantity" in c:
+                    column_map[col] = "Delivery quantity"
+
+                elif "volume" in c:
+                    column_map[col] = "Volume"
+
+                elif "net weight" in c or "weight" in c:
+                    column_map[col] = "Net Weight"
+
+            df = df.rename(columns=column_map)
+
+            df = df.loc[:, ~df.columns.duplicated()]
+
+            required_cols = [
+                "Commodity code",
+                "Type of packaging",
+                "Delivery quantity",
+                "Volume",
+                "Net Weight"
+            ]
+
+            missing = [c for c in required_cols if c not in df.columns]
+
+            if missing:
+                st.error(f"❌ Липсват колони: {missing}")
+                st.stop()
+
+            df = df.groupby(
+                ["Commodity code", "Type of packaging"],
+                as_index=False
+            ).agg({
+                "Delivery quantity": "sum",
+                "Volume": "sum",
+                "Net Weight": "sum"
+            })
+
+            df = df.rename(columns={
+                "Commodity code": "Тарифен код",
+                "Type of packaging": "wid",
+                "Delivery quantity": "Количество",
+                "Volume": "kolichestvo",
+                "Net Weight": "тегло"
+            })
+
+        # ✅ ADD RESULT
         all_data.append(df)
+
+    # ======================================================
+    # ✅ FINAL COMBINE
+    # ======================================================
 
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
-    # ✅ ТУК СЪЗДАВАШ final_df
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ ВСИЧКО ПО-ДОЛУ ТРЯБВА ДА Е ВЪТРЕ В IF
-
-    final_df = final_df.rename(columns={
-        "Тарифен код": "Code",
-        "Количество": "Broj",
-        "kolichestvo": "colic",
-        "тегло": "teglo"
-    })
-
-    if "Code" not in final_df.columns:
-        st.warning("⚠️ Файлът не е разпознат и ще бъде пропуснат")
-        st.write(final_df.columns)
-        st.stop()
-
-    final_df["Code"] = final_df["Code"].astype(str)
-
-    final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
-
-    if "teglo" in final_df.columns:
-        final_df = final_df[final_df["teglo"] > 0]
-
-
-    # ===============================
-    # ✅ FINAL REPORT
-    # ===============================
-    def build_final_report(df):
-
-        grouped = df.groupby(
-            ["Code", "wid"],
-            as_index=False
-        ).agg({
-            "Broj": "sum",
-            "colic": "sum",
-            "teglo": "sum"
-        })
-
-        rows = []
-
-        for code, group in grouped.groupby("Code"):
-
-            for _, r in group.iterrows():
-                rows.append(r.to_dict())
-
-            rows.append({
-                "Code": str(code) + " -",
-                "wid": "",
-                "Broj": "",
-                "colic": group["colic"].sum(),
-                "teglo": group["teglo"].sum()
-            })
-
-            rows.append({
-                "Code": "",
-                "wid": "",
-                "Broj": "",
-                "colic": "",
-                "teglo": ""
-            })
-
-        rows.append({
-            "Code": "GRAND TOTAL",
-            "wid": "",
-            "Broj": "",
-            "colic": grouped["colic"].sum(),
-            "teglo": grouped["teglo"].sum()
-        })
-
-        return pd.DataFrame(rows)
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
 
     report = build_final_report(final_df)
 
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ===============================
-    # ✅ EXPORT
-    # ===============================
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -707,3 +732,34 @@ if uploaded_files and len(uploaded_files) > 0:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
+    # ======================================================
+# ✅ NESTE (EXCEL ONLY ✅)
+# ======================================================
+def parse_neste_excel(file):
+
+    df = pd.read_excel(file)
+    df.columns = df.columns.str.strip()
+
+    # ✅ rename
+    df = df.rename(columns={
+        "Commodity code": "Тарифен код",
+        "Type of packaging": "wid",
+        "Delivery quantity": "Количество",
+        "Volume": "kolichestvo",
+        "Net Weight": "тегло"
+    })
+
+    # ✅ махаме празни / грешни редове
+    df = df.dropna(subset=["Тарифен код"])
+
+    # ✅ group
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
