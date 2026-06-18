@@ -100,7 +100,7 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (COLOR TEXT FIX — WORKING)
+# ✅ FINAL UI (CLEAN + ALIGNED + FIXED)
 # ======================================================
 
 st.markdown("""
@@ -110,8 +110,22 @@ st.markdown("""
     font-weight: 800;
     color: white;
 }
+
+/* ✅ Add file box */
+.add-box {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(6px);
+    border-radius: 10px;
+    padding: 10px;
+    color: white;
+    font-size: 18px;
+    font-weight: 400;
+    text-align: center;
+    margin-top: 15px;
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 # ✅ заглавие
 st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
@@ -122,7 +136,7 @@ if "source_type" not in st.session_state:
     st.session_state["source_type"] = ""
 
 
-# ✅ логика
+# ✅ БУТОНИ
 col1, col2 = st.columns(2)
 
 with col1:
@@ -159,31 +173,35 @@ else:
     excel_text = ""
 
 
-# ✅ бутон styles
+# ✅ style на бутоните + избутване на текста вдясно
 st.markdown(f"""
 <style>
 
-/* PDF бутон */
+/* PDF */
 div[data-testid="column"]:nth-of-type(1) button {{
     background-color: {pdf_color} !important;
     color: white !important;
     border-radius: 12px !important;
     height: 60px !important;
+    text-align: right !important;
+    padding-right: 20px !important;
 }}
 
-/* Excel бутон */
+/* Excel */
 div[data-testid="column"]:nth-of-type(2) button {{
     background-color: {excel_color} !important;
     color: white !important;
     border-radius: 12px !important;
     height: 60px !important;
+    text-align: right !important;
+    padding-right: 20px !important;
 }}
 
 </style>
 """, unsafe_allow_html=True)
 
 
-# ✅ overlay текст ВЪТРЕ
+# ✅ overlay текст (центриран)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -191,7 +209,6 @@ with col1:
     <div style="
         margin-top:-65px;
         text-align:center;
-        font-weight:500;
         pointer-events:none;
     ">
         {pdf_text}
@@ -203,7 +220,6 @@ with col2:
     <div style="
         margin-top:-65px;
         text-align:center;
-        font-weight:500;
         pointer-events:none;
     ">
         {excel_text}
@@ -211,9 +227,9 @@ with col2:
     """, unsafe_allow_html=True)
 
 
-# ✅ ADD FILE
+# ✅ ADD FILE (прозрачен box, не bold)
 st.markdown(
-    "<div style='font-size:20px; font-weight:900; color:white; margin-top:15px;'>Add file</div>",
+    "<div class='add-box'>Add file</div>",
     unsafe_allow_html=True
 )
 
@@ -228,6 +244,7 @@ uploaded_files = st.file_uploader(
 
 # ✅ sidebar
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
+
 
 
 # ======================================================
