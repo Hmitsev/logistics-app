@@ -604,7 +604,6 @@ for _, r in df.iterrows():
         "kolichestvo": "sum",
         "тегло": "sum"
     })
-
     return df
     # ======================================================
 # ✅ PROCESS (FINAL)
