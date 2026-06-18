@@ -368,7 +368,7 @@ def parse_castrol(text):
     return pd.DataFrame(rows)
 
 # ======================================================
-# ✅ MOTUL (FINAL STABLE)
+# ✅ MOTUL (FINAL REAL WORKING)
 # ======================================================
 def parse_motul(text):
 
@@ -393,21 +393,7 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-# ✅ ТЕГЛО (FINAL TRUE FIX ✅)
-# ======================================================
-weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
-
-if weights:
-    try:
-        # ✅ последното число от реда е теглото
-        current_weight = float(
-            weights[-1].replace(" ", "").replace(",", ".")
-        )
-    except:
-        pass
-
-        # ======================================================
-        # ✅ РАЗФАСОВКА (wid)
+        # ✅ РАЗФАСОВКА (важно: ПРЕДИ теглото!)
         # ======================================================
         multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
         single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
@@ -418,6 +404,20 @@ if weights:
         elif single:
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
+
+        # ======================================================
+        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
+        # ======================================================
+        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+
+        if weights:
+            try:
+                # ✅ ВИНАГИ последното число = тегло
+                current_weight = float(
+                    weights[-1].replace(" ", "").replace(",", ".")
+                )
+            except:
+                pass
 
         # ======================================================
         # ✅ КОД + ЗАПИС
@@ -444,7 +444,7 @@ if weights:
                     "тегло": current_weight
                 })
 
-                # ✅ reset
+                # ✅ RESET
                 current_qty = 0
                 current_weight = 0
                 liters_per_unit = 0
