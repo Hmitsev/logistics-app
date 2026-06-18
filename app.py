@@ -380,8 +380,8 @@ def parse_motul(text):
     liters_per_unit = 0
     units_in_box = 1
 
-    # ✅ държим последното валидно тегло
     last_weight = 0
+    pending_weight = None  # ✅ ключов FIX
 
     for line in lines:
 
@@ -396,11 +396,11 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (ФИНАЛЕН STRUCTURE FIX)
+        # ✅ ТЕГЛО (STRUCTURE + BUFFER FIX)
         # ======================================================
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        # ✅ ВЗИМАМЕ ТЕГЛО САМО АКО ИМА ПОНЕ 2 ЧИСЛА
+        # ✅ само ако има 2+ числа (литри + тегло)
         if len(weights) >= 2:
             try:
                 clean_weights = [
@@ -408,8 +408,8 @@ def parse_motul(text):
                     for w in weights
                 ]
 
-                # ✅ реалното тегло винаги е по-малкото
-                last_weight = min(clean_weights)
+                # ✅ теглото винаги е по-малкото
+                pending_weight = min(clean_weights)
 
             except:
                 pass
@@ -450,14 +450,15 @@ def parse_motul(text):
                     "Количество": real_qty,
                     "wid": liters_per_unit,
                     "kolichestvo": real_qty * liters_per_unit,
-                    "тегло": last_weight
+                    "тегло": pending_weight if pending_weight else last_weight
                 })
 
-                # ✅ RESET
+                # ✅ RESET (КРИТИЧНО)
                 current_qty = 0
-                last_weight = 0
                 liters_per_unit = 0
                 units_in_box = 1
+                last_weight = 0
+                pending_weight = None
 
     return pd.DataFrame(rows)
 
