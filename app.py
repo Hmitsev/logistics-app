@@ -672,13 +672,11 @@ if uploaded_files and len(uploaded_files) > 0:
     })
 
     # ===============================
-    # ✅ SAFETY CHECK
-    # ===============================
-    if "Code" not in final_df.columns:
+# ✅ SAFETY CHECK
+# ===============================
+if "Code" not in final_df.columns:
     st.warning("⚠️ Файлът не е разпознат и ще бъде пропуснат")
     st.write(final_df.columns)
-
-    # ✅ изчистваме invalid dataframe и излизаме спокойно
     st.stop()
 
     # ===============================
