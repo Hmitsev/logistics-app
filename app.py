@@ -635,6 +635,14 @@ if uploaded_files and len(uploaded_files) > 0:
         all_data.append(df)
 
     final_df = pd.concat(all_data, ignore_index=True)
+    # ✅ NORMALIZE COLUMNS (CRITICAL FIX)
+final_df = final_df.rename(columns={
+    "Тарифен код": "Code",
+    "Количество": "Broj",
+    "kolichestvo": "colic",
+    "тегло": "teglo"
+})
+
 
     # ✅ FIX
     final_df["Code"] = final_df["Code"].astype(str)
