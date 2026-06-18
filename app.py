@@ -407,23 +407,25 @@ def parse_motul(text):
         # ======================================================
         # ✅ ТЕГЛО (FINAL CORRECT FIX ✅)
         # ======================================================
-        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+        
+weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        if len(weights) >= 2:
-            try:
-                values = [
-                    float(w.replace(" ", "").replace(",", "."))
-                    for w in weights
-                ]
+# ✅ само редове които имат quantity pattern
+qty_match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
 
-                # ✅ взимаме последните 2 стойности (net + gross)
-                last_two = values[-2:]
+if weights and qty_match:
+    try:
+        values = [
+            float(w.replace(" ", "").replace(",", "."))
+            for w in weights
+        ]
 
-                # ✅ по-малката е net weight
-                current_weight = min(last_two)
+        # ✅ теглото винаги е последното число от ТАКЪВ ред
+        current_weight = values[-1]
 
-            except:
-                pass
+    except:
+        pass
+
 
 
         # ======================================================
