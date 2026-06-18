@@ -45,7 +45,22 @@ ALLOWED_CODES = [
 # ======================================================
 st.image("Screenshot 2026-06-18 093459.png", width=150)
 
-st.title("CustomsFlow")
+st.title("Customst.markdown(
+    """
+    <div style="
+        position: fixed;
+        top: 20px;
+        right: 30px;
+        font-size: 32px;
+        font-weight: 800;
+        color: white;
+        z-index: 1000;
+    ">
+        CustomsFlow
+    </div>
+    """,
+    unsafe_allow_html=True
+)sFlow")
 
 source_type = st.radio("👉 Избери източник", ["PDF", "Excel"])
 menu = st.sidebar.selectbox("Доставчик", ["Castrol", "MOTUL"])
