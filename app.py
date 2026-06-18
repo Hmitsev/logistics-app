@@ -28,7 +28,6 @@ def set_bg(image_file):
     except:
         pass
 
-
 # ======================================================
 # ✅ LOGOUT BUTTON
 # ======================================================
@@ -39,22 +38,11 @@ with logout_col3:
         st.session_state["logged_in"] = False
         st.rerun()
 
-st.markdown("""
-<style>
-div[data-testid="column"]:nth-of-type(3) {
-    position: fixed;
-    top: 4px;
-    right: 45px;
-    z-index: 9999;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
 # ======================================================
-# ✅ LOGIN
+# ✅ LOGIN SYSTEM
 # ======================================================
 def check_login():
+
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
 
@@ -89,6 +77,7 @@ def check_login():
                 st.error("❌ Грешно име или парола")
 
         return False
+
     return True
 
 
@@ -97,11 +86,10 @@ if not check_login():
 
 set_bg("background.png")
 
-
 # ======================================================
-# ✅ FUCHS PARSER (НОВИЯ ДОСТАВЧИК)
+# ✅ FUCHS PARSER (НОВИЯТ ДОСТАВЧИК)
 # ======================================================
-def parse_fuchs_pdf(text):
+def parse_fuchs(text):
 
     rows = []
     current_tariff = None
@@ -111,21 +99,19 @@ def parse_fuchs_pdf(text):
 
     for line in lines:
 
-        # ✅ Material (взимаме разфасовка)
         if "Material" in line and "TITAN" in line:
-            pack_match = re.search(r'(\d+L|\d+G)', line)
-            if pack_match:
-                current_pack = pack_match.group(1)
+            pack = re.search(r'(\d+L|\d+G)', line)
+            if pack:
+                current_pack = pack.group(1)
 
-        # ✅ Commodity Code
         elif "Commodity Code" in line:
             code = re.findall(r'\d{8}', line)
             if code:
                 current_tariff = code[0]
 
-        # ✅ Quantity/net/gross
         elif "Quantity/net/gross" in line:
             nums = re.findall(r'[\d,.]+', line)
+
             if len(nums) >= 2:
                 qty = float(nums[0].replace(",", ""))
                 kg = float(nums[1].replace(",", ""))
@@ -143,7 +129,7 @@ def parse_fuchs_pdf(text):
     if df.empty:
         return df
 
-    # ✅ събира batch редовете
+    # ✅ събира batch редове
     df = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
         "Количество": "sum",
         "kolichestvo": "sum",
@@ -151,28 +137,6 @@ def parse_fuchs_pdf(text):
     })
 
     return df
-
-
-def parse_fuchs_excel(file):
-
-    df = pd.read_excel(file, engine="openpyxl")
-
-    df_out = df.rename(columns={
-        "Comm./imp. code no.": "Тарифен код",
-        "Delivery quantity": "Количество",
-        "Net Weight": "тегло"
-    })
-
-    df_out["wid"] = df["Description"].str.extract(r'(\d+L|\d+G)')
-    df_out["kolichestvo"] = df_out["Количество"]
-
-    df_out = df_out.groupby(["Тарифен код", "wid"], as_index=False).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df_out
 
 
 # ======================================================
@@ -191,20 +155,13 @@ ALLOWED_CODES = [
 # ======================================================
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL", "FUCHS"])
 
-if "prev_supplier" not in st.session_state:
-    st.session_state["prev_supplier"] = menu
-
-if st.session_state["prev_supplier"] != menu:
-    st.session_state["source_type"] = ""
-    st.session_state["prev_supplier"] = menu
-
 
 # ======================================================
 # ✅ UPLOAD
 # ======================================================
 uploaded_files = st.file_uploader(
     "",
-    type=["pdf", "xlsx", "xls"],
+    type=["pdf"],
     accept_multiple_files=True
 )
 
@@ -218,22 +175,20 @@ if uploaded_files:
 
     for file in uploaded_files:
 
-        if file.type == "application/pdf":
-            reader = PdfReader(file)
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
+        reader = PdfReader(file)
+        text = ""
 
-            if menu == "FUCHS":
-                df = parse_fuchs_pdf(text)
-            else:
-                continue
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
 
-        else:
-            if menu == "FUCHS":
-                df = parse_fuchs_excel(file)
-            else:
-                df = pd.read_excel(file)
+        if menu == "Castrol":
+            df = parse_castrol(text)
+
+        elif menu == "MOTUL":
+            df = parse_motul(text)
+
+        elif menu == "FUCHS":
+            df = parse_fuchs(text)
 
         all_data.append(df)
 
@@ -243,13 +198,15 @@ if uploaded_files:
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
     final_df = final_df[final_df["тегло"] > 0]
 
+    report = build_final_report(final_df)
+
     st.subheader("📊 Финален отчет")
-    st.dataframe(final_df)
+    st.dataframe(report)
 
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        final_df.to_excel(writer, index=False)
+        report.to_excel(writer, index=False)
 
     st.download_button(
         "📥 Изтегли Excel",
