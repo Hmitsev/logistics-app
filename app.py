@@ -347,17 +347,16 @@ def parse_motul(text):
 
     for i, line in enumerate(lines):
 
-        # ✅ намираме ред с количество + тегло (пример: 224 3879,680)
+        # ✅ ред с количество + тегло
         match = re.findall(r'\b(\d{1,4})\b\s+([\d\s]+,\d+)', line)
 
         if match:
             try:
-                qty = float(match[0][0])
+                broj = float(match[0][0])
 
-                # ✅ оправяме теглото (махаме space)
-                weight = float(match[0][1].replace(" ", "").replace(",", "."))
+                teglo = float(match[0][1].replace(" ", "").replace(",", "."))
 
-                # ✅ търсим код на следващите редове
+                # ✅ намираме код
                 code = None
                 for j in range(i, min(i + 5, len(lines))):
                     code_match = re.search(r'\b\d{8}\b', lines[j])
@@ -365,7 +364,7 @@ def parse_motul(text):
                         code = code_match.group(0)
                         break
 
-                # ✅ търсим wid нагоре (в описанието)
+                # ✅ намираме wid от описанието
                 wid = 1
                 for j in range(max(0, i - 3), i + 1):
                     l = lines[j]
@@ -387,11 +386,11 @@ def parse_motul(text):
 
                 if code:
                     rows.append({
-                        "Тарифен код": code,
-                        "Количество": qty,
+                        "Code": code,
+                        "broj": broj,
                         "wid": wid,
-                        "kolichestvo": qty * wid,
-                        "тегло": weight
+                        "kolic": broj * wid,
+                        "teglo": teglo
                     })
 
             except:
