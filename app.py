@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE","VALVOLINE"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE"])
 
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
@@ -480,84 +480,6 @@ def parse_neste_excel(file):
 
     return df
 
-# ======================================================
-# ✅ VALVOLINE (EXCEL ONLY ✅)
-# ======================================================
-def parse_valvoline_excel(file):
-
-    import pandas as pd
-    import re
-
-    xls = pd.ExcelFile(file)
-
-    sheet_name = None
-    for s in xls.sheet_names:
-        if "PL" in s.upper():
-            sheet_name = s
-            break
-
-    if not sheet_name:
-        st.error("❌ Не е намерен PL sheet")
-        st.stop()
-
-    df = xls.parse(sheet_name)
-    df.columns = df.columns.str.strip()
-
-    df = df.rename(columns={
-        "Tariff No.": "code",
-        "Packaging": "pack",
-        "Qty": "qty",
-        "Net Kg": "weight"
-    })
-
-    df = df.dropna(subset=["code"])
-
-    rows = []
-
-    for _, r in df.iterrows():
-
-        code = str(r["code"])[:8]  # ✅ махаме последните 2 цифри
-        qty = r["qty"]
-        weight = r["weight"]
-        pack = str(r["pack"])
-
-        wid = 1
-
-        multi = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
-        single = re.search(r"(\d+)\s*L", pack, re.I)
-
-        if multi:
-            units = int(multi.group(1))
-            liters = int(multi.group(2))
-            wid = liters
-            qty = qty * units
-
-        elif single:
-            wid = int(single.group(1))
-
-        else:
-            wid = 1
-
-        rows.append({
-            "Тарифен код": code,
-            "Количество": qty,
-            "wid": wid,
-            "kolichestvo": qty * wid,
-            "тегло": weight
-        })
-
-    df = pd.DataFrame(rows)
-
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
 
 # ======================================================
 # ✅ FINAL REPORT
@@ -620,29 +542,24 @@ if uploaded_files and len(uploaded_files) > 0:
         # ✅ FILE PROCESSING
         # ======================================================
 
-        # ✅ NESTE
-if menu == "NESTE":
+        # ✅ NESTE → Excel
+        if menu == "NESTE":
 
-    df = parse_neste_excel(file)
+            df = parse_neste_excel(file)
 
-# ✅ VALVOLINE
-elif menu == "VALVOLINE":
+        # ✅ PDF (Castrol + MOTUL)
+        elif source_type == "PDF":
 
-    df = parse_valvoline_excel(file)
+            reader = PdfReader(file)
+            text = ""
 
-# ✅ PDF (Castrol + MOTUL)
-elif source_type == "PDF":
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
 
-    reader = PdfReader(file)
-    text = ""
-
-    for page in reader.pages:
-        text += page.extract_text() + "\n"
-
-    if menu == "Castrol":
-        df = parse_castrol(text)
-    else:
-        df = parse_motul(text)
+            if menu == "Castrol":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
 
         # ✅ Excel fallback (GENERIC)
         else:
@@ -768,4 +685,3 @@ def parse_neste_excel(file):
     })
 
     return df
-
