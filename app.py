@@ -114,51 +114,48 @@ if not check_login():
 # ✅ main background
 set_bg("background.png")
 # ======================================================
-# ✅ FINAL SIDEBAR STYLE (GLASS + POINTER)
+# ✅ FINAL SIDEBAR (GLASS + POINTER FIXED)
 # ======================================================
 
 st.markdown("""
 <style>
 
-/* ✅ Sidebar основен */
+/* ✅ Sidebar */
 section[data-testid="stSidebar"] {
     background: transparent !important;
 }
 
-/* ✅ вътрешен контейнер (glass ефект) */
+/* ✅ Glass container */
 section[data-testid="stSidebar"] > div {
-    background: rgba(0,0,0,0.03) !important;  /* ✅ МНОГО ПРОЗРАЧНО */
+    background: rgba(0,0,0,0.03) !important;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 
-    border-right: 4px solid rgba(255,255,255,0.6); /* ✅ дебела рамка */
+    border-right: 4px solid rgba(255,255,255,0.6);
     box-shadow: 0 0 15px rgba(255,255,255,0.15);
 }
 
-/* ✅ текст */
+/* ✅ Text */
 section[data-testid="stSidebar"] * {
     color: white !important;
 }
 
-/* ✅ SELECT BOX */
+/* ✅ Select box */
 div[data-baseweb="select"] {
     background: rgba(255,255,255,0.05) !important;
     border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.25);
+    border: 1px solid rgba(255,255,255,0.2);
+    cursor: pointer !important;   /* ✅ pointer само тук */
 }
 
-/* ✅ ✅ FIX курсор (махаме |) */
-div[data-baseweb="select"] * {
-    cursor: pointer !important;
-}
-
-div[data-baseweb="select"] {
-    cursor: pointer !important;
-}
-
-/* ✅ hover ефект */
+/* ✅ Hover без да чупи прозрачността */
 div[data-baseweb="select"]:hover {
-    background: rgba(255,255,255,0.10) !important;
+    background: rgba(255,255,255,0.08) !important;
+}
+
+/* ✅ махаме cursor от вътрешни елементи */
+div[data-baseweb="select"] * {
+    cursor: inherit !important;
 }
 
 </style>
