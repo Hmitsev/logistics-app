@@ -364,23 +364,25 @@ def parse_motul(text):
 
                 # ✅ wid
                 wid = 1
-                for j in range(max(0, i - 3), i + 1):
-                    l = lines[j]
 
-                    if "208L" in l:
-                        wid = 208
-                    elif "60L" in l:
-                        wid = 60
-                    elif "20L" in l:
-                        wid = 20
-                    elif "4X5L" in l:
-                        wid = 5
-                    elif "12X1L" in l:
-                        wid = 1
-                    elif "12X0.500L" in l:
-                        wid = 0.5
-                    elif "12X0.250L" in l:
-                        wid = 0.25
+# 🔥 гледаме по-широк range
+for j in range(max(0, i - 8), i + 1):
+    l = lines[j].upper()
+
+    # ✅ по-умен parsing
+    match_l = re.search(r'(\d+)L', l)
+    match_pack = re.search(r'(\d+)X(\d+)L', l)
+
+    if match_pack:
+        wid = float(match_pack.group(2))  # 4X5L → 5
+    elif match_l:
+        wid = float(match_l.group(1))     # 20L → 20
+
+    # ✅ специални случаи
+    if "0.500L" in l:
+        wid = 0.5
+    elif "0.250L" in l:
+        wid = 0.25
 
                 if code:
                     rows.append({
