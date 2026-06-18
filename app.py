@@ -43,64 +43,32 @@ ALLOWED_CODES = [
 # ======================================================
 # ✅ UI
 # ======================================================
+
+# ✅ Лого (ако искаш)
 st.image("Screenshot 2026-06-18 093459.png", width=150)
 
-st.title("Customst.markdown(
+# ✅ ✅ Header горе вдясно
+st.markdown(
     """
     <div style="
         position: fixed;
         top: 20px;
         right: 30px;
-        font-size: 32px;
-        font-weight: 800;
+        font-size: 34px;
+        font-weight: 900;
         color: white;
+        text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
         z-index: 1000;
     ">
         CustomsFlow
     </div>
     """,
     unsafe_allow_html=True
-)sFlow")
+)
 
+# ✅ избори
 source_type = st.radio("👉 Избери източник", ["PDF", "Excel"])
 menu = st.sidebar.selectbox("Доставчик", ["Castrol", "MOTUL"])
-
-# ======================================================
-# ✅ CASTROL
-# ======================================================
-def parse_castrol(text):
-
-    rows = []
-    lines = text.split("\n")
-    current_liters = 0
-
-    for line in lines:
-
-        multi = re.search(r"(\d+)X(\d+)L", line)
-        single = re.search(r"(\d+)L", line)
-
-        if multi:
-            current_liters = int(multi.group(1)) * int(multi.group(2))
-        elif single:
-            current_liters = int(single.group(1))
-
-        if "Cod Vamal" in line:
-            try:
-                code = re.search(r"Cod Vamal:(\d+)", line).group(1)
-                qty = int(re.search(r"ST\s*(\d+)", line).group(1))
-
-                rows.append({
-                    "Тарифен код": code,
-                    "Количество": qty,
-                    "wid": current_liters,
-                    "kolichestvo": qty * current_liters,
-                    "тегло": 0
-                })
-            except:
-                pass
-
-    return pd.DataFrame(rows)
-
 # ======================================================
 # ✅ MOTUL (ФИНАЛЕН 100%)
 # ======================================================
