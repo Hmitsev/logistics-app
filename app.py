@@ -396,28 +396,65 @@ if uploaded_files and len(uploaded_files) > 0:
             else:
                 df = parse_motul(text)
         else:
-            df = pd.read_excel(file)
+    df = pd.read_excel(file)
+    df.columns = df.columns.str.strip()
 
-        all_data.append(df)
+    # ✅ COLUMN MAP (FIX)
+    column_map = {}
 
-    final_df = pd.concat(all_data, ignore_index=True)
+    for col in df.columns:
+        c = col.lower()
 
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["тегло"] > 0]
+        if "comm" in c or "code" in c:
+            column_map[col] = "Commodity code"
 
-    report = build_final_report(final_df)
+        elif "pack" in c:
+            column_map[col] = "Type of packaging"
 
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
+        elif "delivery quantity" in c or "qty" in c or "quantity" in c:
+            column_map[col] = "Delivery quantity"
 
-    output = io.BytesIO()
+        elif "volume" in c:
+            column_map[col] = "Volume"
 
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
+        elif "net weight" in c or "weight" in c:
+            column_map[col] = "Net Weight"
 
-    st.download_button(
-        "📥 Изтегли Excel",
-        data=output.getvalue(),
-        file_name="final_report.xlsx"
-    )
+    df = df.rename(columns=column_map)
+
+    # ✅ DEBUG
+    st.write("DEBUG columns after rename:", df.columns.tolist())
+
+    # ✅ защита
+    required_cols = [
+        "Commodity code",
+        "Type of packaging",
+        "Delivery quantity",
+        "Volume",
+        "Net Weight"
+    ]
+
+    missing = [c for c in required_cols if c not in df.columns]
+
+    if missing:
+        st.error(f"❌ Липсват колони: {missing}")
+        st.stop()
+
+    # ✅ правим структура като PDF
+    df = df.groupby(
+        ["Commodity code", "Type of packaging"],
+        as_index=False
+    ).agg({
+        "Delivery quantity": "sum",
+        "Volume": "sum",
+        "Net Weight": "sum"
+    })
+
+    df = df.rename(columns={
+        "Commodity code": "Тарифен код",
+        "Type of packaging": "wid",
+        "Delivery quantity": "Количество",
+        "Volume": "kolichestvo",
+        "Net Weight": "тегло"
+    })
+
