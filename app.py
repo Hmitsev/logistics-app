@@ -509,36 +509,65 @@ if uploaded_files and len(uploaded_files) > 0:
     for file in uploaded_files:
 
         # ======================================================
-# ✅ FILE PROCESSING
-# ======================================================
+        # ✅ FILE PROCESSING
+        # ======================================================
 
-# ✅ NESTE → винаги Excel (игнорира PDF)
-if menu == "NESTE":
+        # ✅ NESTE → винаги Excel
+        if menu == "NESTE":
 
-    df = parse_neste_excel(file)
+            df = parse_neste_excel(file)
 
-# ✅ Другите доставчици
-elif source_type == "PDF":
+        # ✅ PDF (Castrol + MOTUL)
+        elif source_type == "PDF":
 
-    reader = PdfReader(file)
-    text = ""
+            reader = PdfReader(file)
+            text = ""
 
-    for page in reader.pages:
-        text += page.extract_text() + "\n"
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
 
-    if menu == "Castrol":
-        df = parse_castrol(text)
-    else:
-        df = parse_motul(text)
+            if menu == "Castrol":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
 
-# ✅ Excel за другите (ако има)
-else:
+        # ✅ Excel (за други случаи)
+        else:
 
-    df = pd.read_excel(file)
-    df.columns = df.columns.str.strip()
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
-    # (тук си остава твоята Excel логика)
+        # ✅ добавяме към списъка
+        all_data.append(df)
 
+    # ✅ защита
+    if not all_data:
+        st.warning("⚠️ Няма данни")
+        st.stop()
+
+    final_df = pd.concat(all_data, ignore_index=True)
+
+    # ✅ филтри
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
+
+    report = build_final_report(final_df)
+
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
+
+    # ✅ export
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        report.to_excel(writer, index=False)
+
+    st.download_button(
+        "📥 Изтегли Excel",
+        data=output.getvalue(),
+        file_name="final_report.xlsx"
+    )
 
         # ======================================================
         # ✅ EXCEL (FIXED)
