@@ -593,9 +593,21 @@ def parse_valvoline_excel(file):
         elif single:
             wid = int(single.group(1))
 
-            # ✅ това при VALVOLINE са вече литри
-            kolichestvo = qty
-            real_qty = qty / wid
+            # ✅ ако има X в текста → това са кутии
+            if "x" in pack.lower():
+                kolichestvo = qty * wid
+                real_qty = qty
+
+            # ✅ ако няма X → големите варели → литри
+            elif wid >= 20:
+                kolichestvo = qty
+                real_qty = qty / wid
+
+            # ✅ иначе → малки разфасовки (4L, 5L)
+            else:
+                kolichestvo = qty * wid
+                real_qty = qty
+
 
 
         # ======================================================
