@@ -7,36 +7,32 @@ import base64
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM
+# ✅ LOGIN SYSTEM (задължителен вход всеки път)
 # ======================================================
 def check_login():
 
-    if "logged_in" not in st.session_state:
-        st.session_state["logged_in"] = False
+    # ❗ НЕ пазим login между сесиите (винаги ще пита)
+    st.session_state["logged_in"] = False
 
-    if st.session_state["logged_in"]:
-        return True
-
-    st.title("🔐 Вход")
+    st.title("🔐 Вход в системата")
 
     username = st.text_input("Потребител")
     password = st.text_input("Парола", type="password")
 
     if st.button("Вход"):
 
-        # ✅ ТУК СИ СЛАГАШ USER/PASS
-        if username == "admin" and password == "1234":
+        # ✅ ТВОИТЕ ДАННИ
+        if username == "mitnica" and password == "Intercars2026":
             st.session_state["logged_in"] = True
-            st.rerun()
         else:
-            st.error("Грешно име или парола")
+            st.error("❌ Грешно име или парола")
 
-    return False
+    if not st.session_state.get("logged_in", False):
+        st.stop()
 
 
-# ✅ Ако не е логнат → спира приложението
-if not check_login():
-    st.stop()
+# ✅ извиква login-а
+check_login()
 # ======================================================
 # ✅ BACKGROUND
 # ======================================================
