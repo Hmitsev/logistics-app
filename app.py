@@ -136,7 +136,7 @@ section[data-testid="stSidebar"] > div {
 
     /* ✅ вътрешен glow */
     box-shadow:
-        inset 0 0 10px rgba(255,255,255,0.15),
+        inset 0 0 10px rgba(255,255,255,0.05),
         0 0 20px rgba(255,255,255,0.1);
 }
 
