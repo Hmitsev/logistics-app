@@ -144,26 +144,51 @@ st.markdown("""
 
 
 # ✅ Choose Source (само текст + стрелка)
-st.markdown('<div class="source-title">👉 Choose Source</div>', unsafe_allow_html=True)
-st.markdown('<div class="arrow">👇</div>', unsafe_allow_html=True)
+st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
 
 
 # ✅ state
 if "source_type" not in st.session_state:
     st.session_state["source_type"] = "PDF"
 
+# ✅ цветове според избора
+pdf_color = "#444"      # default сив
+excel_color = "#444"
 
-# ✅ бутони близо един до друг
+if st.session_state["source_type"] == "PDF":
+    pdf_color = "#ff3b3b"   # червен
+else:
+    excel_color = "#36c165" # зелен
+
+
+# ✅ layout
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    if st.button("PDF"):
+    if st.button("PDF", use_container_width=True):
         st.session_state["source_type"] = "PDF"
 
+    st.markdown(f"""
+        <div style="
+            background:{pdf_color};
+            height:10px;
+            border-radius:5px;
+            margin-top:-8px;
+        "></div>
+    """, unsafe_allow_html=True)
+
 with col2:
-    if st.button("Excel"):
+    if st.button("Excel", use_container_width=True):
         st.session_state["source_type"] = "Excel"
 
+    st.markdown(f"""
+        <div style="
+            background:{excel_color};
+            height:10px;
+            border-radius:5px;
+            margin-top:-8px;
+        "></div>
+    """, unsafe_allow_html=True)
 
 source_type = st.session_state["source_type"]
 
