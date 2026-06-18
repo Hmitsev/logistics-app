@@ -43,7 +43,7 @@ ALLOWED_CODES = [
 # ======================================================
 # ✅ UI
 # ======================================================
-st.image("logo.png", width=150)
+st.image("Screenshot 2026-06-18 093459.png", width=150)
 
 st.title("CustomsFlow")
 
