@@ -382,9 +382,7 @@ def parse_motul(text):
 
     for line in lines:
 
-        # ======================================================
         # ✅ КОЛИЧЕСТВО
-        # ======================================================
         match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
         if match:
             try:
@@ -392,9 +390,7 @@ def parse_motul(text):
             except:
                 pass
 
-        # ======================================================
         # ✅ РАЗФАСОВКА
-        # ======================================================
         multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
         single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
 
@@ -405,9 +401,7 @@ def parse_motul(text):
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
 
-        # ======================================================
-        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
-        # ======================================================
+        # ✅ ТЕГЛО (ВАЖНО: вътре в for!)
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
         qty_match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
@@ -419,16 +413,13 @@ def parse_motul(text):
                     for w in weights
                 ]
 
-                # ✅ последните 2 числа = net + gross
                 if len(values) >= 2:
                     current_weight = min(values[-2:])
 
             except:
                 pass
 
-        # ======================================================
-        # ✅ КОД + ЗАПИС
-        # ======================================================
+        # ✅ HS CODE (НА СЪЩО НИВО КАТО ГОРНИТЕ)
         if "HS code" in line:
             code = re.search(r"HS code\s*:\s*(\d+)", line)
 
@@ -458,6 +449,7 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
+
         # ======================================================
         # ✅ КОД
         # ======================================================
