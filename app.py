@@ -365,13 +365,33 @@ def parse_motul(text):
         except:
             pass
 
-    # ✅ ВАЖЕН FIX – ако няма редове
+    # ✅ ако няма данни → връща празен DF със структура
     if not rows:
         return pd.DataFrame(columns=[
             "Тарифен код","Количество","wid","kolichestvo","тегло"
         ])
 
     return pd.DataFrame(rows)
+
+
+# ======================================================
+# ✅ BUILD FINAL REPORT (FIXED)
+# ======================================================
+def build_final_report(df):
+
+    if df.empty:
+        return df
+
+    report = df.groupby(
+        ["Тарифен код", "wid"], as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return report
+
 
 # ======================================================
 # ✅ PROCESS (FINAL STABLE)
@@ -408,16 +428,16 @@ if uploaded_files:
 
         all_data.append(df)
 
-    # ✅ FIX ако няма валидни данни
+    # ✅ ако няма валидни данни
     if not all_data:
         st.warning("⚠️ Няма обработени данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ FIX ако няма колона
+    # ✅ защита
     if "Тарифен код" not in final_df.columns:
-        st.error("❌ Липсва 'Тарифен код' – parser-ът не е извлякъл данни")
+        st.error("❌ Липсва 'Тарифен код' – parser не работи")
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
