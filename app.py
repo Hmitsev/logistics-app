@@ -336,7 +336,36 @@ uploaded_files = st.file_uploader(
     type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
     accept_multiple_files=True
 )
+# ======================================================
+# ✅ MOTUL PARSER (FIXED)
+# ======================================================
+def parse_motul(text):
 
+    rows = []
+
+    for line in text.split("\n"):
+
+        try:
+            qty_match = re.search(r'(\d+[.,]?\d*)\s*EA', line)
+            kg_match = re.search(r'(\d+[.,]\d+)\s*KG', line)
+            code_match = re.search(r'\d{8}', line)
+
+            if qty_match and kg_match and code_match:
+                qty = float(qty_match.group(1).replace(",", ""))
+                weight = float(kg_match.group(1).replace(",", "."))
+
+                rows.append({
+                    "Тарифен код": code_match.group(0),
+                    "Количество": qty,
+                    "wid": 1,
+                    "kolichestvo": qty,
+                    "тегло": weight
+                })
+
+        except:
+            pass
+
+    return pd.DataFrame(rows)
 # ======================================================
 # ✅ PROCESS
 # ======================================================
