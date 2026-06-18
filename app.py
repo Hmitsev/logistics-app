@@ -497,9 +497,7 @@ def build_final_report(df):
     })
 
     return pd.DataFrame(rows)
-
-
-# ======================================================
+    # ======================================================
 # ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
@@ -531,7 +529,7 @@ if uploaded_files and len(uploaded_files) > 0:
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel (за други случаи)
+        # ✅ Excel fallback
         else:
 
             df = pd.read_excel(file)
@@ -540,14 +538,16 @@ if uploaded_files and len(uploaded_files) > 0:
         # ✅ добавяме към списъка
         all_data.append(df)
 
-    # ✅ защита
+    # ======================================================
+    # ✅ AFTER LOOP
+    # ======================================================
+
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ филтри
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
     final_df = final_df[final_df["тегло"] > 0]
@@ -557,7 +557,6 @@ if uploaded_files and len(uploaded_files) > 0:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ✅ export
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -568,6 +567,8 @@ if uploaded_files and len(uploaded_files) > 0:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
+
+
 
         # ======================================================
         # ✅ EXCEL (FIXED)
