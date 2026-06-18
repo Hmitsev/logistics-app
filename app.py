@@ -352,26 +352,21 @@ def parse_motul(text):
 
     for line in lines:
 
-        # ✅ код (8 цифри)
         code_match = re.search(r'\b\d{8}\b', line)
         if code_match:
             current_code = code_match.group(0)
 
-        # ✅ тегло (KG)
         weight_match = re.search(r'(\d+[.,]\d+)\s*KG', line)
         if weight_match:
             current_weight = float(weight_match.group(1).replace(",", "."))
 
-        # ✅ количество (всички числа без KG)
         qty_match = re.findall(r'\b\d+\b', line)
-
-        if len(qty_match) >= 1 and "KG" not in line:
+        if len(qty_match) > 0 and "KG" not in line:
             try:
                 current_qty = float(qty_match[0])
             except:
                 pass
 
-        # ✅ ако имаме всичко → запис
         if current_qty and current_weight and current_code:
             rows.append({
                 "Тарифен код": current_code,
@@ -387,11 +382,7 @@ def parse_motul(text):
 
     if not rows:
         st.warning("⚠️ Не са намерени данни в PDF-а")
-
-        # ✅ DEBUG (много важно)
-        st.text("Първи редове от PDF:")
         st.write(lines[:30])
-
         return pd.DataFrame(columns=[
             "Тарифен код","Количество","wid","kolichestvo","тегло"
         ])
@@ -399,16 +390,15 @@ def parse_motul(text):
     return pd.DataFrame(rows)
 
 
-
 # ======================================================
-# ✅ BUILD FINAL REPORT
+# ✅ BUILD FINAL REPORT (FINAL CORRECT)
 # ======================================================
 def build_final_report(df):
 
     if df.empty:
         return df
 
-    report = df.groupby(
+    grouped = df.groupby(
         ["Тарифен код", "wid"], as_index=False
     ).agg({
         "Количество": "sum",
@@ -416,30 +406,40 @@ def build_final_report(df):
         "тегло": "sum"
     })
 
-    return report
+    result = []
+
+    for code in grouped["Тарифен код"].unique():
+        temp = grouped[grouped["Тарифен код"] == code]
+
+        result.append(temp)
+
+        subtotal = pd.DataFrame([{
+            "Тарифен код": f"{code} -",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": temp["kolichestvo"].sum(),
+            "тегло": temp["тегло"].sum()
+        }])
+
+        result.append(subtotal)
+
+    final = pd.concat(result, ignore_index=True)
+
+    grand = pd.DataFrame([{
+        "Тарифен код": "GRAND TOTAL",
+        "wid": "",
+        "Количество": "",
+        "kolichestvo": final["kolichestvo"].sum(),
+        "тегло": final["тегло"].sum()
+    }])
+
+    final = pd.concat([final, grand], ignore_index=True)
+
+    return final
 
 
 # ======================================================
-# ✅ BUILD FINAL REPORT (FIXED)
-# ======================================================
-def build_final_report(df):
-
-    if df.empty:
-        return df
-
-    report = df.groupby(
-        ["Тарифен код", "wid"], as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return report
-
-
-# ======================================================
-# ✅ PROCESS (ONLY ONE FINAL VERSION)
+# ✅ PROCESS (FINAL CLEAN)
 # ======================================================
 if uploaded_files:
 
@@ -461,7 +461,6 @@ if uploaded_files:
                 df = parse_motul(text)
 
         else:
-            # ✅ Excel FIX
             df_raw = pd.read_excel(file)
 
             df = pd.DataFrame({
@@ -474,16 +473,14 @@ if uploaded_files:
 
         all_data.append(df)
 
-    # ✅ защита ако няма данни
     if not all_data:
         st.warning("⚠️ Няма обработени данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ защита ако parser не е извлякъл нищо
     if "Тарифен код" not in final_df.columns:
-        st.error("❌ Липсва 'Тарифен код' – parser не работи")
+        st.error("❌ Липсва 'Тарифен код'")
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
@@ -500,7 +497,6 @@ if uploaded_files:
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         report.to_excel(writer, index=False)
 
-    # ✅ ✅ FIXED DOWNLOAD BUTTON
     st.download_button(
         "📥 Изтегли Excel",
         data=output.getvalue(),
