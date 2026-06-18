@@ -338,7 +338,7 @@ uploaded_files = st.file_uploader(
 )
 
 # ======================================================
-# ✅ MOTUL PARSER (WORKING VERSION)
+# ✅ MOTUL PARSER (FINAL FIXED VERSION)
 # ======================================================
 def parse_motul(text):
 
@@ -347,6 +347,7 @@ def parse_motul(text):
 
     for i, line in enumerate(lines):
 
+        # ✅ ред с количество + тегло
         match = re.findall(r'(\d{1,4})\s+(\d{1,3}(?:\s\d{3})*,\d+)', line)
 
         if match:
@@ -354,36 +355,35 @@ def parse_motul(text):
                 broj = float(match[0][0])
                 teglo = float(match[0][1].replace(" ", "").replace(",", "."))
 
-                # ✅ код
+                # ✅ търсим тарифен код надолу
                 code = None
-                for j in range(i, min(i + 5, len(lines))):
+                for j in range(i, min(i + 6, len(lines))):
                     code_match = re.search(r'\b\d{8}\b', lines[j])
                     if code_match:
                         code = code_match.group(0)
                         break
 
-                # ✅ wid
+                # ✅ wid (разфасовка)
                 wid = 1
 
-# 🔥 гледаме по-широк range
-for j in range(max(0, i - 8), i + 1):
-    l = lines[j].upper()
+                for j in range(max(0, i - 8), i + 1):
+                    l = lines[j].upper()
 
-    # ✅ по-умен parsing
-    match_l = re.search(r'(\d+)L', l)
-    match_pack = re.search(r'(\d+)X(\d+)L', l)
+                    match_pack = re.search(r'(\d+)X(\d+)L', l)
+                    match_l = re.search(r'(\d+)L', l)
 
-    if match_pack:
-        wid = float(match_pack.group(2))  # 4X5L → 5
-    elif match_l:
-        wid = float(match_l.group(1))     # 20L → 20
+                    if match_pack:
+                        wid = float(match_pack.group(2))  # 4X5L → 5
+                    elif match_l:
+                        wid = float(match_l.group(1))     # 20L → 20
 
-    # ✅ специални случаи
-    if "0.500L" in l:
-        wid = 0.5
-    elif "0.250L" in l:
-        wid = 0.25
+                    # ✅ специални случаи
+                    if "0.500L" in l:
+                        wid = 0.5
+                    elif "0.250L" in l:
+                        wid = 0.25
 
+                # ✅ запис
                 if code:
                     rows.append({
                         "Code": code,
@@ -397,8 +397,6 @@ for j in range(max(0, i - 8), i + 1):
                 pass
 
     return pd.DataFrame(rows)
-
-
 # ======================================================
 # ✅ PROCESS (CLEAN VERSION)
 # ======================================================
