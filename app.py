@@ -347,16 +347,14 @@ def parse_motul(text):
 
     for i, line in enumerate(lines):
 
-        # ✅ ред с количество + тегло
         match = re.findall(r'\b(\d{1,4})\b\s+([\d\s]+,\d+)', line)
 
         if match:
             try:
                 broj = float(match[0][0])
-
                 teglo = float(match[0][1].replace(" ", "").replace(",", "."))
 
-                # ✅ намираме код
+                # ✅ код
                 code = None
                 for j in range(i, min(i + 5, len(lines))):
                     code_match = re.search(r'\b\d{8}\b', lines[j])
@@ -364,7 +362,7 @@ def parse_motul(text):
                         code = code_match.group(0)
                         break
 
-                # ✅ намираме wid от описанието
+                # ✅ wid
                 wid = 1
                 for j in range(max(0, i - 3), i + 1):
                     l = lines[j]
@@ -400,55 +398,7 @@ def parse_motul(text):
 
 
 # ======================================================
-# ✅ BUILD FINAL REPORT (FINAL CORRECT)
-# ======================================================
-def build_final_report(df):
-
-    if df.empty:
-        return df
-
-    grouped = df.groupby(
-        ["Тарифен код", "wid"], as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    result = []
-
-    for code in grouped["Тарифен код"].unique():
-        temp = grouped[grouped["Тарифен код"] == code]
-
-        result.append(temp)
-
-        subtotal = pd.DataFrame([{
-            "Тарифен код": f"{code} -",
-            "wid": "",
-            "Количество": "",
-            "kolichestvo": temp["kolichestvo"].sum(),
-            "тегло": temp["тегло"].sum()
-        }])
-
-        result.append(subtotal)
-
-    final = pd.concat(result, ignore_index=True)
-
-    grand = pd.DataFrame([{
-        "Тарифен код": "GRAND TOTAL",
-        "wid": "",
-        "Количество": "",
-        "kolichestvo": final["kolichestvo"].sum(),
-        "тегло": final["тегло"].sum()
-    }])
-
-    final = pd.concat([final, grand], ignore_index=True)
-
-    return final
-
-
-# ======================================================
-# ✅ PROCESS (FINAL CLEAN)
+# ✅ PROCESS (CLEAN VERSION)
 # ======================================================
 if uploaded_files:
 
@@ -463,45 +413,37 @@ if uploaded_files:
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            if menu == "Castrol":
-                df = parse_castrol(text)
-
-            elif menu == "MOTUL":
+            if menu == "MOTUL":
                 df = parse_motul(text)
 
-        else:
-            df_raw = pd.read_excel(file)
+            elif menu == "Castrol":
+                df = parse_castrol(text)
 
-            df = pd.DataFrame({
-                "Тарифен код": df_raw["Comm./imp. code no."],
-                "Количество": df_raw["Delivery quantity"],
-                "wid": 1,
-                "kolichestvo": df_raw["Delivery quantity"],
-                "тегло": df_raw["Net Weight"]
-            })
+        else:
+            df = pd.read_excel(file)
 
         all_data.append(df)
 
+    # ✅ ако няма данни
     if not all_data:
-        st.warning("⚠️ Няма обработени данни")
+        st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-# ✅ защита
-if "Code" not in final_df.columns:
-    st.error("❌ Липсва 'Code'")
-    st.stop()
+    # ✅ защита
+    if "Code" not in final_df.columns:
+        st.error("❌ Липсва 'Code'")
+        st.stop()
 
-final_df["Code"] = final_df["Code"].astype(str)
-final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
-final_df = final_df[final_df["teglo"] > 0]
+    final_df["Code"] = final_df["Code"].astype(str)
+    final_df = final_df[final_df["teglo"] > 0]
 
-# ✅ показваме таблицата
-    st.subheader("📊 RAW DATA")
+    # ✅ Показваме RAW данни
+    st.subheader("📊 MOTUL RAW DATA")
     st.dataframe(final_df)
 
-    # ✅ export
+    # ✅ Export
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -510,6 +452,6 @@ final_df = final_df[final_df["teglo"] > 0]
     st.download_button(
         "📥 Изтегли Excel",
         data=output.getvalue(),
-        file_name="raw_motul.xlsx",
+        file_name="motul_raw.xlsx",
         key="download_excel"
     )
