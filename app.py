@@ -399,7 +399,7 @@ def parse_motul(text):
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
         # ✅ ВАЖНО: взимаме тегло САМО ако има 2+ числа в реда
-        if len(weights) >= 2:
+        if len(weights) >= 2 and last_weight == 0:
             try:
                 clean_weights = [
                     float(w.replace(" ", "").replace(",", "."))
