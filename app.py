@@ -680,8 +680,8 @@ if uploaded_files and len(uploaded_files) > 0:
             missing = [c for c in required_cols if c not in df.columns]
 
             if missing:
-                st.error(f"❌ Липсват колони: {missing}")
-                st.stop()
+                st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
+                continue
 
             df = df.groupby(
                 ["Commodity code", "Type of packaging"],
