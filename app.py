@@ -472,11 +472,12 @@ if uploaded_files:
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         report.to_excel(writer, index=False)
 
-    st.download_button(
-        "📥 Изтегли Excel",
-        data=output.getvalue(),
-        file_name="final_report.xlsx"
-    )
+   st.download_button(
+    "📥 Изтегли Excel",
+    data=output.getvalue(),
+    file_name="final_report.xlsx",
+    key="download_excel"
+)
 
 
 # ======================================================
