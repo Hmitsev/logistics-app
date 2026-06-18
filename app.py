@@ -481,7 +481,7 @@ def parse_neste_excel(file):
     return df
 
 # ======================================================
-# ✅ VALVOLINE (EXCEL ONLY ✅ FINAL CLEAN)
+# ✅ VALVOLINE FINAL (WORKING 100%)
 # ======================================================
 def parse_valvoline_excel(file):
 
@@ -490,7 +490,7 @@ def parse_valvoline_excel(file):
 
     xls = pd.ExcelFile(file)
 
-    # ✅ намираме PL sheet
+    # ✅ sheet
     sheet_name = None
     for s in xls.sheet_names:
         if "PL" in s.upper():
@@ -501,7 +501,7 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен PL sheet")
         st.stop()
 
-    # ✅ header row
+    # ✅ header detect
     raw = xls.parse(sheet_name, header=None)
 
     header_row = None
@@ -515,13 +515,11 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен header ред")
         st.stop()
 
+    # ✅ read
     df = xls.parse(sheet_name, header=header_row)
-
     df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ")
 
-    # ======================================================
-    # ✅ COLUMN MAP
-    # ======================================================
+    # ✅ column map
     column_map = {}
 
     for col in df.columns:
@@ -529,18 +527,12 @@ def parse_valvoline_excel(file):
 
         if "tariff" in c:
             column_map[col] = "code"
-
         elif "pack" in c:
             column_map[col] = "pack"
-
         elif "qty" in c:
             column_map[col] = "qty"
-
         elif "net" in c:
             column_map[col] = "weight"
-
-        elif "package" in c:
-            column_map[col] = "packages"
 
     df = df.rename(columns=column_map)
 
@@ -548,7 +540,7 @@ def parse_valvoline_excel(file):
     missing = [c for c in required if c not in df.columns]
 
     if missing:
-        st.error(f"❌ Липсват колони VALVOLINE: {missing}")
+        st.error(f"❌ Липсват колони: {missing}")
         st.write(df.columns)
         st.stop()
 
@@ -556,47 +548,38 @@ def parse_valvoline_excel(file):
 
     rows = []
 
-for _, r in df.iterrows():
+    for _, r in df.iterrows():
 
-    code = str(r["code"])[:8]
-    pack = str(r["pack"]).upper()
-    qty = float(r["qty"])
-    weight = float(r["weight"])
+        code = str(r["code"])[:8]
+        pack = str(r["pack"]).upper()
+        qty = float(r["qty"])        # ✅ ТУК ТИ Е BROJ
+        weight = float(r["weight"])
 
-    wid = 1
-
-    if "X" in pack and "L" in pack:
-        wid = int(re.findall(r"\d+", pack)[1])
-
-    elif "X" in pack and "G" in pack:
-        wid = int(re.findall(r"\d+", pack)[1])
-
-    elif "L" in pack:
-        wid = int(re.findall(r"\d+", pack)[0])
-
-    elif "G" in pack:
-        wid = int(re.findall(r"\d+", pack)[0])
-
-    else:
+        # ✅ wid extraction
         wid = 1
 
-    # ✅ ФИНАЛНА ЛОГИКА (ИСТИНСКАТА)
-    broj = qty
-    kolichestvo = qty * wid
+        numbers = re.findall(r"\d+", pack)
 
-    rows.append({
-        "Тарифен код": code,
-        "Количество": broj,
-        "wid": wid,
-        "kolichestvo": kolichestvo,
-        "тегло": weight
-    })
+        if "X" in pack and len(numbers) >= 2:
+            wid = int(numbers[1])
+        elif numbers:
+            wid = int(numbers[0])
 
+        # ✅ FINAL LOGIC (ВАЖНОТО)
+        broj = qty
+        kolichestvo = qty * wid
 
+        rows.append({
+            "Тарифен код": code,
+            "Количество": broj,
+            "wid": wid,
+            "kolichestvo": kolichestvo,
+            "тегло": weight
+        })
 
-    df = pd.DataFrame(rows)
+    result = pd.DataFrame(rows)
 
-    df = df.groupby(
+    result = result.groupby(
         ["Тарифен код", "wid"],
         as_index=False
     ).agg({
@@ -604,7 +587,8 @@ for _, r in df.iterrows():
         "kolichestvo": "sum",
         "тегло": "sum"
     })
-    return df
+
+    return result
     # ======================================================
 # ✅ PROCESS (FINAL)
 # ======================================================
