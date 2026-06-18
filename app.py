@@ -93,64 +93,42 @@ if not check_login():
 # ✅ main background
 set_bg("background.png")
 # ======================================================
-# ✅ TRUE GLASS SIDEBAR (REAL TRANSPARENCY)
+# ✅ SIDEBAR - GLASS + STRONG BORDER (LIKE LOGO)
 # ======================================================
 
 st.markdown("""
 <style>
 
-/* ✅ Махаме ВСИЧКИ фонoве */
+/* ✅ основен sidebar */
 section[data-testid="stSidebar"] {
     background: transparent !important;
 }
 
-/* ✅ ВЪТРЕШЕН контейнер */
+/* ✅ вътрешен контейнер */
 section[data-testid="stSidebar"] > div {
-    background: rgba(0,0,0,0.2) !important;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-}
+    background: rgba(0,0,0,0.15) !important;  /* прозрачно */
+    backdrop-filter: blur(10px);              /* glass */
+    -webkit-backdrop-filter: blur(10px);
 
-/* ✅ маха рамки и линии */
-section[data-testid="stSidebar"] * {
-    border: none !important;
+    border-right: 4px solid rgba(255,255,255,0.6); /* ✅ ДЕБЕЛА РАМКА */
+    box-shadow: 0 0 15px rgba(255,255,255,0.15);   /* лек glow */
+
 }
 
 /* ✅ текст */
-section[data-testid="stSidebar"] {
+section[data-testid="stSidebar"] * {
     color: white !important;
 }
 
-/* ✅ selectbox */
+/* ✅ Suppliers select */
 div[data-baseweb="select"] {
-    background: rgba(255,255,255,0.07) !important;
-    backdrop-filter: blur(6px);
+    background: rgba(255,255,255,0.08) !important;
     border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.25);
 }
 
 </style>
 """, unsafe_allow_html=True)
-
-# ======================================================
-# ✅ HEADER
-# ======================================================
-st.markdown(
-    """
-    <div style="
-        position: fixed;
-        top: 10px;
-        right: 25px;
-        font-size: 36px;
-        font-weight: 900;
-        color: white;
-        text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
-        z-index: 9999;
-    ">
-        CustomsFlow
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 
 # ======================================================
