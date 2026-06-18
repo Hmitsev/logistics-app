@@ -2,13 +2,12 @@ import streamlit as st
 import re
 import pandas as pd
 from PyPDF2 import PdfReader
+import io
 
-# ======================================================
-# ✅ BASIC UI
-# ======================================================
-st.title("📦 CustomsFlow - Parser")
+st.title("📦 CustomsFlow")
 
 menu = st.selectbox("Supplier", ["Castrol", "MOTUL"])
+
 uploaded_files = st.file_uploader(
     "Upload files",
     type=["pdf"],
@@ -52,7 +51,7 @@ def parse_castrol(text):
     return pd.DataFrame(rows)
 
 # ======================================================
-# ✅ MOTUL (FINAL 100% WORKING)
+# ✅ MOTUL ✅ (ФИНАЛЕН СТАБИЛЕН)
 # ======================================================
 def parse_motul(text):
 
@@ -66,15 +65,12 @@ def parse_motul(text):
 
     for line in lines:
 
-        # ✅ Quantity
+        # ✅ quantity
         match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
         if match:
-            try:
-                current_qty = int(match.group(1))
-            except:
-                pass
+            current_qty = int(match.group(1))
 
-        # ✅ Packaging
+        # ✅ wid
         multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
         single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
 
@@ -85,23 +81,27 @@ def parse_motul(text):
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
 
-        # ✅ Weight (NET ONLY ✅)
-        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+        # ✅ weight (само валидни редове)
+        row_match = re.search(
+            r"(\d+)\s+(\d+(?:[\.,]\d+)?)\s+([\d\.,]+)\s+([\d\.,]+)",
+            line
+        )
 
-        if weights:
+        if row_match:
             try:
-                values = [
-                    float(w.replace(" ", "").replace(",", "."))
-                    for w in weights
-                ]
+                liters = float(row_match.group(3).replace(",", "."))
+                weight_val = float(row_match.group(4).replace(",", "."))
 
-                if len(values) >= 2:
-                    current_weight = min(values[-2:])
+                ratio = weight_val / liters
+
+                # ✅ филтър – реално масло
+                if 0.75 < ratio < 0.95:
+                    current_weight = weight_val
 
             except:
                 pass
 
-        # ✅ HS CODE
+        # ✅ HS code
         if "HS code" in line:
             code = re.search(r"HS code\s*:\s*(\d+)", line)
 
@@ -124,7 +124,7 @@ def parse_motul(text):
                     "тегло": current_weight
                 })
 
-                # RESET
+                # ✅ reset
                 current_qty = 0
                 current_weight = 0
                 liters_per_unit = 0
@@ -158,3 +158,14 @@ if uploaded_files:
 
     st.subheader("📊 Result")
     st.dataframe(final_df)
+
+    # ✅ export
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        final_df.to_excel(writer, index=False)
+
+    st.download_button(
+        "📥 Download Excel",
+        data=output.getvalue(),
+        file_name="report.xlsx"
+    )
