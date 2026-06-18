@@ -94,45 +94,30 @@ if not check_login():
 set_bg("background.png")
 
 # ======================================================
-# ✅ TOP RIGHT LOGOUT (REAL FIXED BUTTON)
+# ✅ TOP RIGHT LOGOUT (VISIBLE FIX)
 # ======================================================
 
+# ✅ контейнер най-горе
+logout_col1, logout_col2, logout_col3 = st.columns([8,1,1])
+
+with logout_col3:
+    if st.button("🚪", help="Logout"):
+        st.session_state["logged_in"] = False
+        st.rerun()
+
+
+# ✅ CSS за position
 st.markdown("""
 <style>
-.logout-btn {
+div[data-testid="column"]:nth-of-type(3) {
     position: fixed;
-    top: 8px;
-    right: 180px;
-    background: rgba(20,20,20,0.8);
-    color: white;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
+    top: 10px;
+    right: 80px;
     z-index: 9999;
-}
-.logout-btn:hover {
-    background: rgba(255,255,255,0.2);
 }
 </style>
 """, unsafe_allow_html=True)
-
-
-# ✅ HTML бутон
-logout_click = st.markdown(
-    """
-    <form action="" method="post">
-        <button class="logout-btn">🚪 Logout</button>
-    </form>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# ✅ логика за logout
-if st.session_state.get("logout_clicked"):
-    st.session_state["logged_in"] = False
-    st.rerun()
+``
 
 
 
