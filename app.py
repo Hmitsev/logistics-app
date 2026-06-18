@@ -30,7 +30,7 @@ def set_bg(image_file):
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (FINAL CLEAN VERSION)
+# ✅ LOGIN SYSTEM (FINAL CLEAN + IMAGE FIX)
 # ======================================================
 def check_login():
 
@@ -42,38 +42,35 @@ def check_login():
         # ✅ login background
         set_bg("background_login.png")
 
-        # ✅ ✅ CENTRAL HEADER (CustomsFlow + logo)
-        st.markdown("""
-        <div style="
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            gap:12px;
-            margin-bottom:25px;
-        ">
-            <div style="
-                font-size:32px;
-                font-weight:900;
-                color:white;
-            ">
-                CustomsFlow
-            </div>
+        # ✅ Center header (текст + лого вдясно)
+        col1, col2, col3 = st.columns([3, 1, 2])
 
-            <img src="Screenshot 2026-06-18 093459.png" width="80">
-        </div>
-        """, unsafe_allow_html=True)
+        with col1:
+            st.markdown("")  # празно за centering
 
-        # ✅ ✅ Login заглавие
+        with col2:
+            st.markdown(
+                "<div style='font-size:32px; font-weight:900; color:white;'>CustomsFlow</div>",
+                unsafe_allow_html=True
+            )
+
+        with col3:
+            st.image("Screenshot 2026-06-18 093459.png", width=80)
+
+        # ✅ разстояние
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # ✅ login title
         st.markdown(
             "<h1 style='text-align:center; color:white;'>🔐 Вход</h1>",
             unsafe_allow_html=True
         )
 
-        # ✅ Inputs
+        # ✅ inputs
         username = st.text_input("Потребител")
         password = st.text_input("Парола", type="password")
 
-        # ✅ Button
+        # ✅ button
         if st.button("Вход"):
             if username == "mitnica" and password == "Intercars2026":
                 st.session_state["logged_in"] = True
@@ -89,8 +86,9 @@ def check_login():
 if not check_login():
     st.stop()
 
-# ✅ основен background след login
+# ✅ main background
 set_bg("background.png")
+``
 
 
 
