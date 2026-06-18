@@ -435,7 +435,7 @@ if uploaded_files and len(uploaded_files) > 0:
             
 
             # ✅ DEBUG
-            st.write("DEBUG columns after rename:", df.columns.tolist())
+    
 
             # ✅ защита
             required_cols = [
