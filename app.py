@@ -221,7 +221,7 @@ if "prev_supplier" not in st.session_state:
 
 # ✅ АКО смениш supplier → reset
 if st.session_state["prev_supplier"] != menu:
-    st.session_state["source_type"] = ""   # reset PDF/Excel
+    st.session_state["source_type"] = ""
     st.session_state["prev_supplier"] = menu
 
 
@@ -326,19 +326,20 @@ with col2:
     """, unsafe_allow_html=True)
 
 
-# ✅ ✅ ADD FILE НАД UPLOAD (малък)
+# ✅ ✅ ADD FILE
 st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
 
 
-# ✅ UPLOAD (под него)
+# ✅ UPLOAD
 uploaded_files = st.file_uploader(
     "",
     type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
     accept_multiple_files=True
 )
 
+
 # ======================================================
-# ✅ PROCESS
+# ✅ PROCESS (PDF + EXCEL готов за FUCHS)
 # ======================================================
 if uploaded_files:
 
@@ -349,10 +350,10 @@ if uploaded_files:
         if source_type == "PDF":
             reader = PdfReader(file)
             text = ""
+
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            # ✅ FIX: добавяме FUCHS тук
             if menu == "Castrol":
                 df = parse_castrol(text)
 
@@ -363,9 +364,14 @@ if uploaded_files:
                 df = parse_fuchs(text)
 
         else:
-            df = pd.read_excel(file)
+            # ✅ EXCEL логика (ключов FIX)
+            if menu == "FUCHS":
+                df = parse_fuchs_excel(file)
+            else:
+                df = pd.read_excel(file)
 
         all_data.append(df)
+
 
     final_df = pd.concat(all_data, ignore_index=True)
 
