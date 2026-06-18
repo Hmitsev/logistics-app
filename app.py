@@ -43,7 +43,9 @@ ALLOWED_CODES = [
 # ======================================================
 # ✅ UI
 # ======================================================
-st.title("📦 CustomsFlow")
+st.image("logo.png", width=150)
+
+st.title("CustomsFlow")
 
 source_type = st.radio("👉 Избери източник", ["PDF", "Excel"])
 menu = st.sidebar.selectbox("Доставчик", ["Castrol", "MOTUL"])
