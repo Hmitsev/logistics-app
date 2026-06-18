@@ -186,159 +186,44 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (RESET + FIXED ORDER)
+# ✅ CASTROL (СТАРАТА РАБОТЕЩА ЛОГИКА)
 # ======================================================
+def parse_castrol(text):
 
-st.markdown("""
-<style>
-.source-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: white;
-}
+    rows = []
+    lines = text.split("\n")
+    current_liters = 0
 
-/* ✅ Add file малък и прозрачен */
-.add-file {
-    display:inline-block;
-    background: rgba(255,255,255,0.04);
-    border-radius: 6px;
-    padding: 3px 10px;
-    color: white;
-    font-size: 14px;
-    font-weight: 400;
-    margin-bottom: 6px;
-}
-</style>
-""", unsafe_allow_html=True)
+    for line in lines:
 
+        multi = re.search(r"(\d+)X(\d+)L", line)
+        single = re.search(r"(\d+)L", line)
 
-# ✅ SIDEBAR (с reset логика)
-menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL", "FUCHS"])
+        if multi:
+            current_liters = int(multi.group(1)) * int(multi.group(2))
+        elif single:
+            current_liters = int(single.group(1))
 
-# ✅ пазим предишния supplier
-if "prev_supplier" not in st.session_state:
-    st.session_state["prev_supplier"] = menu
+        if "Cod Vamal" in line:
+            try:
+                code = re.search(r"Cod Vamal:(\d+)", line).group(1)
+                qty = int(re.search(r"ST\s*(\d+)", line).group(1))
 
-# ✅ АКО смениш supplier → reset
-if st.session_state["prev_supplier"] != menu:
-    st.session_state["source_type"] = ""   # reset PDF/Excel
-    st.session_state["prev_supplier"] = menu
+                rows.append({
+                    "Тарифен код": code,
+                    "Количество": qty,
+                    "wid": current_liters,
+                    "kolichestvo": qty * current_liters,
+                    "тегло": 0
+                })
+            except:
+                pass
 
+    return pd.DataFrame(rows)
 
-# ✅ заглавие
-st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
-
-
-# ✅ STATE
-if "source_type" not in st.session_state:
-    st.session_state["source_type"] = ""
-
-
-# ✅ бутони
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("PDF", use_container_width=True):
-        st.session_state["source_type"] = "PDF"
-        st.rerun()
-
-with col2:
-    if st.button("Excel", use_container_width=True):
-        st.session_state["source_type"] = "Excel"
-        st.rerun()
-
-
-source_type = st.session_state["source_type"]
-
-
-# ✅ цветове + текст
-if source_type == "PDF":
-    pdf_color = "#ff3b3b"
-    excel_color = "#444"
-
-    pdf_overlay = "<span style='color:#ff3b3b;'>You chose: PDF</span>"
-    excel_overlay = "<span style='color:white;'>Excel</span>"
-
-elif source_type == "Excel":
-    pdf_color = "#444"
-    excel_color = "#36c165"
-
-    pdf_overlay = "<span style='color:white;'>PDF</span>"
-    excel_overlay = "<span style='color:#36c165;'>You chose: Excel</span>"
-
-else:
-    pdf_color = "#444"
-    excel_color = "#444"
-
-    pdf_overlay = "<span style='color:white;'>PDF</span>"
-    excel_overlay = "<span style='color:white;'>Excel</span>"
-
-
-# ✅ бутон стил
-st.markdown(f"""
-<style>
-
-/* PDF */
-div[data-testid="column"]:nth-of-type(1) button {{
-    background-color: {pdf_color};
-    height: 60px;
-    border-radius: 12px;
-}}
-
-/* Excel */
-div[data-testid="column"]:nth-of-type(2) button {{
-    background-color: {excel_color};
-    height: 60px;
-    border-radius: 12px;
-}}
-
-</style>
-""", unsafe_allow_html=True)
-
-
-# ✅ overlay текст вдясно
-col1, col2 = st.columns(2)
-
-with col1:
-    st.markdown(f"""
-    <div style="
-        margin-top:-65px;
-        display:flex;
-        justify-content:flex-end;
-        padding-right:20px;
-        pointer-events:none;
-    ">
-        {pdf_overlay}
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.markdown(f"""
-    <div style="
-        margin-top:-65px;
-        display:flex;
-        justify-content:flex-end;
-        padding-right:20px;
-        pointer-events:none;
-    ">
-        {excel_overlay}
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ✅ ✅ ADD FILE НАД UPLOAD (малък)
-st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
-
-
-# ✅ UPLOAD (под него)
-uploaded_files = st.file_uploader(
-    "",
-    type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
-    accept_multiple_files=True
-)
 
 # ======================================================
-# ✅ MOTUL PARSER (FINAL FIXED VERSION)
+# ✅ MOTUL (ФИНАЛНА РАБОТЕЩА ВЕРСИЯ)
 # ======================================================
 def parse_motul(text):
 
@@ -347,15 +232,14 @@ def parse_motul(text):
 
     for i, line in enumerate(lines):
 
-        # ✅ ред с количество + тегло
         match = re.findall(r'(\d{1,4})\s+(\d{1,3}(?:\s\d{3})*,\d+)', line)
 
         if match:
             try:
-                broj = float(match[0][0])
-                teglo = float(match[0][1].replace(" ", "").replace(",", "."))
+                qty = float(match[0][0])
+                weight = float(match[0][1].replace(" ", "").replace(",", "."))
 
-                # ✅ търсим тарифен код надолу
+                # ✅ код
                 code = None
                 for j in range(i, min(i + 6, len(lines))):
                     code_match = re.search(r'\b\d{8}\b', lines[j])
@@ -363,9 +247,8 @@ def parse_motul(text):
                         code = code_match.group(0)
                         break
 
-                # ✅ wid (разфасовка)
+                # ✅ wid
                 wid = 1
-
                 for j in range(max(0, i - 8), i + 1):
                     l = lines[j].upper()
 
@@ -373,85 +256,80 @@ def parse_motul(text):
                     match_l = re.search(r'(\d+)L', l)
 
                     if match_pack:
-                        wid = float(match_pack.group(2))  # 4X5L → 5
+                        wid = float(match_pack.group(2))
                     elif match_l:
-                        wid = float(match_l.group(1))     # 20L → 20
+                        wid = float(match_l.group(1))
 
-                    # ✅ специални случаи
                     if "0.500L" in l:
                         wid = 0.5
                     elif "0.250L" in l:
                         wid = 0.25
 
-                # ✅ запис
                 if code:
                     rows.append({
-                        "Code": code,
-                        "broj": broj,
+                        "Тарифен код": code,
+                        "Количество": qty,
                         "wid": wid,
-                        "kolic": broj * wid,
-                        "teglo": teglo
+                        "kolichestvo": qty * wid,
+                        "тегло": weight
                     })
 
             except:
                 pass
 
     return pd.DataFrame(rows)
+
+
 # ======================================================
-# ✅ PROCESS (CLEAN VERSION)
+# ✅ FINAL REPORT (СЪЩИЯ КАТО ВЧЕРА)
 # ======================================================
-if uploaded_files:
+def build_final_report(df):
 
-    all_data = []
+    df["wid"] = df["wid"].astype(float).round(3)
 
-    for file in uploaded_files:
+    df["ratio"] = df["тегло"] / df["kolichestvo"]
+    df["correct_weight"] = df["kolichestvo"] * df["ratio"]
 
-        if source_type == "PDF":
-            reader = PdfReader(file)
-            text = ""
+    grouped = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "correct_weight": "sum"
+    })
 
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
+    grouped = grouped.rename(columns={"correct_weight": "тегло"})
 
-            if menu == "MOTUL":
-                df = parse_motul(text)
+    rows = []
 
-            elif menu == "Castrol":
-                df = parse_castrol(text)
+    for code, group in grouped.groupby("Тарифен код"):
 
-        else:
-            df = pd.read_excel(file)
+        for _, r in group.iterrows():
+            rows.append(r.to_dict())
 
-        all_data.append(df)
+        rows.append({
+            "Тарифен код": str(code) + " -",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": group["kolichestvo"].sum(),
+            "тегло": group["тегло"].sum()
+        })
 
-    # ✅ ако няма данни
-    if not all_data:
-        st.warning("⚠️ Няма данни")
-        st.stop()
+        rows.append({
+            "Тарифен код": "",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": "",
+            "тегло": ""
+        })
 
-    final_df = pd.concat(all_data, ignore_index=True)
+    rows.append({
+        "Тарифен код": "GRAND TOTAL",
+        "wid": "",
+        "Количество": "",
+        "kolichestvo": grouped["kolichestvo"].sum(),
+        "тегло": grouped["тегло"].sum()
+    })
 
-    # ✅ защита
-    if "Code" not in final_df.columns:
-        st.error("❌ Липсва 'Code'")
-        st.stop()
-
-    final_df["Code"] = final_df["Code"].astype(str)
-    final_df = final_df[final_df["teglo"] > 0]
-
-    # ✅ Показваме RAW данни
-    st.subheader("📊 MOTUL RAW DATA")
-    st.dataframe(final_df)
-
-    # ✅ Export
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        final_df.to_excel(writer, index=False)
-
-    st.download_button(
-        "📥 Изтегли Excel",
-        data=output.getvalue(),
-        file_name="motul_raw.xlsx",
-        key="download_excel"
-    )
+    return pd.DataFrame(rows)
