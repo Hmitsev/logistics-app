@@ -582,15 +582,19 @@ def parse_valvoline_excel(file):
 
             wid = liters
 
-            # ✅ SMART CHECK (ТУК Е FIX)
-            if qty % liters == 0:
-                # ✅ qty already liters
+            # ✅ ПРОБВАМЕ И ДВАТА ВАРИАНТА
+            kol_liters = qty
+            kg_per_l_candidate = weight / kol_liters if kol_liters > 0 else 0
+
+            # ✅ ако изглежда като масло → qty вече е литри
+            if 0.7 < kg_per_l_candidate < 0.95:
                 kolichestvo = qty
                 real_qty = qty / liters
             else:
-                # ✅ qty = boxes
+                # ✅ иначе са кутии
                 kolichestvo = qty * liters
                 real_qty = qty
+
 
         # ======================================================
         # ✅ SINGLE L
@@ -598,12 +602,16 @@ def parse_valvoline_excel(file):
         elif single:
             wid = int(single.group(1))
 
-            if qty % wid == 0:
+            kol_liters = qty
+            kg_per_l_candidate = weight / kol_liters if kol_liters > 0 else 0
+
+            if 0.7 < kg_per_l_candidate < 0.95:
                 kolichestvo = qty
                 real_qty = qty / wid
             else:
                 kolichestvo = qty * wid
                 real_qty = qty
+
 
         # ======================================================
         # ✅ GRAMS
@@ -612,7 +620,6 @@ def parse_valvoline_excel(file):
             wid = 1
             kolichestvo = qty
             real_qty = qty
-
         # ======================================================
         # ✅ fallback
         # ======================================================
