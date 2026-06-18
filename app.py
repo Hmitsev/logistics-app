@@ -394,11 +394,12 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (FIX: support "1 685,140")
+        # ✅ ТЕГЛО (ФИНАЛЕН FIX)
         # ======================================================
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        if weights:
+        # ✅ вземи тегло САМО ако още няма взето
+        if weights and current_weight == 0:
             try:
                 current_weight = float(
                     weights[0].replace(" ", "").replace(",", ".")
@@ -445,7 +446,7 @@ def parse_motul(text):
                     "тегло": current_weight
                 })
 
-                # ✅ ✅ КРИТИЧЕН FIX → reset след всеки ред
+                # ✅ ✅ КРИТИЧЕН RESET
                 current_qty = 0
                 current_weight = 0
                 liters_per_unit = 0
