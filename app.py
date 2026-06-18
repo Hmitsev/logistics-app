@@ -30,7 +30,7 @@ def set_bg(image_file):
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (FINAL PERFECT VERSION)
+# ✅ LOGIN SYSTEM (NO SCROLL + INLINE LOGO)
 # ======================================================
 def check_login():
 
@@ -42,14 +42,15 @@ def check_login():
         # ✅ login background
         set_bg("background_login.png")
 
-        # ✅ ✅ CENTRAL HEADER (1 ред текст + лого)
+        # ✅ ✅ HEADER В 1 РЕД (текст + лого вдясно)
         st.markdown("""
         <div style="
             display:flex;
             justify-content:center;
             align-items:center;
-            gap:10px;
-            margin-bottom:25px;
+            gap:12px;
+            margin-top:20px;
+            margin-bottom:20px;
             white-space:nowrap;
         ">
             <div style="
@@ -59,14 +60,11 @@ def check_login():
             ">
                 CustomsFlow
             </div>
+
+            <img src="Screenshot 2026-06-18 093459.png" width="60">
         </div>
         """, unsafe_allow_html=True)
 
-        # ✅ логото вдясно (отделно за стабилност)
-        st.image("Screenshot 2026-06-18 093459.png", width=70)
-
-        # ✅ малко разстояние
-        st.markdown("<br>", unsafe_allow_html=True)
 
         # ✅ Заглавие
         st.markdown(
@@ -74,9 +72,11 @@ def check_login():
             unsafe_allow_html=True
         )
 
+
         # ✅ Inputs
         username = st.text_input("Потребител")
         password = st.text_input("Парола", type="password")
+
 
         # ✅ Button
         if st.button("Вход"):
@@ -96,6 +96,7 @@ if not check_login():
 
 # ✅ main background
 set_bg("background.png")
+
 
 
 # ======================================================
