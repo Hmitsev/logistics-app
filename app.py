@@ -100,50 +100,20 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (CLEAN VERSION)
+# ✅ FINAL UI (WORKING BUTTON COLORS)
 # ======================================================
 
+# ✅ заглавие
 st.markdown("""
 <style>
-
-/* ✅ заглавие */
 .source-title {
     font-size: 22px;
     font-weight: 800;
     color: white;
 }
-
-/* ✅ стрелка */
-.arrow {
-    font-size: 22px;
-    color: white;
-    margin-bottom: 10px;
-}
-
-/* ✅ бутони */
-.btn-pdf {
-    background-color: rgba(255,255,255,0.15);
-    border-radius: 10px;
-    padding: 10px;
-    text-align: center;
-    font-weight: 700;
-    color: white;
-}
-
-.btn-excel {
-    background-color: rgba(255,255,255,0.15);
-    border-radius: 10px;
-    padding: 10px;
-    text-align: center;
-    font-weight: 700;
-    color: white;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
-
-# ✅ Choose Source (само текст + стрелка)
 st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
 
 
@@ -152,7 +122,7 @@ if "source_type" not in st.session_state:
     st.session_state["source_type"] = "PDF"
 
 
-# ✅ БУТОНИ (реални, НЕ крити)
+# ✅ избор (с rerun за моментално обновяване)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -166,7 +136,7 @@ with col2:
         st.rerun()
 
 
-# ✅ ЦВЕТОВЕ
+# ✅ определяме цветове
 if st.session_state["source_type"] == "PDF":
     pdf_color = "#ff3b3b"
     excel_color = "#444"
@@ -175,12 +145,12 @@ else:
     excel_color = "#36c165"
 
 
-# ✅ динамичен стил за бутони
+# ✅ ✅ СИЛЕН CSS (точно таргетира бутоните)
 st.markdown(f"""
 <style>
 
-/* Първи бутон (PDF) */
-div[data-testid="column"] > div:nth-child(1) button {{
+/* PDF бутон */
+div[data-testid="column"]:nth-of-type(1) button {{
     background-color: {pdf_color} !important;
     color: white !important;
     font-weight: 800 !important;
@@ -188,7 +158,7 @@ div[data-testid="column"] > div:nth-child(1) button {{
     height: 60px !important;
 }}
 
-/* Втори бутон (Excel) */
+/* Excel бутон */
 div[data-testid="column"]:nth-of-type(2) button {{
     background-color: {excel_color} !important;
     color: white !important;
@@ -203,27 +173,22 @@ div[data-testid="column"]:nth-of-type(2) button {{
 
 source_type = st.session_state["source_type"]
 
-# ✅ визуален цветен статус
+
+# ✅ текст статус
 if source_type == "PDF":
-    st.markdown(
-        "<div style='color:#ff3b3b; font-weight:900;'>You Chose: PDF</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div style='color:#ff3b3b; font-weight:900;'>You Chose: PDF</div>", unsafe_allow_html=True)
 else:
-    st.markdown(
-        "<div style='color:#36c165; font-weight:900;'>You Chose: Excel</div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div style='color:#36c165; font-weight:900;'>You Chose: Excel</div>", unsafe_allow_html=True)
 
 
-# ✅ Add file (точно над upload)
+# ✅ Add file
 st.markdown(
     "<div style='font-size:20px; font-weight:900; color:white; margin-top:15px;'>Add file</div>",
     unsafe_allow_html=True
 )
 
 
-# ✅ uploader (веднага под текста)
+# ✅ uploader (връща се обратно)
 uploaded_files = st.file_uploader(
     "",
     type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
@@ -231,8 +196,9 @@ uploaded_files = st.file_uploader(
 )
 
 
-# ✅ sidebar → само Suppliers
+# ✅ Sidebar
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
+
 
 
 # ======================================================
