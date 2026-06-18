@@ -509,14 +509,15 @@ if uploaded_files and len(uploaded_files) > 0:
     for file in uploaded_files:
 
         # ======================================================
-        # ✅ PDF
-        # ======================================================
-        if source_type == "PDF":
+# ✅ FILE PROCESSING
+# ======================================================
 
-            if menu == "NESTE":
+# ✅ NESTE → винаги Excel (игнорира PDF)
+if menu == "NESTE":
 
     df = parse_neste_excel(file)
 
+# ✅ Другите доставчици
 elif source_type == "PDF":
 
     reader = PdfReader(file)
@@ -529,6 +530,15 @@ elif source_type == "PDF":
         df = parse_castrol(text)
     else:
         df = parse_motul(text)
+
+# ✅ Excel за другите (ако има)
+else:
+
+    df = pd.read_excel(file)
+    df.columns = df.columns.str.strip()
+
+    # (тук си остава твоята Excel логика)
+
 
         # ======================================================
         # ✅ EXCEL (FIXED)
