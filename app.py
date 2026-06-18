@@ -481,7 +481,7 @@ def parse_neste_excel(file):
     return df
 
 # ======================================================
-# ✅ VALVOLINE (EXCEL ONLY ✅ FINAL FIXED)
+# ✅ VALVOLINE (EXCEL ONLY ✅ FINAL CLEAN)
 # ======================================================
 def parse_valvoline_excel(file):
 
@@ -501,16 +501,12 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен PL sheet")
         st.stop()
 
-    # ======================================================
-    # ✅ НАМИРАМЕ HEADER ROW АВТОМАТИЧНО
-    # ======================================================
+    # ✅ header row
     raw = xls.parse(sheet_name, header=None)
 
     header_row = None
-
     for i, row in raw.iterrows():
         row_text = " ".join([str(x) for x in row])
-
         if "Tariff" in row_text and "Qty" in row_text:
             header_row = i
             break
@@ -561,114 +557,32 @@ def parse_valvoline_excel(file):
     rows = []
 
     for _, r in df.iterrows():
+
         code = str(r["code"])[:8]
         pack = str(r["pack"])
-        qty = float(r["qty"])
+        qty = float(r["qty"])          # ✅ литри
         weight = float(r["weight"])
         packages = float(r["packages"]) if "packages" in df.columns else 0
 
-        # ======================================================
-        # ✅ ПРАВИЛЕН wid extraction (FIXED)
-        # ======================================================
+        # ✅ wid extraction
         multi_L = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
         multi_G = re.search(r"(\d+)\s*x\s*(\d+)\s*G", pack, re.I)
         single_L = re.search(r"(\d+)\s*L", pack, re.I)
 
         if multi_L:
             wid = int(multi_L.group(2))
-
         elif multi_G:
             wid = int(multi_G.group(2))
-
         elif single_L:
             wid = int(single_L.group(1))
-
         else:
             wid = 1
 
-        # ======================================================
-        # ✅ DIRECT MAPPING (1:1 с Excel)
-        # ======================================================
         rows.append({
             "Тарифен код": code,
             "Количество": packages,
             "wid": wid,
             "kolichestvo": qty,
-            "тегло": weight
-        })
-
-    df = pd.DataFrame(rows)
-
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
-        # ======================================================
-        # ✅ MULTI PACK (пример: 4x5L)
-        # ======================================================
-        if multi:
-            units = int(multi.group(1))
-            liters = int(multi.group(2))
-
-            wid = liters
-
-            # ✅ това винаги са кутии
-            kolichestvo = qty * liters
-            real_qty = qty
-
-
-        # ======================================================
-        # ✅ SINGLE L (пример: 20L, 208L)
-        # ======================================================
-        elif single:
-            wid = int(single.group(1))
-
-            # ✅ ако има X в текста → това са кутии
-            if "x" in pack.lower():
-                kolichestvo = qty * wid
-                real_qty = qty
-
-            # ✅ ако няма X → големите варели → литри
-            elif wid >= 20:
-                kolichestvo = qty
-                real_qty = qty / wid
-
-            # ✅ иначе → малки разфасовки (4L, 5L)
-            else:
-                kolichestvo = qty * wid
-                real_qty = qty
-
-
-
-        # ======================================================
-        # ✅ GRAMS (грес)
-        # ======================================================
-        elif grams:
-            wid = 1
-            kolichestvo = qty
-            real_qty = qty
-
-
-        # ======================================================
-        # ✅ fallback
-        # ======================================================
-        else:
-            wid = 1
-            kolichestvo = qty
-            real_qty = qty
-
-
-        rows.append({
-            "Тарифен код": code,
-            "Количество": real_qty,
-            "wid": wid,
-            "kolichestvo": kolichestvo,
             "тегло": weight
         })
 
