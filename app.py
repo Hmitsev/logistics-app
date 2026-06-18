@@ -481,7 +481,7 @@ def parse_neste_excel(file):
     return df
 
 # ======================================================
-# ✅ VALVOLINE FINAL (WORKING + UI FIX)
+# ✅ VALVOLINE FINAL (WORKING + CLEAN + UI OK)
 # ======================================================
 def parse_valvoline_excel(file):
 
@@ -490,7 +490,7 @@ def parse_valvoline_excel(file):
 
     xls = pd.ExcelFile(file)
 
-    # ✅ намираме sheet
+    # ✅ намираме PL sheet
     sheet_name = None
     for s in xls.sheet_names:
         if "PL" in s.upper():
@@ -519,7 +519,9 @@ def parse_valvoline_excel(file):
     df = xls.parse(sheet_name, header=header_row)
     df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ")
 
+    # ======================================================
     # ✅ COLUMN MAP
+    # ======================================================
     column_map = {}
 
     for col in df.columns:
@@ -527,10 +529,13 @@ def parse_valvoline_excel(file):
 
         if "tariff" in c:
             column_map[col] = "code"
+
         elif "pack" in c:
             column_map[col] = "pack"
+
         elif "qty" in c:
             column_map[col] = "qty"
+
         elif "net" in c:
             column_map[col] = "weight"
 
@@ -540,7 +545,7 @@ def parse_valvoline_excel(file):
     missing = [c for c in required if c not in df.columns]
 
     if missing:
-        st.error(f"❌ Липсват колони: {missing}")
+        st.error(f"❌ Липсват колони VALVOLINE: {missing}")
         st.write(df.columns)
         st.stop()
 
@@ -552,32 +557,37 @@ def parse_valvoline_excel(file):
 
         code = str(r["code"])[:8]
         pack = str(r["pack"]).upper()
-        qty = float(r["qty"])          # ✅ BROJ
+        qty = float(r["qty"])        # ✅ ТУК Е BROJ
         weight = float(r["weight"])
 
-        # ✅ wid extraction
+        # ======================================================
+        # ✅ wid extraction (СТАБИЛЕН)
+        # ======================================================
         wid = 1
         numbers = re.findall(r"\d+", pack)
 
         if "X" in pack and len(numbers) >= 2:
-            wid = int(numbers[1])
+            wid = int(numbers[1])   # напр. 4x5 → 5
         elif numbers:
-            wid = int(numbers[0])
+            wid = int(numbers[0])   # напр. 20L → 20
 
-        # ✅ FINAL LOGIC (твоята правилна)
+        # ======================================================
+        # ✅ ФИНАЛНА ЛОГИКА (ПРАВИЛНАТА)
+        # ======================================================
         broj = qty
-        kolichestvo = qty * wid
+        colic = qty * wid
 
         rows.append({
             "Code": code,
             "wid": wid,
             "teglo": weight,
-            "colic": kolichestvo,
+            "colic": colic,
             "Broj": broj
         })
 
     result = pd.DataFrame(rows)
 
+    # ✅ групиране
     result = result.groupby(
         ["Code", "wid"],
         as_index=False
@@ -588,6 +598,7 @@ def parse_valvoline_excel(file):
     })
 
     return result
+
     # ======================================================
 # ✅ PROCESS (FINAL)
 # ======================================================
