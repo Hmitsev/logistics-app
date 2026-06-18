@@ -376,9 +376,11 @@ def parse_motul(text):
     lines = text.split("\n")
 
     current_qty = 0
-    current_weight = 0
     liters_per_unit = 0
     units_in_box = 1
+
+    # ✅ 🔥 използваме last_weight вместо current_weight
+    last_weight = 0
 
     for line in lines:
 
@@ -393,7 +395,7 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (ФИКС)
+        # ✅ ТЕГЛО (ФИНАЛЕН FIX)
         # ======================================================
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
@@ -404,8 +406,8 @@ def parse_motul(text):
                     for w in weights
                 ]
 
-                # ✅ взимаме най-малкото → реалното тегло
-                current_weight = min(clean_weights)
+                # ✅ взимаме най-малкото число (реалното тегло)
+                last_weight = min(clean_weights)
 
             except:
                 pass
@@ -432,7 +434,7 @@ def parse_motul(text):
             if code:
                 code_value = code.group(1)[:8]
 
-                # ✅ логика за количество (ВАЖНО)
+                # ✅ логика за количество
                 if current_qty * units_in_box * liters_per_unit > 100000:
                     real_qty = current_qty
                 else:
@@ -446,12 +448,12 @@ def parse_motul(text):
                     "Количество": real_qty,
                     "wid": liters_per_unit,
                     "kolichestvo": real_qty * liters_per_unit,
-                    "тегло": current_weight
+                    "тегло": last_weight
                 })
 
-                # ✅ 🔥 RESET (КРИТИЧНО)
+                # ✅ 🔥 RESET (много важно)
                 current_qty = 0
-                current_weight = 0
+                last_weight = 0
                 liters_per_unit = 0
                 units_in_box = 1
 
