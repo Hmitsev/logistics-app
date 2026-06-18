@@ -93,6 +93,34 @@ if not check_login():
 # ✅ main background
 set_bg("background.png")
 
+# ======================================================
+# ✅ LOGOUT BUTTON (TOP RIGHT)
+# ======================================================
+
+st.markdown("""
+<style>
+.logout-btn {
+    position: fixed;
+    top: 10px;
+    right: 100px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 9999;
+}
+.logout-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ✅ бутон
+if st.button("🚪 Logout"):
+    st.session_state["logged_in"] = False
+    st.rerun()
 
 
 
