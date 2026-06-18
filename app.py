@@ -343,69 +343,59 @@ uploaded_files = st.file_uploader(
 def parse_motul(text):
 
     rows = []
-
     lines = text.split("\n")
 
-    current_qty = None
-    current_weight = None
-    current_code = None
-    current_wid = 1
+    for i, line in enumerate(lines):
 
-    for line in lines:
+        # ✅ намираме ред с количество + тегло (пример: 224 3879,680)
+        match = re.findall(r'\b(\d{1,4})\b\s+([\d\s]+,\d+)', line)
 
-        # ✅ код
-        code_match = re.search(r'\b\d{8}\b', line)
-        if code_match:
-            current_code = code_match.group(0)
-
-        # ✅ тегло
-        weight_match = re.search(r'(\d+[.,]\d+)', line)
-        if weight_match and "KG" not in line:
+        if match:
             try:
-                val = float(weight_match.group(1).replace(",", "."))
-                if val > 5:  # филтър (избягва qty)
-                    current_weight = val
+                qty = float(match[0][0])
+
+                # ✅ оправяме теглото (махаме space)
+                weight = float(match[0][1].replace(" ", "").replace(",", "."))
+
+                # ✅ търсим код на следващите редове
+                code = None
+                for j in range(i, min(i + 5, len(lines))):
+                    code_match = re.search(r'\b\d{8}\b', lines[j])
+                    if code_match:
+                        code = code_match.group(0)
+                        break
+
+                # ✅ търсим wid нагоре (в описанието)
+                wid = 1
+                for j in range(max(0, i - 3), i + 1):
+                    l = lines[j]
+
+                    if "208L" in l:
+                        wid = 208
+                    elif "60L" in l:
+                        wid = 60
+                    elif "20L" in l:
+                        wid = 20
+                    elif "4X5L" in l:
+                        wid = 5
+                    elif "12X1L" in l:
+                        wid = 1
+                    elif "12X0.500L" in l:
+                        wid = 0.5
+                    elif "12X0.250L" in l:
+                        wid = 0.25
+
+                if code:
+                    rows.append({
+                        "Тарифен код": code,
+                        "Количество": qty,
+                        "wid": wid,
+                        "kolichestvo": qty * wid,
+                        "тегло": weight
+                    })
+
             except:
                 pass
-
-        # ✅ количество
-        qty_match = re.search(r'\b(\d{1,4})\b', line)
-        if qty_match and "L" not in line and "KG" not in line:
-            try:
-                current_qty = float(qty_match.group(1))
-            except:
-                pass
-
-        # ✅ wid от продукт
-        if "20L" in line:
-            current_wid = 20
-        elif "60L" in line:
-            current_wid = 60
-        elif "208L" in line:
-            current_wid = 208
-        elif "4X5L" in line:
-            current_wid = 5
-        elif "12X1L" in line:
-            current_wid = 1
-        elif "12X0.500L" in line:
-            current_wid = 0.5
-        elif "12X0.250L" in line:
-            current_wid = 0.25
-
-        # ✅ запис
-        if current_qty and current_weight and current_code:
-            rows.append({
-                "Тарифен код": current_code,
-                "Количество": current_qty,
-                "wid": current_wid,
-                "kolichestvo": current_qty * current_wid,
-                "тегло": current_weight
-            })
-
-            current_qty = None
-            current_weight = None
-            current_code = None
-            current_wid = 1
 
     return pd.DataFrame(rows)
 
