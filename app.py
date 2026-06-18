@@ -376,7 +376,7 @@ def build_final_report(df):
     return pd.DataFrame(rows)
 
 # ======================================================
-# ✅ PROCESS
+# ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
 
@@ -384,7 +384,11 @@ if uploaded_files and len(uploaded_files) > 0:
 
     for file in uploaded_files:
 
+        # ======================================================
+        # ✅ PDF
+        # ======================================================
         if source_type == "PDF":
+
             reader = PdfReader(file)
             text = ""
 
@@ -395,66 +399,102 @@ if uploaded_files and len(uploaded_files) > 0:
                 df = parse_castrol(text)
             else:
                 df = parse_motul(text)
+
+        # ======================================================
+        # ✅ EXCEL (FIXED)
+        # ======================================================
         else:
-    df = pd.read_excel(file)
-    df.columns = df.columns.str.strip()
 
-    # ✅ COLUMN MAP (FIX)
-    column_map = {}
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
-    for col in df.columns:
-        c = col.lower()
+            # ✅ COLUMN MAP
+            column_map = {}
 
-        if "comm" in c or "code" in c:
-            column_map[col] = "Commodity code"
+            for col in df.columns:
+                c = col.lower()
 
-        elif "pack" in c:
-            column_map[col] = "Type of packaging"
+                if "comm" in c or "code" in c:
+                    column_map[col] = "Commodity code"
 
-        elif "delivery quantity" in c or "qty" in c or "quantity" in c:
-            column_map[col] = "Delivery quantity"
+                elif "pack" in c:
+                    column_map[col] = "Type of packaging"
 
-        elif "volume" in c:
-            column_map[col] = "Volume"
+                elif "delivery quantity" in c or "qty" in c or "quantity" in c:
+                    column_map[col] = "Delivery quantity"
 
-        elif "net weight" in c or "weight" in c:
-            column_map[col] = "Net Weight"
+                elif "volume" in c:
+                    column_map[col] = "Volume"
 
-    df = df.rename(columns=column_map)
+                elif "net weight" in c or "weight" in c:
+                    column_map[col] = "Net Weight"
 
-    # ✅ DEBUG
-    st.write("DEBUG columns after rename:", df.columns.tolist())
+            df = df.rename(columns=column_map)
+
+            # ✅ DEBUG
+            st.write("DEBUG columns after rename:", df.columns.tolist())
+
+            # ✅ защита
+            required_cols = [
+                "Commodity code",
+                "Type of packaging",
+                "Delivery quantity",
+                "Volume",
+                "Net Weight"
+            ]
+
+            missing = [c for c in required_cols if c not in df.columns]
+
+            if missing:
+                st.error(f"❌ Липсват колони: {missing}")
+                st.stop()
+
+            # ✅ групиране като PDF логика
+            df = df.groupby(
+                ["Commodity code", "Type of packaging"],
+                as_index=False
+            ).agg({
+                "Delivery quantity": "sum",
+                "Volume": "sum",
+                "Net Weight": "sum"
+            })
+
+            df = df.rename(columns={
+                "Commodity code": "Тарифен код",
+                "Type of packaging": "wid",
+                "Delivery quantity": "Количество",
+                "Volume": "kolichestvo",
+                "Net Weight": "тегло"
+            })
+
+        # ✅ добавяме към списъка
+        all_data.append(df)
 
     # ✅ защита
-    required_cols = [
-        "Commodity code",
-        "Type of packaging",
-        "Delivery quantity",
-        "Volume",
-        "Net Weight"
-    ]
-
-    missing = [c for c in required_cols if c not in df.columns]
-
-    if missing:
-        st.error(f"❌ Липсват колони: {missing}")
+    if not all_data:
+        st.warning("⚠️ Няма данни")
         st.stop()
 
-    # ✅ правим структура като PDF
-    df = df.groupby(
-        ["Commodity code", "Type of packaging"],
-        as_index=False
-    ).agg({
-        "Delivery quantity": "sum",
-        "Volume": "sum",
-        "Net Weight": "sum"
-    })
+    final_df = pd.concat(all_data, ignore_index=True)
 
-    df = df.rename(columns={
-        "Commodity code": "Тарифен код",
-        "Type of packaging": "wid",
-        "Delivery quantity": "Количество",
-        "Volume": "kolichestvo",
-        "Net Weight": "тегло"
-    })
+    # ✅ еднаква логика за PDF + Excel
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
 
+    report = build_final_report(final_df)
+
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
+
+    # ✅ export
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        report.to_excel(writer, index=False)
+
+    st.download_button(
+        "📥 Изтегли Excel",
+        data=output.getvalue(),
+        file_name="final_report.xlsx"
+    )
