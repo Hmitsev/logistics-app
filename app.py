@@ -430,7 +430,7 @@ if uploaded_files and len(uploaded_files) > 0:
                     column_map[col] = "Net Weight"
 
             df = df.rename(columns=column_map)# 
-            ✅ махаме duplicate колони (КРИТИЧНО)
+            # ✅ махаме duplicate колони (КРИТИЧНО)
             df = df.loc[:, ~df.columns.duplicated()]
             
 
