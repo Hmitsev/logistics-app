@@ -602,7 +602,7 @@ def parse_valvoline_excel(file):
 
 
 # ======================================================
-# ✅ PROCESS (FIXED)
+# ✅ PROCESS (FINAL FIXED)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
 
@@ -634,17 +634,18 @@ if uploaded_files and len(uploaded_files) > 0:
 
         all_data.append(df)
 
+    # ✅ concat
     final_df = pd.concat(all_data, ignore_index=True)
-    # ✅ NORMALIZE COLUMNS (CRITICAL FIX)
-final_df = final_df.rename(columns={
-    "Тарифен код": "Code",
-    "Количество": "Broj",
-    "kolichestvo": "colic",
-    "тегло": "teglo"
-})
 
+    # ✅ CRITICAL FIX – normalize names
+    final_df = final_df.rename(columns={
+        "Тарифен код": "Code",
+        "Количество": "Broj",
+        "kolichestvo": "colic",
+        "тегло": "teglo"
+    })
 
-    # ✅ FIX
+    # ✅ filters (ВЪТРЕ В if!)
     final_df["Code"] = final_df["Code"].astype(str)
     final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
     final_df = final_df[final_df["teglo"] > 0]
