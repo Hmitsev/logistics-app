@@ -100,7 +100,7 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (WORKING + COLORED TEXT INSIDE)
+# ✅ FINAL UI (WORKING COLORS FIX)
 # ======================================================
 
 st.markdown("""
@@ -168,24 +168,22 @@ with col2:
         st.rerun()
 
 
-# ✅ ОЦВЕТЯВАНЕ НА БУТОНИТЕ + ТЕКСТА
+# ✅ ✅ РЕАЛЕН FIX (РАБОТИ)
 st.markdown(f"""
 <style>
 
 /* PDF бутон */
-button#pdf_btn {{
+div[data-testid="column"]:nth-of-type(1) button {{
     background-color: {pdf_color} !important;
     color: {pdf_text_color} !important;
-    font-weight: 500 !important;
     border-radius: 12px !important;
     height: 60px !important;
 }}
 
 /* Excel бутон */
-button#excel_btn {{
+div[data-testid="column"]:nth-of-type(2) button {{
     background-color: {excel_color} !important;
     color: {excel_text_color} !important;
-    font-weight: 500 !important;
     border-radius: 12px !important;
     height: 60px !important;
 }}
