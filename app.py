@@ -93,26 +93,25 @@ if not check_login():
 # ✅ main background
 set_bg("background.png")
 # ======================================================
-# ✅ SIDEBAR - GLASS + STRONG BORDER (LIKE LOGO)
+# ✅ FINAL SIDEBAR STYLE (GLASS + POINTER)
 # ======================================================
 
 st.markdown("""
 <style>
 
-/* ✅ основен sidebar */
+/* ✅ Sidebar основен */
 section[data-testid="stSidebar"] {
     background: transparent !important;
 }
 
-/* ✅ вътрешен контейнер */
+/* ✅ вътрешен контейнер (glass ефект) */
 section[data-testid="stSidebar"] > div {
-    background: rgba(0,0,0,0.05)
-    backdrop-filter: blur(10px);              /* glass */
+    background: rgba(0,0,0,0.03) !important;  /* ✅ МНОГО ПРОЗРАЧНО */
+    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 
-    border-right: 4px solid rgba(255,255,255,0.6); /* ✅ ДЕБЕЛА РАМКА */
-    box-shadow: 0 0 15px rgba(255,255,255,0.15);   /* лек glow */
-
+    border-right: 4px solid rgba(255,255,255,0.6); /* ✅ дебела рамка */
+    box-shadow: 0 0 15px rgba(255,255,255,0.15);
 }
 
 /* ✅ текст */
@@ -120,16 +119,29 @@ section[data-testid="stSidebar"] * {
     color: white !important;
 }
 
-/* ✅ Suppliers select */
+/* ✅ SELECT BOX */
 div[data-baseweb="select"] {
-    background: rgba(255,255,255,0.08) !important;
+    background: rgba(255,255,255,0.05) !important;
     border-radius: 10px;
     border: 1px solid rgba(255,255,255,0.25);
 }
 
+/* ✅ ✅ FIX курсор (махаме |) */
+div[data-baseweb="select"] * {
+    cursor: pointer !important;
+}
+
+div[data-baseweb="select"] {
+    cursor: pointer !important;
+}
+
+/* ✅ hover ефект */
+div[data-baseweb="select"]:hover {
+    background: rgba(255,255,255,0.10) !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
-
 
 # ======================================================
 # ✅ КОДОВЕ
