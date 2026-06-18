@@ -30,7 +30,7 @@ def set_bg(image_file):
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (FINAL CLEAN + IMAGE FIX)
+# ✅ LOGIN SYSTEM (FINAL PERFECT VERSION)
 # ======================================================
 def check_login():
 
@@ -42,35 +42,43 @@ def check_login():
         # ✅ login background
         set_bg("background_login.png")
 
-        # ✅ Center header (текст + лого вдясно)
-        col1, col2, col3 = st.columns([3, 1, 2])
+        # ✅ ✅ CENTRAL HEADER (1 ред текст + лого)
+        st.markdown("""
+        <div style="
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            gap:10px;
+            margin-bottom:25px;
+            white-space:nowrap;
+        ">
+            <div style="
+                font-size:32px;
+                font-weight:900;
+                color:white;
+            ">
+                CustomsFlow
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        with col1:
-            st.markdown("")  # празно за centering
+        # ✅ логото вдясно (отделно за стабилност)
+        st.image("Screenshot 2026-06-18 093459.png", width=70)
 
-        with col2:
-            st.markdown(
-                "<div style='font-size:32px; font-weight:900; color:white;'>CustomsFlow</div>",
-                unsafe_allow_html=True
-            )
-
-        with col3:
-            st.image("Screenshot 2026-06-18 093459.png", width=80)
-
-        # ✅ разстояние
+        # ✅ малко разстояние
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # ✅ login title
+        # ✅ Заглавие
         st.markdown(
             "<h1 style='text-align:center; color:white;'>🔐 Вход</h1>",
             unsafe_allow_html=True
         )
 
-        # ✅ inputs
+        # ✅ Inputs
         username = st.text_input("Потребител")
         password = st.text_input("Парола", type="password")
 
-        # ✅ button
+        # ✅ Button
         if st.button("Вход"):
             if username == "mitnica" and password == "Intercars2026":
                 st.session_state["logged_in"] = True
