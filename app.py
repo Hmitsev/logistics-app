@@ -488,15 +488,16 @@ if uploaded_files:
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    if "Тарифен код" not in final_df.columns:
-        st.error("❌ Липсва 'Тарифен код'")
-        st.stop()
+    if "Code" not in final_df.columns:
+    st.error("❌ Липсва 'Code'")
+    st.stop()
 
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["тегло"] > 0]
 
-    report = build_final_report(final_df)
+    final_df["Code"] = final_df["Code"].astype(str)
+final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
+final_df = final_df[final_df["teglo"] > 0]
+
+    report = final_df
 
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
