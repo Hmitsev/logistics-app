@@ -30,7 +30,7 @@ def set_bg(image_file):
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (UPDATED UI)
+# ✅ LOGIN SYSTEM (FINAL CLEAN VERSION)
 # ======================================================
 def check_login():
 
@@ -42,45 +42,38 @@ def check_login():
         # ✅ login background
         set_bg("background_login.png")
 
-        # ✅ header горе вдясно (свален надолу)
-        st.markdown(
-            """
+        # ✅ ✅ CENTRAL HEADER (CustomsFlow + logo)
+        st.markdown("""
+        <div style="
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            gap:12px;
+            margin-bottom:25px;
+        ">
             <div style="
-                position: fixed;
-                top: 50px;
-                right: 30px;
-                font-size: 32px;
-                font-weight: 900;
-                color: white;
-                z-index: 1000;
+                font-size:32px;
+                font-weight:900;
+                color:white;
             ">
                 CustomsFlow
             </div>
-            """,
-            unsafe_allow_html=True
-        )
 
-        # ✅ Централен блок (лого + текст)
-        st.markdown("""
-        <div style='text-align:center; margin-bottom:20px;'>
-            <img src="logo.png" width="120">
-            <div style='font-size:26px; font-weight:800; color:white; margin-top:10px;'>
-                CustomsFlow
-            </div>
+            <img src="Screenshot 2026-06-18 093459.png" width="80">
         </div>
         """, unsafe_allow_html=True)
 
-        # ✅ Заглавие
+        # ✅ ✅ Login заглавие
         st.markdown(
             "<h1 style='text-align:center; color:white;'>🔐 Вход</h1>",
             unsafe_allow_html=True
         )
 
-        # ✅ input полета
+        # ✅ Inputs
         username = st.text_input("Потребител")
         password = st.text_input("Парола", type="password")
 
-        # ✅ бутон
+        # ✅ Button
         if st.button("Вход"):
             if username == "mitnica" and password == "Intercars2026":
                 st.session_state["logged_in"] = True
@@ -96,8 +89,9 @@ def check_login():
 if not check_login():
     st.stop()
 
-# ✅ main background (след login)
+# ✅ основен background след login
 set_bg("background.png")
+
 
 
 # ======================================================
