@@ -602,7 +602,7 @@ def parse_valvoline_excel(file):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL FIXED)
+# ✅ PROCESS (FINAL STABLE)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
 
@@ -634,10 +634,14 @@ if uploaded_files and len(uploaded_files) > 0:
 
         all_data.append(df)
 
-    # ✅ concat
+    # ======================================================
+    # ✅ CONCAT
+    # ======================================================
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ CRITICAL FIX – normalize names
+    # ======================================================
+    # ✅ NORMALIZE (CRITICAL)
+    # ======================================================
     final_df = final_df.rename(columns={
         "Тарифен код": "Code",
         "Количество": "Broj",
@@ -645,10 +649,22 @@ if uploaded_files and len(uploaded_files) > 0:
         "тегло": "teglo"
     })
 
-    # ✅ filters (ВЪТРЕ В if!)
+    # ======================================================
+    # ✅ SAFETY CHECK
+    # ======================================================
+    if "Code" not in final_df.columns:
+        st.error("❌ Няма Code колона – parser mismatch")
+        st.write(final_df.columns)
+        st.stop()
+
+    # ======================================================
+    # ✅ FILTERS
+    # ======================================================
     final_df["Code"] = final_df["Code"].astype(str)
     final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["teglo"] > 0]
+
+    if "teglo" in final_df.columns:
+        final_df = final_df[final_df["teglo"] > 0]
 
     # ======================================================
     # ✅ FINAL REPORT
@@ -702,6 +718,7 @@ if uploaded_files and len(uploaded_files) > 0:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
+    # ✅ export
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
