@@ -401,7 +401,7 @@ def parse_motul(text):
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
 
-        # ✅ ТЕГЛО (ВАЖНО: вътре в for!)
+        # ✅ ТЕГЛО
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
         qty_match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
@@ -419,77 +419,7 @@ def parse_motul(text):
             except:
                 pass
 
-        # ✅ HS CODE (НА СЪЩО НИВО КАТО ГОРНИТЕ)
-        if "HS code" in line:
-            code = re.search(r"HS code\s*:\s*(\d+)", line)
-
-            if code:
-                code_value = code.group(1)[:8]
-
-                if current_qty * units_in_box * liters_per_unit > 100000:
-                    real_qty = current_qty
-                else:
-                    if units_in_box > 1 and liters_per_unit <= 5:
-                        real_qty = current_qty * units_in_box
-                    else:
-                        real_qty = current_qty
-
-                rows.append({
-                    "Тарифен код": code_value,
-                    "Количество": real_qty,
-                    "wid": liters_per_unit,
-                    "kolichestvo": real_qty * liters_per_unit,
-                    "тегло": current_weight
-                })
-
-                # ✅ RESET
-                current_qty = 0
-                current_weight = 0
-                liters_per_unit = 0
-                units_in_box = 1
-
-    return pd.DataFrame(rows)
-
-        # ======================================================
-        # ✅ КОД
-        # ======================================================
-        if "HS code" in line:
-            code = re.search(r"HS code\s*:\s*(\d+)", line)
-
-            if code:
-                code_value = code.group(1)[:8]
-
-                if current_qty * units_in_box * liters_per_unit > 100000:
-                    real_qty = current_qty
-                else:
-                    if units_in_box > 1 and liters_per_unit <= 5:
-                        real_qty = current_qty * units_in_box
-                    else:
-                        real_qty = current_qty
-
-                rows.append({
-                    "Тарифен код": code_value,
-                    "Количество": real_qty,
-                    "wid": liters_per_unit,
-                    "kolichestvo": real_qty * liters_per_unit,
-                    "тегло": current_weight
-                })
-
-                # ✅ RESET
-                current_qty = 0
-                current_weight = 0
-                liters_per_unit = 0
-                units_in_box = 1
-
-    return pd.DataFrame(rows)
-
-
-
-
-
-        # ======================================================
-        # ✅ КОД + ЗАПИС
-        # ======================================================
+        # ✅ HS CODE (само веднъж!)
         if "HS code" in line:
             code = re.search(r"HS code\s*:\s*(\d+)", line)
 
