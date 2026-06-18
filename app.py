@@ -404,27 +404,27 @@ def parse_motul(text):
         elif single:
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
-
         # ======================================================
-# ✅ ТЕГЛО (FINAL CORRECT FIX ✅)
-# ======================================================
-weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+        # ✅ ТЕГЛО (FINAL CORRECT FIX ✅)
+        # ======================================================
+        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-if len(weights) >= 2:
-    try:
-        values = [
-            float(w.replace(" ", "").replace(",", "."))
-            for w in weights
-        ]
+        if len(weights) >= 2:
+            try:
+                values = [
+                    float(w.replace(" ", "").replace(",", "."))
+                    for w in weights
+                ]
 
-        # ✅ взимаме последните 2 стойности (net + gross)
-        last_two = values[-2:]
+                # ✅ взимаме последните 2 стойности (net + gross)
+                last_two = values[-2:]
 
-        # ✅ по-малката е net weight
-        current_weight = min(last_two)
+                # ✅ по-малката е net weight
+                current_weight = min(last_two)
 
-    except:
-        pass
+            except:
+                pass
+
 
         # ======================================================
         # ✅ КОД + ЗАПИС
