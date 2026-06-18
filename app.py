@@ -185,15 +185,38 @@ ALLOWED_CODES = [
 ]
 
 # ======================================================
-# ✅ UI FIXED
+# ✅ CLEAN UI (FINAL STYLE)
 # ======================================================
-st.title("📦 Logistics App")
 
+st.markdown("""
+<style>
+.source-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: white;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.upload-label {
+    color: white;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ✅ Заглавие
+st.markdown('<div class="source-title">📦 Logistics App</div>', unsafe_allow_html=True)
+
+# ✅ Sidebar
 menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
 
+# ✅ STATE
 if "source_type" not in st.session_state:
     st.session_state["source_type"] = ""
 
+# ✅ Бутони
 col1, col2 = st.columns(2)
 
 with col1:
@@ -208,11 +231,16 @@ with col2:
 
 source_type = st.session_state["source_type"]
 
+# ✅ Upload label
+if source_type:
+    st.markdown('<div class="upload-label">📂 Upload files</div>', unsafe_allow_html=True)
+
+# ✅ File uploader
 uploaded_files = None
 
 if source_type:
     uploaded_files = st.file_uploader(
-        "📂 Upload files",
+        "",
         type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
         accept_multiple_files=True
     )
