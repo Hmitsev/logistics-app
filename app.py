@@ -406,18 +406,20 @@ def parse_motul(text):
             liters_per_unit = float(single.group(1).replace(",", "."))
 
         # ======================================================
-        # ✅ ТЕГЛО (ФИНАЛ ✅)
+        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
         # ======================================================
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        if weights:
+        qty_match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
+
+        if weights and qty_match:
             try:
                 values = [
                     float(w.replace(" ", "").replace(",", "."))
                     for w in weights
                 ]
 
-                # ✅ взимаме последните 2 стойности
+                # ✅ последните 2 числа = net + gross
                 if len(values) >= 2:
                     current_weight = min(values[-2:])
 
@@ -425,7 +427,7 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ КОД
+        # ✅ КОД + ЗАПИС
         # ======================================================
         if "HS code" in line:
             code = re.search(r"HS code\s*:\s*(\d+)", line)
@@ -455,7 +457,7 @@ def parse_motul(text):
                 liters_per_unit = 0
                 units_in_box = 1
 
-           return pd.DataFrame(rows)
+    return pd.DataFrame(rows)
         # ======================================================
         # ✅ КОД
         # ======================================================
