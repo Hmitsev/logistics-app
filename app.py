@@ -582,7 +582,7 @@ def parse_valvoline_excel(file):
 
             wid = liters
 
-            # ✅ тук qty = бройки
+            # ✅ това винаги са кутии
             kolichestvo = qty * liters
             real_qty = qty
 
@@ -593,7 +593,7 @@ def parse_valvoline_excel(file):
         elif single:
             wid = int(single.group(1))
 
-            # ✅ при VALVOLINE → това вече са литри
+            # ✅ това при VALVOLINE са вече литри
             kolichestvo = qty
             real_qty = qty / wid
 
@@ -614,6 +614,7 @@ def parse_valvoline_excel(file):
             wid = 1
             kolichestvo = qty
             real_qty = qty
+
 
         rows.append({
             "Тарифен код": code,
