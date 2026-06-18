@@ -347,7 +347,7 @@ def parse_motul(text):
 
     for i, line in enumerate(lines):
 
-        match = re.findall(r'\b(\d{1,4})\b\s+([\d\s]+,\d+)', line)
+        match = re.findall(r'(\d{1,4})\s+(\d{1,3}(?:\s\d{3})*,\d+)', line)
 
         if match:
             try:
