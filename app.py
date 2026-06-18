@@ -481,7 +481,7 @@ def parse_neste_excel(file):
     return df
 
 # ======================================================
-# ✅ VALVOLINE FINAL (WORKING + CLEAN + UI OK)
+# ✅ VALVOLINE FINAL
 # ======================================================
 def parse_valvoline_excel(file):
 
@@ -490,7 +490,6 @@ def parse_valvoline_excel(file):
 
     xls = pd.ExcelFile(file)
 
-    # ✅ намираме PL sheet
     sheet_name = None
     for s in xls.sheet_names:
         if "PL" in s.upper():
@@ -501,7 +500,6 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен PL sheet")
         st.stop()
 
-    # ✅ намираме header
     raw = xls.parse(sheet_name, header=None)
 
     header_row = None
@@ -515,40 +513,22 @@ def parse_valvoline_excel(file):
         st.error("❌ Не е намерен header ред")
         st.stop()
 
-    # ✅ четем файла
     df = xls.parse(sheet_name, header=header_row)
     df.columns = df.columns.astype(str).str.strip().str.replace("\n", " ")
 
-    # ======================================================
-    # ✅ COLUMN MAP
-    # ======================================================
     column_map = {}
-
     for col in df.columns:
         c = col.lower()
-
         if "tariff" in c:
             column_map[col] = "code"
-
         elif "pack" in c:
             column_map[col] = "pack"
-
         elif "qty" in c:
             column_map[col] = "qty"
-
         elif "net" in c:
             column_map[col] = "weight"
 
     df = df.rename(columns=column_map)
-
-    required = ["code", "pack", "qty", "weight"]
-    missing = [c for c in required if c not in df.columns]
-
-    if missing:
-        st.error(f"❌ Липсват колони VALVOLINE: {missing}")
-        st.write(df.columns)
-        st.stop()
-
     df = df.dropna(subset=["code"])
 
     rows = []
@@ -557,23 +537,18 @@ def parse_valvoline_excel(file):
 
         code = str(r["code"])[:8]
         pack = str(r["pack"]).upper()
-        qty = float(r["qty"])        # ✅ ТУК Е BROJ
+        qty = float(r["qty"])  # ✅ BROJ
         weight = float(r["weight"])
 
-        # ======================================================
-        # ✅ wid extraction (СТАБИЛЕН)
-        # ======================================================
-        wid = 1
         numbers = re.findall(r"\d+", pack)
 
         if "X" in pack and len(numbers) >= 2:
-            wid = int(numbers[1])   # напр. 4x5 → 5
+            wid = int(numbers[1])
         elif numbers:
-            wid = int(numbers[0])   # напр. 20L → 20
+            wid = int(numbers[0])
+        else:
+            wid = 1
 
-        # ======================================================
-        # ✅ ФИНАЛНА ЛОГИКА (ПРАВИЛНАТА)
-        # ======================================================
         broj = qty
         colic = qty * wid
 
@@ -587,7 +562,6 @@ def parse_valvoline_excel(file):
 
     result = pd.DataFrame(rows)
 
-    # ✅ групиране
     result = result.groupby(
         ["Code", "wid"],
         as_index=False
@@ -599,8 +573,9 @@ def parse_valvoline_excel(file):
 
     return result
 
-    # ======================================================
-# ✅ PROCESS (FINAL)
+
+# ======================================================
+# ✅ PROCESS (FIXED)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
 
@@ -608,15 +583,12 @@ if uploaded_files and len(uploaded_files) > 0:
 
     for file in uploaded_files:
 
-        # ✅ NESTE
-        if menu == "NESTE":
-            df = parse_neste_excel(file)
-
-        # ✅ VALVOLINE
-        elif menu == "VALVOLINE":
+        if menu == "VALVOLINE":
             df = parse_valvoline_excel(file)
 
-        # ✅ PDF (Castrol + MOTUL)
+        elif menu == "NESTE":
+            df = parse_neste_excel(file)
+
         elif source_type == "PDF":
 
             reader = PdfReader(file)
@@ -630,68 +602,61 @@ if uploaded_files and len(uploaded_files) > 0:
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel fallback
         else:
             df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
 
         all_data.append(df)
 
-    # ✅ CHECK
-    if not all_data:
-        st.warning("⚠️ Няма данни")
-        st.stop()
-
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ filters
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["тегло"] > 0]
+    # ✅ FIX
+    final_df["Code"] = final_df["Code"].astype(str)
+    final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["teglo"] > 0]
 
     # ======================================================
-    # ✅ FINAL REPORT FUNCTION (ако го няма)
+    # ✅ FINAL REPORT
     # ======================================================
     def build_final_report(df):
 
         grouped = df.groupby(
-            ["Тарифен код", "wid"],
+            ["Code", "wid"],
             as_index=False
         ).agg({
-            "Количество": "sum",
-            "kolichestvo": "sum",
-            "тегло": "sum"
+            "Broj": "sum",
+            "colic": "sum",
+            "teglo": "sum"
         })
 
         rows = []
 
-        for code, group in grouped.groupby("Тарифен код"):
+        for code, group in grouped.groupby("Code"):
 
             for _, r in group.iterrows():
                 rows.append(r.to_dict())
 
             rows.append({
-                "Тарифен код": str(code) + " -",
+                "Code": str(code) + " -",
                 "wid": "",
-                "Количество": "",
-                "kolichestvo": group["kolichestvo"].sum(),
-                "тегло": group["тегло"].sum()
+                "Broj": "",
+                "colic": group["colic"].sum(),
+                "teglo": group["teglo"].sum()
             })
 
             rows.append({
-                "Тарифен код": "",
+                "Code": "",
                 "wid": "",
-                "Количество": "",
-                "kolichestvo": "",
-                "тегло": ""
+                "Broj": "",
+                "colic": "",
+                "teglo": ""
             })
 
         rows.append({
-            "Тарифен код": "GRAND TOTAL",
+            "Code": "GRAND TOTAL",
             "wid": "",
-            "Количество": "",
-            "kolichestvo": grouped["kolichestvo"].sum(),
-            "тегло": grouped["тегло"].sum()
+            "Broj": "",
+            "colic": grouped["colic"].sum(),
+            "teglo": grouped["teglo"].sum()
         })
 
         return pd.DataFrame(rows)
@@ -701,7 +666,6 @@ if uploaded_files and len(uploaded_files) > 0:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ✅ export
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
