@@ -100,95 +100,104 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ CUSTOM UI
+# ✅ CUSTOM UI (FINAL DESIGN)
 # ======================================================
+
 st.markdown("""
 <style>
 
-.custom-box {
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: blur(6px);
-    border-radius: 12px;
-    padding: 15px 20px;
-    margin-bottom: 15px;
+/* ✅ заглавие */
+.source-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 5px;
 }
 
-.bold-text {
+/* ✅ стрелка */
+.arrow {
+    font-size: 22px;
+    color: white;
+    margin-bottom: 10px;
+}
+
+/* ✅ бутони */
+.custom-btn {
+    border-radius: 10px;
+    padding: 10px 25px;
+    border: none;
     font-weight: 700;
     color: white;
+    cursor: pointer;
 }
 
-.upload-box {
-    background: rgba(255,255,255,0.08);
-    padding: 25px;
-    border-radius: 15px;
-    text-align: center;
-}
-
+/* ✅ upload стил */
 .stFileUploader > div {
     background: rgba(255,255,255,0.08) !important;
     border-radius: 10px;
-    padding: 10px;
+    padding: 8px;
 }
 
+/* ✅ label */
 .stFileUploader label {
     font-size: 18px;
     font-weight: 700;
     color: white;
 }
 
+/* ✅ по-къс upload */
 .stFileUploader {
-    max-width: 450px;
+    max-width: 380px;
     margin: auto;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ✅ избор
-st.markdown("""
-<div class="custom-box">
-    <div class="bold-text">👉 Избери източник</div>
-</div>
-""", unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
+# ✅ Choose source (без box)
+st.markdown('<div class="source-title">👉 Choose Source</div>', unsafe_allow_html=True)
+st.markdown('<div class="arrow">👇</div>', unsafe_allow_html=True)
 
-with col1:
-    pdf_selected = st.button("PDF")
 
-with col2:
-    excel_selected = st.button("Excel")
+# ✅ бутони (по-близо един до друг)
+col1, col2 = st.columns([1,1])
 
 if "source_type" not in st.session_state:
     st.session_state["source_type"] = "PDF"
 
-if pdf_selected:
-    st.session_state["source_type"] = "PDF"
+with col1:
+    if st.button("PDF"):
+        st.session_state["source_type"] = "PDF"
 
-if excel_selected:
-    st.session_state["source_type"] = "Excel"
+with col2:
+    if st.button("Excel"):
+        st.session_state["source_type"] = "Excel"
 
 source_type = st.session_state["source_type"]
 
-st.markdown(f"""
-<div class="custom-box">
-    <div class="bold-text">Избран: {source_type}</div>
-</div>
-""", unsafe_allow_html=True)
 
-# ✅ upload зона
-st.markdown("""
-<div class="upload-box">
-    <div class="bold-text" style="font-size:20px;">Качи файл</div>
-</div>
-""", unsafe_allow_html=True)
+# ✅ визуален индикатор (цветен)
+if source_type == "PDF":
+    st.markdown("<span style='color:#ff4d4d; font-weight:800;'>You Chose: PDF</span>", unsafe_allow_html=True)
+else:
+    st.markdown("<span style='color:#4CAF50; font-weight:800;'>You Chose: Excel</span>", unsafe_allow_html=True)
 
+
+# ✅ Add file
+st.markdown("<div style='font-size:20px; font-weight:800; color:white; margin-top:15px;'>Add file</div>", unsafe_allow_html=True)
+
+
+# ✅ uploader
 uploaded_files = st.file_uploader(
     "",
     type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
     accept_multiple_files=True
 )
+
+
+# ✅ Suppliers (sidebar)
+menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
 
 # ✅ доставчик (оставяме го!)
 menu = st.sidebar.selectbox("Доставчик", ["Castrol", "MOTUL"])
