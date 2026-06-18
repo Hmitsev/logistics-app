@@ -452,6 +452,36 @@ def parse_motul(text):
 
 
 # ======================================================
+# ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
+# ======================================================
+def parse_neste_excel(file):
+
+    df = pd.read_excel(file)
+    df.columns = df.columns.str.strip()
+
+    df = df.rename(columns={
+        "Commodity code": "Тарифен код",
+        "Type of packaging": "wid",
+        "Delivery quantity": "Количество",
+        "Volume": "kolichestvo",
+        "Net Weight": "тегло"
+    })
+
+    df = df.dropna(subset=["Тарифен код"])
+
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
+
+
+# ======================================================
 # ✅ FINAL REPORT
 # ======================================================
 def build_final_report(df):
@@ -512,7 +542,7 @@ if uploaded_files and len(uploaded_files) > 0:
         # ✅ FILE PROCESSING
         # ======================================================
 
-        # ✅ NESTE → винаги Excel
+        # ✅ NESTE → Excel
         if menu == "NESTE":
 
             df = parse_neste_excel(file)
@@ -531,7 +561,7 @@ if uploaded_files and len(uploaded_files) > 0:
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel (GENERIC fallback – твоята стара логика)
+        # ✅ Excel fallback (GENERIC)
         else:
 
             df = pd.read_excel(file)
@@ -559,7 +589,6 @@ if uploaded_files and len(uploaded_files) > 0:
 
             df = df.rename(columns=column_map)
 
-            # ✅ махаме duplicate колони
             df = df.loc[:, ~df.columns.duplicated()]
 
             required_cols = [
@@ -593,7 +622,7 @@ if uploaded_files and len(uploaded_files) > 0:
                 "Net Weight": "тегло"
             })
 
-        # ✅ добавяме резултата
+        # ✅ ADD RESULT
         all_data.append(df)
 
     # ======================================================
