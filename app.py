@@ -394,6 +394,7 @@ def parse_motul(text):
         weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", lin)
         if weights:
             try:
+                # ✅ взимаме ПОСЛЕДНОТО число (реалното тегло)
                 current_weight = float(weights[-1].replace(" ", "").replace(",", "."))
             except:
                 pass
