@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE","VALVOLINE"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE"])
 
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
@@ -480,84 +480,6 @@ def parse_neste_excel(file):
 
     return df
 
-# ======================================================
-# ✅ VALVOLINE (EXCEL ONLY ✅)
-# ======================================================
-def parse_valvoline_excel(file):
-
-    import pandas as pd
-    import re
-
-    xls = pd.ExcelFile(file)
-
-    sheet_name = None
-    for s in xls.sheet_names:
-        if "PL" in s.upper():
-            sheet_name = s
-            break
-
-    if not sheet_name:
-        st.error("❌ Не е намерен PL sheet")
-        st.stop()
-
-    df = xls.parse(sheet_name)
-    df.columns = df.columns.str.strip()
-
-    df = df.rename(columns={
-        "Tariff No.": "code",
-        "Packaging": "pack",
-        "Qty": "qty",
-        "Net Kg": "weight"
-    })
-
-    df = df.dropna(subset=["code"])
-
-    rows = []
-
-    for _, r in df.iterrows():
-
-        code = str(r["code"])[:8]  # ✅ махаме последните 2 цифри
-        qty = r["qty"]
-        weight = r["weight"]
-        pack = str(r["pack"])
-
-        wid = 1
-
-        multi = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
-        single = re.search(r"(\d+)\s*L", pack, re.I)
-
-        if multi:
-            units = int(multi.group(1))
-            liters = int(multi.group(2))
-            wid = liters
-            qty = qty * units
-
-        elif single:
-            wid = int(single.group(1))
-
-        else:
-            wid = 1
-
-        rows.append({
-            "Тарифен код": code,
-            "Количество": qty,
-            "wid": wid,
-            "kolichestvo": qty * wid,
-            "тегло": weight
-        })
-
-    df = pd.DataFrame(rows)
-
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
 
 # ======================================================
 # ✅ FINAL REPORT
@@ -608,7 +530,7 @@ def build_final_report(df):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL WORKING)
+# ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
 
@@ -616,132 +538,97 @@ if uploaded_files and len(uploaded_files) > 0:
 
     for file in uploaded_files:
 
-        df = None  # ✅ reset
+        # ======================================================
+        # ✅ FILE PROCESSING
+        # ======================================================
 
-        # ===============================
-# ✅ FILE TYPE SWITCH (FIXED)
-# ===============================
+        # ✅ NESTE → Excel
+        if menu == "NESTE":
 
-if menu == "VALVOLINE":
+            df = parse_neste_excel(file)
 
-    if source_type != "Excel":
-        st.warning("⚠️ VALVOLINE работи само с Excel файлове")
-        continue
+        # ✅ PDF (Castrol + MOTUL)
+        elif source_type == "PDF":
 
-    try:
-        test_df = pd.read_excel(file)
-        cols = [str(c).lower() for c in test_df.columns]
+            reader = PdfReader(file)
+            text = ""
 
-        if not any("tariff" in c for c in cols):
-            st.warning(f"⚠️ Това НЕ е VALVOLINE PL файл ({file.name}) - пропускам")
-            continue
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
 
-        df = parse_valvoline_excel(file)
+            if menu == "Castrol":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
 
-    except:
-        st.warning(f"⚠️ Грешка при VALVOLINE файл: {file.name}")
-        continue
-
-
-elif menu == "NESTE":
-
-    try:
-        df = parse_neste_excel(file)
-    except:
-        st.warning(f"⚠️ Грешка при NESTE файл: {file.name}")
-        continue
-
-
-elif source_type == "PDF":
-
-    try:
-        reader = PdfReader(file)
-        text = ""
-
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
-
-        if menu == "CASTROL":
-            df = parse_castrol(text)
+        # ✅ Excel fallback (GENERIC)
         else:
-            df = parse_motul(text)
 
-    except:
-        st.warning(f"⚠️ Грешка при PDF файл: {file.name}")
-        continue
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
+            column_map = {}
 
-else:
+            for col in df.columns:
+                c = col.lower()
 
-    try:
-        df = pd.read_excel(file)
-        df.columns = df.columns.str.strip()
+                if "comm" in c or "code" in c:
+                    column_map[col] = "Commodity code"
 
-        column_map = {}
+                elif "pack" in c:
+                    column_map[col] = "Type of packaging"
 
-        for col in df.columns:
-            c = col.lower()
+                elif "delivery quantity" in c or "qty" in c or "quantity" in c:
+                    column_map[col] = "Delivery quantity"
 
-            if "comm" in c or "code" in c:
-                column_map[col] = "Commodity code"
+                elif "volume" in c:
+                    column_map[col] = "Volume"
 
-            elif "pack" in c:
-                column_map[col] = "Type of packaging"
+                elif "net weight" in c or "weight" in c:
+                    column_map[col] = "Net Weight"
 
-            elif "delivery quantity" in c or "qty" in c or "quantity" in c:
-                column_map[col] = "Delivery quantity"
+            df = df.rename(columns=column_map)
 
-            elif "volume" in c:
-                column_map[col] = "Volume"
+            df = df.loc[:, ~df.columns.duplicated()]
 
-            elif "net weight" in c or "weight" in c:
-                column_map[col] = "Net Weight"
+            required_cols = [
+                "Commodity code",
+                "Type of packaging",
+                "Delivery quantity",
+                "Volume",
+                "Net Weight"
+            ]
 
-        df = df.rename(columns=column_map)
-        df = df.loc[:, ~df.columns.duplicated()]
+            missing = [c for c in required_cols if c not in df.columns]
 
-        required_cols = [
-            "Commodity code",
-            "Type of packaging",
-            "Delivery quantity",
-            "Volume",
-            "Net Weight"
-        ]
+            if missing:
+                st.error(f"❌ Липсват колони: {missing}")
+                st.stop()
 
-        missing = [c for c in required_cols if c not in df.columns]
+            df = df.groupby(
+                ["Commodity code", "Type of packaging"],
+                as_index=False
+            ).agg({
+                "Delivery quantity": "sum",
+                "Volume": "sum",
+                "Net Weight": "sum"
+            })
 
-        if missing:
-            st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
-            continue
+            df = df.rename(columns={
+                "Commodity code": "Тарифен код",
+                "Type of packaging": "wid",
+                "Delivery quantity": "Количество",
+                "Volume": "kolichestvo",
+                "Net Weight": "тегло"
+            })
 
-        df = df.groupby(
-            ["Commodity code", "Type of packaging"],
-            as_index=False
-        ).agg({
-            "Delivery quantity": "sum",
-            "Volume": "sum",
-            "Net Weight": "sum"
-        })
-
-        df = df.rename(columns={
-            "Commodity code": "Тарифен код",
-            "Type of packaging": "wid",
-            "Delivery quantity": "Количество",
-            "Volume": "kolichestvo",
-            "Net Weight": "тегло"
-        })
-
-    except:
-        st.warning(f"⚠️ Грешка при Excel файл: {file.name}")
-        continue
-
-        # ✅ SAFE APPEND
-        if isinstance(df, pd.DataFrame) and not df.empty:
-            all_data.append(df)
+        # ✅ ADD RESULT
+        all_data.append(df)
 
     # ======================================================
-    # ✅ FINAL
+    # ✅ FINAL COMBINE
     # ======================================================
+
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -767,7 +654,6 @@ else:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
-
     # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)
 # ======================================================
