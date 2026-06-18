@@ -122,35 +122,36 @@ if "source_type" not in st.session_state:
     st.session_state["source_type"] = "PDF"
 
 
-# ✅ избор (с rerun за моментално обновяване)
+# ✅ избор
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("PDF", use_container_width=True):
+    if st.button("PDF", key="pdf_btn", use_container_width=True):
         st.session_state["source_type"] = "PDF"
         st.rerun()
 
 with col2:
-    if st.button("Excel", use_container_width=True):
+    if st.button("Excel", key="excel_btn", use_container_width=True):
         st.session_state["source_type"] = "Excel"
         st.rerun()
 
 
-# ✅ определяме цветове
+# ✅ цветова логика
 if st.session_state["source_type"] == "PDF":
     pdf_color = "#ff3b3b"
-    excel_color = "#444"
+    excel_color = "#2b2b2b"
 else:
-    pdf_color = "#444"
+    pdf_color = "#2b2b2b"
     excel_color = "#36c165"
 
 
-# ✅ ✅ СИЛЕН CSS (точно таргетира бутоните)
+# ✅ СТИЛ – директно по KEY (РАБОТИ 100%)
 st.markdown(f"""
 <style>
 
-/* PDF бутон */
-div[data-testid="column"]:nth-of-type(1) button {{
+/* PDF */
+button[data-testid="baseButton-secondary"][aria-label="pdf_btn"],
+button[kind="secondary"][id*="pdf_btn"] {{
     background-color: {pdf_color} !important;
     color: white !important;
     font-weight: 800 !important;
@@ -158,8 +159,9 @@ div[data-testid="column"]:nth-of-type(1) button {{
     height: 60px !important;
 }}
 
-/* Excel бутон */
-div[data-testid="column"]:nth-of-type(2) button {{
+/* Excel */
+button[data-testid="baseButton-secondary"][aria-label="excel_btn"],
+button[kind="secondary"][id*="excel_btn"] {{
     background-color: {excel_color} !important;
     color: white !important;
     font-weight: 800 !important;
