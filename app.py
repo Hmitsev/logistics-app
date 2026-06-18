@@ -338,40 +338,145 @@ uploaded_files = st.file_uploader(
 )
 
 # ======================================================
-# ✅ MOTUL PARSER (FINAL STABLE)
+# ✅ MOTUL PARSER (WORKING VERSION)
 # ======================================================
 def parse_motul(text):
 
     rows = []
 
-    matches = re.findall(
-        r'(\d+[.,]?\d*)\s*EA.*?(\d+[.,]\d+)\s*KG.*?(\d{8})',
-        text,
-        re.DOTALL
-    )
+    current_qty = None
+    current_weight = None
+    current_code = None
 
-    for qty, weight, code in matches:
-        try:
-            qty = float(qty.replace(",", ""))
-            weight = float(weight.replace(",", "."))
+    lines = text.split("\n")
 
+    for line in lines:
+
+        # ✅ количество
+        qty_match = re.search(r'(\d+[.,]?\d*)\s*EA', line)
+        if qty_match:
+            current_qty = float(qty_match.group(1).replace(",", ""))
+
+        # ✅ тегло
+        kg_match = re.search(r'(\d+[.,]\d+)\s*KG', line)
+        if kg_match:
+            current_weight = float(kg_match.group(1).replace(",", "."))
+
+        # ✅ тарифен код
+        code_match = re.search(r'\d{8}', line)
+        if code_match:
+            current_code = code_match.group(0)
+
+        # ✅ когато имаме всичко → запис
+        if current_qty and current_weight and current_code:
             rows.append({
-                "Тарифен код": code,
-                "Количество": qty,
+                "Тарифен код": current_code,
+                "Количество": current_qty,
                 "wid": 1,
-                "kolichestvo": qty,
-                "тегло": weight
+                "kolichestvo": current_qty,
+                "тегло": current_weight
             })
-        except:
-            pass
 
-    # ✅ ако няма данни → връща празен DF със структура
+            # reset
+            current_qty = None
+            current_weight = None
+            current_code = None
+
+    # ✅ защита ако няма редове
     if not rows:
         return pd.DataFrame(columns=[
             "Тарифен код","Количество","wid","kolichestvo","тегло"
         ])
 
     return pd.DataFrame(rows)
+
+
+# ======================================================
+# ✅ BUILD FINAL REPORT
+# ======================================================
+def build_final_report(df):
+
+    if df.empty:
+        return df
+
+    report = df.groupby(
+        ["Тарифен код", "wid"], as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return report
+
+
+# ======================================================
+# ✅ PROCESS (FINAL STABLE)
+# ======================================================
+if uploaded_files:
+
+    all_data = []
+
+    for file in uploaded_files:
+
+        if source_type == "PDF":
+            reader = PdfReader(file)
+            text = ""
+
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+
+            if menu == "Castrol":
+                df = parse_castrol(text)
+
+            elif menu == "MOTUL":
+                df = parse_motul(text)
+
+        else:
+            # ✅ Excel FIX
+            df_raw = pd.read_excel(file)
+
+            df = pd.DataFrame({
+                "Тарифен код": df_raw["Comm./imp. code no."],
+                "Количество": df_raw["Delivery quantity"],
+                "wid": 1,
+                "kolichestvo": df_raw["Delivery quantity"],
+                "тегло": df_raw["Net Weight"]
+            })
+
+        all_data.append(df)
+
+    # ✅ ако няма данни
+    if not all_data:
+        st.warning("⚠️ Няма обработени данни")
+        st.stop()
+
+    final_df = pd.concat(all_data, ignore_index=True)
+
+    # ✅ защита
+    if "Тарифен код" not in final_df.columns:
+        st.error("❌ Липсва 'Тарифен код' – parser не извлече данни")
+        st.stop()
+
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
+
+    report = build_final_report(final_df)
+
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
+
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        report.to_excel(writer, index=False)
+
+    st.download_button(
+        "📥 Изтегли Excel",
+        data=output.getvalue(),
+        file_name="final_report.xlsx"
+    )
 
 
 # ======================================================
