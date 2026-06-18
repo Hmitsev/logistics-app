@@ -409,7 +409,7 @@ def parse_motul(text):
                 ]
 
                 # ✅ теглото винаги е по-малкото
-                pending_weight = min(clean_weights)
+                pending_weight = (pending_weight or 0) + min(clean_weights)
 
             except:
                 pass
