@@ -461,21 +461,14 @@ def parse_motul(text):
 # ======================================================
 def build_final_report(df):
 
-    df["wid"] = df["wid"].astype(float).round(3)
-
-    df["ratio"] = df["тегло"] / df["kolichestvo"]
-    df["correct_weight"] = df["kolichestvo"] * df["ratio"]
-
     grouped = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
     ).agg({
         "Количество": "sum",
         "kolichestvo": "sum",
-        "correct_weight": "sum"
+        "тегло": "sum"
     })
-
-    grouped = grouped.rename(columns={"correct_weight": "тегло"})
 
     rows = []
 
@@ -509,6 +502,7 @@ def build_final_report(df):
     })
 
     return pd.DataFrame(rows)
+
 
 # ======================================================
 # ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
