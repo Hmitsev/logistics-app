@@ -546,7 +546,7 @@ def parse_valvoline_excel(file):
             column_map[col] = "weight"
 
         elif "package" in c:
-            column_map[col] = "packages"   # ✅ broj
+            column_map[col] = "packages"   # ✅ ТОВА Е НОВОТО
 
     df = df.rename(columns=column_map)
 
