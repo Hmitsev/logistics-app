@@ -7,12 +7,15 @@ import base64
 
 
 # ======================================================
-# ✅ LOGIN SYSTEM (задължителен вход всеки път)
+# ✅ LOGIN SYSTEM (задължителен вход)
 # ======================================================
 def check_login():
 
-    # ❗ НЕ пазим login между сесиите (винаги ще пита)
-    st.session_state["logged_in"] = False
+    if "logged_in" not in st.session_state:
+        st.session_state["logged_in"] = False
+
+    if st.session_state["logged_in"]:
+        return True
 
     st.title("🔐 Вход в системата")
 
@@ -21,14 +24,21 @@ def check_login():
 
     if st.button("Вход"):
 
-        # ✅ ТВОИТЕ ДАННИ
         if username == "mitnica" and password == "Intercars2026":
             st.session_state["logged_in"] = True
+
+            # ✅ ✅ ТОВА Е КЛЮЧОВИЯ FIX
+            st.rerun()
+
         else:
             st.error("❌ Грешно име или парола")
 
-    if not st.session_state.get("logged_in", False):
-        st.stop()
+    return False
+
+
+# ✅ ако не е логнат → спира
+if not check_login():
+    st.stop()
 
 
 # ✅ извиква login-а
