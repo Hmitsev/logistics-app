@@ -394,23 +394,22 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО (СТАБИЛЕН FIX)
+        # ✅ ТЕГЛО
         # ======================================================
-        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-        # ✅ ВАЖНО: взимаме тегло САМО ако има 2+ числа в реда
-        if len(weights) >= 2 and last_weight == 0:
-            try:
-                clean_weights = [
-                    float(w.replace(" ", "").replace(",", "."))
-                    for w in weights
-                ]
+if len(weights) >= 2 and last_weight == 0:
+    try:
+        clean_weights = [
+            float(w.replace(" ", "").replace(",", "."))
+            for w in weights
+        ]
 
-                # ✅ теглото винаги е по-малкото число
-                last_weight = min(clean_weights)
+        last_weight = min(clean_weights)
 
-            except:
-                pass
+    except:
+        pass
+``
 
         # ======================================================
         # ✅ РАЗФАСОВКА (wid)
