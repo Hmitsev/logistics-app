@@ -339,7 +339,7 @@ uploaded_files = st.file_uploader(
 
 
 # ======================================================
-# ✅ PROCESS (PDF + EXCEL готов за FUCHS)
+# ✅ PROCESS
 # ======================================================
 if uploaded_files:
 
@@ -350,7 +350,6 @@ if uploaded_files:
         if source_type == "PDF":
             reader = PdfReader(file)
             text = ""
-
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
@@ -364,13 +363,29 @@ if uploaded_files:
                 df = parse_fuchs(text)
 
         else:
-            # ✅ EXCEL логика (ключов FIX)
+            # ✅ EXCEL логика
             if menu == "FUCHS":
                 df = parse_fuchs_excel(file)
             else:
                 df = pd.read_excel(file)
 
+
+        # ✅ ✅ DEBUG + FIX (важно)
+        # показва какви колони има (махни после)
+        st.write("DEBUG columns:", df.columns)
+
+        # ✅ защита от crash
+        if "Тарифен код" not in df.columns:
+            st.error("❌ Няма колона 'Тарифен код' – файлът не е разчетен правилно")
+            continue
+
+
         all_data.append(df)
+
+
+    if not all_data:
+        st.warning("⚠️ Няма валидни данни")
+        st.stop()
 
 
     final_df = pd.concat(all_data, ignore_index=True)
