@@ -344,48 +344,68 @@ def parse_motul(text):
 
     rows = []
 
+    lines = text.split("\n")
+
     current_qty = None
     current_weight = None
     current_code = None
-
-    lines = text.split("\n")
+    current_wid = 1
 
     for line in lines:
 
+        # ✅ код
         code_match = re.search(r'\b\d{8}\b', line)
         if code_match:
             current_code = code_match.group(0)
 
-        weight_match = re.search(r'(\d+[.,]\d+)\s*KG', line)
-        if weight_match:
-            current_weight = float(weight_match.group(1).replace(",", "."))
-
-        qty_match = re.findall(r'\b\d+\b', line)
-        if len(qty_match) > 0 and "KG" not in line:
+        # ✅ тегло
+        weight_match = re.search(r'(\d+[.,]\d+)', line)
+        if weight_match and "KG" not in line:
             try:
-                current_qty = float(qty_match[0])
+                val = float(weight_match.group(1).replace(",", "."))
+                if val > 5:  # филтър (избягва qty)
+                    current_weight = val
             except:
                 pass
 
+        # ✅ количество
+        qty_match = re.search(r'\b(\d{1,4})\b', line)
+        if qty_match and "L" not in line and "KG" not in line:
+            try:
+                current_qty = float(qty_match.group(1))
+            except:
+                pass
+
+        # ✅ wid от продукт
+        if "20L" in line:
+            current_wid = 20
+        elif "60L" in line:
+            current_wid = 60
+        elif "208L" in line:
+            current_wid = 208
+        elif "4X5L" in line:
+            current_wid = 5
+        elif "12X1L" in line:
+            current_wid = 1
+        elif "12X0.500L" in line:
+            current_wid = 0.5
+        elif "12X0.250L" in line:
+            current_wid = 0.25
+
+        # ✅ запис
         if current_qty and current_weight and current_code:
             rows.append({
                 "Тарифен код": current_code,
                 "Количество": current_qty,
-                "wid": 1,
-                "kolichestvo": current_qty,
+                "wid": current_wid,
+                "kolichestvo": current_qty * current_wid,
                 "тегло": current_weight
             })
 
             current_qty = None
             current_weight = None
             current_code = None
-
-    if not rows:
-        st.warning("⚠️ Не са намерени данни в PDF-а")
-        st.write(lines[:30])
-        return pd.DataFrame(columns=[
-            "Тарифен код","Количество","wid","kolichestvo","тегло"
-        ])
+            current_wid = 1
 
     return pd.DataFrame(rows)
 
