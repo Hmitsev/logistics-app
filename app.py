@@ -608,7 +608,7 @@ def build_final_report(df):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
+# ✅ PROCESS (FINAL WORKING)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
 
@@ -616,136 +616,129 @@ if uploaded_files and len(uploaded_files) > 0:
 
     for file in uploaded_files:
 
-        # ======================================================
-# ✅ FILE PROCESSING (FINAL SAFE + VALVOLINE ONLY EXCEL)
-# ======================================================
-for file in uploaded_files:
+        df = None  # ✅ reset
 
-    df = None  # ✅ reset (ВАЖНО)
+        # ===============================
+        # ✅ VALVOLINE → ONLY EXCEL
+        # ===============================
+        if menu == "VALVOLINE":
 
-    # ===============================
-    # ✅ VALVOLINE → ONLY EXCEL
-    # ===============================
-    if menu == "VALVOLINE":
-
-        if source_type != "Excel":
-            st.warning("⚠️ VALVOLINE работи само с Excel файлове")
-            continue
-
-        try:
-            df = parse_valvoline_excel(file)
-        except:
-            st.warning(f"⚠️ Грешка при VALVOLINE файл: {file.name}")
-            continue
-
-    # ===============================
-    # ✅ NESTE → Excel
-    # ===============================
-    elif menu == "NESTE":
-
-        try:
-            df = parse_neste_excel(file)
-        except:
-            st.warning(f"⚠️ Грешка при NESTE файл: {file.name}")
-            continue
-
-    # ===============================
-    # ✅ PDF (CASTROL / MOTUL)
-    # ===============================
-    elif source_type == "PDF":
-
-        try:
-            reader = PdfReader(file)
-            text = ""
-
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
-
-            if menu == "CASTROL":
-                df = parse_castrol(text)
-            else:
-                df = parse_motul(text)
-
-        except:
-            st.warning(f"⚠️ Грешка при PDF файл: {file.name}")
-            continue
-
-    # ===============================
-    # ✅ GENERIC EXCEL FALLBACK
-    # ===============================
-    else:
-
-        try:
-            df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
-
-            column_map = {}
-
-            for col in df.columns:
-                c = col.lower()
-
-                if "comm" in c or "code" in c:
-                    column_map[col] = "Commodity code"
-
-                elif "pack" in c:
-                    column_map[col] = "Type of packaging"
-
-                elif "delivery quantity" in c or "qty" in c or "quantity" in c:
-                    column_map[col] = "Delivery quantity"
-
-                elif "volume" in c:
-                    column_map[col] = "Volume"
-
-                elif "net weight" in c or "weight" in c:
-                    column_map[col] = "Net Weight"
-
-            df = df.rename(columns=column_map)
-            df = df.loc[:, ~df.columns.duplicated()]
-
-            required_cols = [
-                "Commodity code",
-                "Type of packaging",
-                "Delivery quantity",
-                "Volume",
-                "Net Weight"
-            ]
-
-            missing = [c for c in required_cols if c not in df.columns]
-
-            if missing:
-                st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
+            if source_type != "Excel":
+                st.warning("⚠️ VALVOLINE работи само с Excel файлове")
                 continue
 
-            df = df.groupby(
-                ["Commodity code", "Type of packaging"],
-                as_index=False
-            ).agg({
-                "Delivery quantity": "sum",
-                "Volume": "sum",
-                "Net Weight": "sum"
-            })
+            try:
+                df = parse_valvoline_excel(file)
+            except:
+                st.warning(f"⚠️ Грешка при VALVOLINE файл: {file.name}")
+                continue
 
-            df = df.rename(columns={
-                "Commodity code": "Тарифен код",
-                "Type of packaging": "wid",
-                "Delivery quantity": "Количество",
-                "Volume": "kolichestvo",
-                "Net Weight": "тегло"
-            })
+        # ===============================
+        # ✅ NESTE
+        # ===============================
+        elif menu == "NESTE":
 
-        except:
-            st.warning(f"⚠️ Грешка при Excel файл: {file.name}")
-            continue
+            try:
+                df = parse_neste_excel(file)
+            except:
+                st.warning(f"⚠️ Грешка при NESTE файл: {file.name}")
+                continue
 
-    # ===============================
-    # ✅ SAFE APPEND (NO CRASH)
-    # ===============================
-    if isinstance(df, pd.DataFrame) and not df.empty:
-        all_data.append(df)
+        # ===============================
+        # ✅ PDF
+        # ===============================
+        elif source_type == "PDF":
+
+            try:
+                reader = PdfReader(file)
+                text = ""
+
+                for page in reader.pages:
+                    text += page.extract_text() + "\n"
+
+                if menu == "CASTROL":
+                    df = parse_castrol(text)
+                else:
+                    df = parse_motul(text)
+
+            except:
+                st.warning(f"⚠️ Грешка при PDF файл: {file.name}")
+                continue
+
+        # ===============================
+        # ✅ GENERIC EXCEL
+        # ===============================
+        else:
+
+            try:
+                df = pd.read_excel(file)
+                df.columns = df.columns.str.strip()
+
+                column_map = {}
+
+                for col in df.columns:
+                    c = col.lower()
+
+                    if "comm" in c or "code" in c:
+                        column_map[col] = "Commodity code"
+
+                    elif "pack" in c:
+                        column_map[col] = "Type of packaging"
+
+                    elif "delivery quantity" in c or "qty" in c or "quantity" in c:
+                        column_map[col] = "Delivery quantity"
+
+                    elif "volume" in c:
+                        column_map[col] = "Volume"
+
+                    elif "net weight" in c or "weight" in c:
+                        column_map[col] = "Net Weight"
+
+                df = df.rename(columns=column_map)
+                df = df.loc[:, ~df.columns.duplicated()]
+
+                required_cols = [
+                    "Commodity code",
+                    "Type of packaging",
+                    "Delivery quantity",
+                    "Volume",
+                    "Net Weight"
+                ]
+
+                missing = [c for c in required_cols if c not in df.columns]
+
+                if missing:
+                    st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
+                    continue
+
+                df = df.groupby(
+                    ["Commodity code", "Type of packaging"],
+                    as_index=False
+                ).agg({
+                    "Delivery quantity": "sum",
+                    "Volume": "sum",
+                    "Net Weight": "sum"
+                })
+
+                df = df.rename(columns={
+                    "Commodity code": "Тарифен код",
+                    "Type of packaging": "wid",
+                    "Delivery quantity": "Количество",
+                    "Volume": "kolichestvo",
+                    "Net Weight": "тегло"
+                })
+
+            except:
+                st.warning(f"⚠️ Грешка при Excel файл: {file.name}")
+                continue
+
+        # ✅ SAFE APPEND
+        if isinstance(df, pd.DataFrame) and not df.empty:
+            all_data.append(df)
+
     # ======================================================
-    # ✅ FINAL COMBINE
+    # ✅ FINAL
     # ======================================================
-
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -771,6 +764,7 @@ for file in uploaded_files:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
+
     # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)
 # ======================================================
