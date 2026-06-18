@@ -602,7 +602,7 @@ def parse_valvoline_excel(file):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL STABLE)
+# ✅ PROCESS (FINAL – FULL SAFE VERSION)
 # ======================================================
 if uploaded_files and len(uploaded_files) > 0:
 
@@ -610,38 +610,60 @@ if uploaded_files and len(uploaded_files) > 0:
 
     for file in uploaded_files:
 
-        if menu == "VALVOLINE":
-            df = parse_valvoline_excel(file)
+        # ===============================
+        # ✅ PARSERS
+        # ===============================
+        try:
 
-        elif menu == "NESTE":
-            df = parse_neste_excel(file)
+            if menu == "VALVOLINE":
+                df = parse_valvoline_excel(file)
 
-        elif source_type == "PDF":
+            elif menu == "NESTE":
+                df = parse_neste_excel(file)
 
-            reader = PdfReader(file)
-            text = ""
+            elif source_type == "PDF":
 
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
+                reader = PdfReader(file)
+                text = ""
 
-            if menu == "CASTROL":
-                df = parse_castrol(text)
+                for page in reader.pages:
+                    text += page.extract_text() + "\n"
+
+                if menu == "CASTROL":
+                    df = parse_castrol(text)
+                else:
+                    df = parse_motul(text)
+
             else:
-                df = parse_motul(text)
+                df = pd.read_excel(file)
 
-        else:
-            df = pd.read_excel(file)
+        except Exception as e:
+            st.warning(f"⚠️ Грешка при четене на файл: {file.name}")
+            continue
+
+        # ===============================
+        # ✅ VALIDATION BEFORE APPEND
+        # ===============================
+        if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+            continue
 
         all_data.append(df)
 
-    # ======================================================
+    # ===============================
+    # ✅ CHECK
+    # ===============================
+    if not all_data:
+        st.error("❌ Няма валидни данни за обработка")
+        st.stop()
+
+    # ===============================
     # ✅ CONCAT
-    # ======================================================
+    # ===============================
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ======================================================
+    # ===============================
     # ✅ NORMALIZE (CRITICAL)
-    # ======================================================
+    # ===============================
     final_df = final_df.rename(columns={
         "Тарифен код": "Code",
         "Количество": "Broj",
@@ -649,26 +671,29 @@ if uploaded_files and len(uploaded_files) > 0:
         "тегло": "teglo"
     })
 
-    # ======================================================
+    # ===============================
     # ✅ SAFETY CHECK
-    # ======================================================
+    # ===============================
     if "Code" not in final_df.columns:
-        st.error("❌ Няма Code колона – parser mismatch")
+        st.error("❌ Няма Code колона – този файл не е правилен формат")
         st.write(final_df.columns)
         st.stop()
 
-    # ======================================================
+    # ===============================
     # ✅ FILTERS
-    # ======================================================
+    # ===============================
     final_df["Code"] = final_df["Code"].astype(str)
-    final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
+
+    final_df = final_df[
+        final_df["Code"].isin(ALLOWED_CODES)
+    ]
 
     if "teglo" in final_df.columns:
         final_df = final_df[final_df["teglo"] > 0]
 
-    # ======================================================
+    # ===============================
     # ✅ FINAL REPORT
-    # ======================================================
+    # ===============================
     def build_final_report(df):
 
         grouped = df.groupby(
@@ -718,7 +743,9 @@ if uploaded_files and len(uploaded_files) > 0:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ✅ export
+    # ===============================
+    # ✅ EXPORT
+    # ===============================
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
