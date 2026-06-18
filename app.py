@@ -27,6 +27,27 @@ def set_bg(image_file):
         )
     except:
         pass
+# ======================================================
+# ✅ LOGOUT BUTTON (FIXED TOP RIGHT)
+# ======================================================
+
+logout_col1, logout_col2, logout_col3 = st.columns([8,1,1])
+
+with logout_col3:
+    if st.button("🚪", help="Logout"):
+        st.session_state["logged_in"] = False
+        st.rerun()
+
+st.markdown("""
+<style>
+div[data-testid="column"]:nth-of-type(3) {
+    position: fixed;
+    top: 4px;
+    right: 45px;
+    z-index: 9999;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 # ======================================================
