@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE"])
 
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
@@ -625,3 +625,35 @@ if uploaded_files and len(uploaded_files) > 0:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
+    # ======================================================
+# ✅ NESTE (EXCEL ONLY ✅)
+# ======================================================
+def parse_neste_excel(file):
+
+    df = pd.read_excel(file)
+    df.columns = df.columns.str.strip()
+
+    # ✅ rename
+    df = df.rename(columns={
+        "Commodity code": "Тарифен код",
+        "Type of packaging": "wid",
+        "Delivery quantity": "Количество",
+        "Volume": "kolichestvo",
+        "Net Weight": "тегло"
+    })
+
+    # ✅ махаме празни / грешни редове
+    df = df.dropna(subset=["Тарифен код"])
+
+    # ✅ group
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
+
