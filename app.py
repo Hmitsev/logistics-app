@@ -114,46 +114,59 @@ if not check_login():
 # ✅ main background
 set_bg("background.png")
 # ======================================================
-# ✅ FINAL SIDEBAR (GLASS + POINTER FIXED)
+# ✅ ULTRA GLASS SIDEBAR (PRO VERSION)
 # ======================================================
 
 st.markdown("""
 <style>
 
-/* ✅ Sidebar */
+/* ✅ Sidebar container */
 section[data-testid="stSidebar"] {
     background: transparent !important;
 }
 
-/* ✅ Glass container */
+/* ✅ GLASS EFFECT */
 section[data-testid="stSidebar"] > div {
-    background: rgba(0,0,0,0.03) !important;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.03) !important;  /* почти прозрачно */
 
-    border-right: 4px solid rgba(255,255,255,0.6);
-    box-shadow: 0 0 15px rgba(255,255,255,0.15);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+
+    border-right: 4px solid rgba(255,255,255,0.7);  /* силен метален борд */
+
+    /* ✅ вътрешен glow */
+    box-shadow:
+        inset 0 0 10px rgba(255,255,255,0.15),
+        0 0 20px rgba(255,255,255,0.1);
 }
 
-/* ✅ Text */
+
+/* ✅ текст */
 section[data-testid="stSidebar"] * {
     color: white !important;
 }
 
-/* ✅ Select box */
+
+/* ✅ SELECT BOX */
 div[data-baseweb="select"] {
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(255,255,255,0.04) !important;
+    backdrop-filter: blur(8px);
     border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.2);
-    cursor: pointer !important;   /* ✅ pointer само тук */
+    border: 1px solid rgba(255,255,255,0.25);
+
+    cursor: pointer !important;
 }
 
-/* ✅ Hover без да чупи прозрачността */
+
+/* ✅ hover ефект (много фин) */
 div[data-baseweb="select"]:hover {
     background: rgba(255,255,255,0.08) !important;
+    border: 1px solid rgba(255,255,255,0.4);
+    box-shadow: 0 0 8px rgba(255,255,255,0.2);
 }
 
-/* ✅ махаме cursor от вътрешни елементи */
+
+/* ✅ pointer fix */
 div[data-baseweb="select"] * {
     cursor: inherit !important;
 }
