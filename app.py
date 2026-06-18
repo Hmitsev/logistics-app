@@ -619,17 +619,16 @@ if uploaded_files and len(uploaded_files) > 0:
         df = None  # ✅ reset
 
         # ===============================
-        # ✅ VALVOLINE → ONLY EXCEL
-        # ===============================
-        if menu == "VALVOLINE":
+# ✅ FILE TYPE SWITCH (FIXED)
+# ===============================
 
-            if source_type != "Excel":
-                st.warning("⚠️ VALVOLINE работи само с Excel файлове")
-                continue
+if menu == "VALVOLINE":
 
+    if source_type != "Excel":
+        st.warning("⚠️ VALVOLINE работи само с Excel файлове")
+        continue
 
     try:
-        # ✅ проверка дали е правилен файл
         test_df = pd.read_excel(file)
         cols = [str(c).lower() for c in test_df.columns]
 
@@ -643,104 +642,98 @@ if uploaded_files and len(uploaded_files) > 0:
         st.warning(f"⚠️ Грешка при VALVOLINE файл: {file.name}")
         continue
 
-        # ===============================
-        # ✅ NESTE
-        # ===============================
-        elif menu == "NESTE":
 
-            try:
-                df = parse_neste_excel(file)
-            except:
-                st.warning(f"⚠️ Грешка при NESTE файл: {file.name}")
-                continue
+elif menu == "NESTE":
 
-        # ===============================
-        # ✅ PDF
-        # ===============================
-        elif source_type == "PDF":
+    try:
+        df = parse_neste_excel(file)
+    except:
+        st.warning(f"⚠️ Грешка при NESTE файл: {file.name}")
+        continue
 
-            try:
-                reader = PdfReader(file)
-                text = ""
 
-                for page in reader.pages:
-                    text += page.extract_text() + "\n"
+elif source_type == "PDF":
 
-                if menu == "CASTROL":
-                    df = parse_castrol(text)
-                else:
-                    df = parse_motul(text)
+    try:
+        reader = PdfReader(file)
+        text = ""
 
-            except:
-                st.warning(f"⚠️ Грешка при PDF файл: {file.name}")
-                continue
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
 
-        # ===============================
-        # ✅ GENERIC EXCEL
-        # ===============================
+        if menu == "CASTROL":
+            df = parse_castrol(text)
         else:
+            df = parse_motul(text)
 
-            try:
-                df = pd.read_excel(file)
-                df.columns = df.columns.str.strip()
+    except:
+        st.warning(f"⚠️ Грешка при PDF файл: {file.name}")
+        continue
 
-                column_map = {}
 
-                for col in df.columns:
-                    c = col.lower()
+else:
 
-                    if "comm" in c or "code" in c:
-                        column_map[col] = "Commodity code"
+    try:
+        df = pd.read_excel(file)
+        df.columns = df.columns.str.strip()
 
-                    elif "pack" in c:
-                        column_map[col] = "Type of packaging"
+        column_map = {}
 
-                    elif "delivery quantity" in c or "qty" in c or "quantity" in c:
-                        column_map[col] = "Delivery quantity"
+        for col in df.columns:
+            c = col.lower()
 
-                    elif "volume" in c:
-                        column_map[col] = "Volume"
+            if "comm" in c or "code" in c:
+                column_map[col] = "Commodity code"
 
-                    elif "net weight" in c or "weight" in c:
-                        column_map[col] = "Net Weight"
+            elif "pack" in c:
+                column_map[col] = "Type of packaging"
 
-                df = df.rename(columns=column_map)
-                df = df.loc[:, ~df.columns.duplicated()]
+            elif "delivery quantity" in c or "qty" in c or "quantity" in c:
+                column_map[col] = "Delivery quantity"
 
-                required_cols = [
-                    "Commodity code",
-                    "Type of packaging",
-                    "Delivery quantity",
-                    "Volume",
-                    "Net Weight"
-                ]
+            elif "volume" in c:
+                column_map[col] = "Volume"
 
-                missing = [c for c in required_cols if c not in df.columns]
+            elif "net weight" in c or "weight" in c:
+                column_map[col] = "Net Weight"
 
-                if missing:
-                    st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
-                    continue
+        df = df.rename(columns=column_map)
+        df = df.loc[:, ~df.columns.duplicated()]
 
-                df = df.groupby(
-                    ["Commodity code", "Type of packaging"],
-                    as_index=False
-                ).agg({
-                    "Delivery quantity": "sum",
-                    "Volume": "sum",
-                    "Net Weight": "sum"
-                })
+        required_cols = [
+            "Commodity code",
+            "Type of packaging",
+            "Delivery quantity",
+            "Volume",
+            "Net Weight"
+        ]
 
-                df = df.rename(columns={
-                    "Commodity code": "Тарифен код",
-                    "Type of packaging": "wid",
-                    "Delivery quantity": "Количество",
-                    "Volume": "kolichestvo",
-                    "Net Weight": "тегло"
-                })
+        missing = [c for c in required_cols if c not in df.columns]
 
-            except:
-                st.warning(f"⚠️ Грешка при Excel файл: {file.name}")
-                continue
+        if missing:
+            st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
+            continue
+
+        df = df.groupby(
+            ["Commodity code", "Type of packaging"],
+            as_index=False
+        ).agg({
+            "Delivery quantity": "sum",
+            "Volume": "sum",
+            "Net Weight": "sum"
+        })
+
+        df = df.rename(columns={
+            "Commodity code": "Тарифен код",
+            "Type of packaging": "wid",
+            "Delivery quantity": "Количество",
+            "Volume": "kolichestvo",
+            "Net Weight": "тегло"
+        })
+
+    except:
+        st.warning(f"⚠️ Грешка при Excel файл: {file.name}")
+        continue
 
         # ✅ SAFE APPEND
         if isinstance(df, pd.DataFrame) and not df.empty:
