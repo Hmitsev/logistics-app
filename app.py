@@ -92,6 +92,38 @@ if not check_login():
 
 # ✅ main background
 set_bg("background.png")
+# ======================================================
+# ✅ TRANSPARENT SIDEBAR (GLASS EFFECT)
+# ======================================================
+
+st.markdown("""
+<style>
+
+/* ✅ Sidebar контейнер */
+section[data-testid="stSidebar"] {
+    background: rgba(255,255,255,0.05) !important;
+    backdrop-filter: blur(12px) !important;
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ✅ махаме плътния background */
+section[data-testid="stSidebar"] > div {
+    background: transparent !important;
+}
+
+/* ✅ текстът вътре */
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* ✅ selectbox стил */
+div[data-baseweb="select"] {
+    background: rgba(255,255,255,0.08) !important;
+    border-radius: 10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # ======================================================
 # ✅ TOP RIGHT LOGOUT (VISIBLE FIX)
