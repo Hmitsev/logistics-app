@@ -561,7 +561,6 @@ def parse_valvoline_excel(file):
     rows = []
 
     for _, r in df.iterrows():
-
         code = str(r["code"])[:8]
         pack = str(r["pack"])
         qty = float(r["qty"])
@@ -569,9 +568,8 @@ def parse_valvoline_excel(file):
         packages = float(r["packages"]) if "packages" in df.columns else 0
 
         # ======================================================
-        # ✅ ПРАВИЛЕН wid extraction
+        # ✅ ПРАВИЛЕН wid extraction (FIXED)
         # ======================================================
-
         multi_L = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
         multi_G = re.search(r"(\d+)\s*x\s*(\d+)\s*G", pack, re.I)
         single_L = re.search(r"(\d+)\s*L", pack, re.I)
@@ -588,7 +586,9 @@ def parse_valvoline_excel(file):
         else:
             wid = 1
 
-        # ✅ директен mapping
+        # ======================================================
+        # ✅ DIRECT MAPPING (1:1 с Excel)
+        # ======================================================
         rows.append({
             "Тарифен код": code,
             "Количество": packages,
@@ -596,7 +596,6 @@ def parse_valvoline_excel(file):
             "kolichestvo": qty,
             "тегло": weight
         })
-
 
     df = pd.DataFrame(rows)
 
@@ -610,7 +609,6 @@ def parse_valvoline_excel(file):
     })
 
     return df
-
         # ======================================================
         # ✅ MULTI PACK (пример: 4x5L)
         # ======================================================
