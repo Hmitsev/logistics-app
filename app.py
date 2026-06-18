@@ -113,6 +113,152 @@ if not check_login():
 
 # ✅ main background
 set_bg("background.png")
+
+# ======================================================
+# ✅ FINAL UI (RESET + PERFECT ORDER)
+# ======================================================
+
+st.markdown("""
+<style>
+.source-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+}
+
+/* ✅ Add file малък */
+.add-file {
+    display:inline-block;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 4px 10px;
+    color: white;
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+
+/* ✅ маха текста от default button */
+button[data-testid="baseButton-secondary"] p {
+    opacity: 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ✅ SIDEBAR
+menu = st.sidebar.selectbox("Suppliers", ["Castrol", "MOTUL"])
+
+# ✅ RESET при смяна на supplier
+if "prev_supplier" not in st.session_state:
+    st.session_state["prev_supplier"] = menu
+
+if st.session_state["prev_supplier"] != menu:
+    st.session_state["source_type"] = ""
+    st.session_state["prev_supplier"] = menu
+
+
+# ✅ заглавие
+st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
+
+
+# ✅ STATE
+if "source_type" not in st.session_state:
+    st.session_state["source_type"] = ""
+
+
+# ✅ бутони
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("PDF", use_container_width=True):
+        st.session_state["source_type"] = "PDF"
+        st.rerun()
+
+with col2:
+    if st.button("Excel", use_container_width=True):
+        st.session_state["source_type"] = "Excel"
+        st.rerun()
+
+
+source_type = st.session_state["source_type"]
+
+
+# ✅ цветове + overlay
+if source_type == "PDF":
+    pdf_color = "#ff3b3b"
+    excel_color = "#444"
+    pdf_overlay = "<span style='color:#ff3b3b;'>You chose: PDF</span>"
+    excel_overlay = "<span style='color:white;'>Excel</span>"
+
+elif source_type == "Excel":
+    pdf_color = "#444"
+    excel_color = "#36c165"
+    pdf_overlay = "<span style='color:white;'>PDF</span>"
+    excel_overlay = "<span style='color:#36c165;'>You chose: Excel</span>"
+
+else:
+    pdf_color = "#444"
+    excel_color = "#444"
+    pdf_overlay = "<span style='color:white;'>PDF</span>"
+    excel_overlay = "<span style='color:white;'>Excel</span>"
+
+
+# ✅ стил на бутоните
+st.markdown(f"""
+<style>
+div[data-testid="column"]:nth-of-type(1) button {{
+    background-color: {pdf_color};
+    height: 60px;
+    border-radius: 12px;
+}}
+
+div[data-testid="column"]:nth-of-type(2) button {{
+    background-color: {excel_color};
+    height: 60px;
+    border-radius: 12px;
+}}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ✅ overlay текст
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown(f"""
+    <div style="
+        margin-top:-65px;
+        display:flex;
+        justify-content:flex-end;
+        padding-right:20px;
+        pointer-events:none;
+    ">
+        {pdf_overlay}
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown(f"""
+    <div style="
+        margin-top:-65px;
+        display:flex;
+        justify-content:flex-end;
+        padding-right:20px;
+        pointer-events:none;
+    ">
+        {excel_overlay}
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ✅ ✅ ПРАВИЛЕН РЕД (FIX)
+st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
+
+uploaded_files = st.file_uploader(
+    "",
+    type=["pdf"] if source_type == "PDF" else ["xlsx", "xls"],
+    accept_multiple_files=True
+)
 # ======================================================
 # ✅ ULTRA GLASS SIDEBAR (PRO VERSION)
 # ======================================================
