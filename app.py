@@ -100,7 +100,7 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ FINAL UI (WORKING COLORS FIX)
+# ✅ FINAL UI (CLEAN + STABLE)
 # ======================================================
 
 st.markdown("""
@@ -122,16 +122,13 @@ if "source_type" not in st.session_state:
     st.session_state["source_type"] = ""
 
 
-# ✅ ЛОГИКА ЗА ТЕКСТ + ЦВЯТ
+# ✅ ЛОГИКА ЗА БУТОНИ
 if st.session_state["source_type"] == "PDF":
     pdf_label = "You chose: PDF"
     excel_label = "Excel"
 
     pdf_color = "#ff3b3b"
     excel_color = "#444"
-
-    pdf_text_color = "#ff3b3b"
-    excel_text_color = "white"
 
 elif st.session_state["source_type"] == "Excel":
     pdf_label = "PDF"
@@ -140,9 +137,6 @@ elif st.session_state["source_type"] == "Excel":
     pdf_color = "#444"
     excel_color = "#36c165"
 
-    pdf_text_color = "white"
-    excel_text_color = "#36c165"
-
 else:
     pdf_label = "PDF"
     excel_label = "Excel"
@@ -150,42 +144,41 @@ else:
     pdf_color = "#444"
     excel_color = "#444"
 
-    pdf_text_color = "white"
-    excel_text_color = "white"
-
 
 # ✅ БУТОНИ
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button(pdf_label, key="pdf_btn", use_container_width=True):
+    if st.button(pdf_label, use_container_width=True):
         st.session_state["source_type"] = "PDF"
         st.rerun()
 
 with col2:
-    if st.button(excel_label, key="excel_btn", use_container_width=True):
+    if st.button(excel_label, use_container_width=True):
         st.session_state["source_type"] = "Excel"
         st.rerun()
 
 
-# ✅ ✅ РЕАЛЕН FIX (РАБОТИ)
+# ✅ ЦВЕТЕН БУТОН (стабилно)
 st.markdown(f"""
 <style>
 
-/* PDF бутон */
-div[data-testid="column"]:nth-of-type(1) button {{
-    background-color: {pdf_color} !important;
-    color: {pdf_text_color} !important;
+/* всички бутони default */
+button[data-testid="baseButton-secondary"] {{
+    color: white !important;
+    font-weight: 500 !important;
     border-radius: 12px !important;
     height: 60px !important;
 }}
 
-/* Excel бутон */
+/* PDF */
+div[data-testid="column"]:nth-of-type(1) button {{
+    background-color: {pdf_color} !important;
+}}
+
+/* Excel */
 div[data-testid="column"]:nth-of-type(2) button {{
     background-color: {excel_color} !important;
-    color: {excel_text_color} !important;
-    border-radius: 12px !important;
-    height: 60px !important;
 }}
 
 </style>
