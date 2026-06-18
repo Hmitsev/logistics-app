@@ -604,66 +604,24 @@ def parse_valvoline_excel(file):
 # ======================================================
 # ✅ PROCESS (FINAL – FULL SAFE VERSION)
 # ======================================================
+
 if uploaded_files and len(uploaded_files) > 0:
 
     all_data = []
 
     for file in uploaded_files:
-
-        # ===============================
-        # ✅ PARSERS
-        # ===============================
-        try:
-
-            if menu == "VALVOLINE":
-                df = parse_valvoline_excel(file)
-
-            elif menu == "NESTE":
-                df = parse_neste_excel(file)
-
-            elif source_type == "PDF":
-
-                reader = PdfReader(file)
-                text = ""
-
-                for page in reader.pages:
-                    text += page.extract_text() + "\n"
-
-                if menu == "CASTROL":
-                    df = parse_castrol(text)
-                else:
-                    df = parse_motul(text)
-
-            else:
-                df = pd.read_excel(file)
-
-        except Exception as e:
-            st.warning(f"⚠️ Грешка при четене на файл: {file.name}")
-            continue
-
-        # ===============================
-        # ✅ VALIDATION BEFORE APPEND
-        # ===============================
-        if df is None or not isinstance(df, pd.DataFrame) or df.empty:
-            continue
-
+        ...
         all_data.append(df)
 
-    # ===============================
-    # ✅ CHECK
-    # ===============================
     if not all_data:
-        st.error("❌ Няма валидни данни за обработка")
+        st.warning("⚠️ Няма данни")
         st.stop()
 
-    # ===============================
-    # ✅ CONCAT
-    # ===============================
+    # ✅ ТУК СЪЗДАВАШ final_df
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ===============================
-    # ✅ NORMALIZE (CRITICAL)
-    # ===============================
+    # ✅ ВСИЧКО ПО-ДОЛУ ТРЯБВА ДА Е ВЪТРЕ В IF
+
     final_df = final_df.rename(columns={
         "Тарифен код": "Code",
         "Количество": "Broj",
@@ -671,25 +629,18 @@ if uploaded_files and len(uploaded_files) > 0:
         "тегло": "teglo"
     })
 
-    # ===============================
-# ✅ SAFETY CHECK
-# ===============================
-if "Code" not in final_df.columns:
-    st.warning("⚠️ Файлът не е разпознат и ще бъде пропуснат")
-    st.write(final_df.columns)
-    st.stop()
+    if "Code" not in final_df.columns:
+        st.warning("⚠️ Файлът не е разпознат и ще бъде пропуснат")
+        st.write(final_df.columns)
+        st.stop()
 
-    # ===============================
-    # ✅ FILTERS
-    # ===============================
     final_df["Code"] = final_df["Code"].astype(str)
 
-    final_df = final_df[
-        final_df["Code"].isin(ALLOWED_CODES)
-    ]
+    final_df = final_df[final_df["Code"].isin(ALLOWED_CODES)]
 
     if "teglo" in final_df.columns:
         final_df = final_df[final_df["teglo"] > 0]
+
 
     # ===============================
     # ✅ FINAL REPORT
