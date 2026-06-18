@@ -5,6 +5,7 @@ from PyPDF2 import PdfReader
 import io
 import base64
 
+
 # ======================================================
 # ✅ BACKGROUND
 # ======================================================
@@ -40,25 +41,23 @@ ALLOWED_CODES = [
     "27101225","38140090"
 ]
 
+
 # ======================================================
 # ✅ UI
 # ======================================================
 
-# ✅ Лого (ако искаш)
-st.image("Screenshot 2026-06-18 093459.png", width=150)
-
-# ✅ ✅ Header горе вдясно
+# ✅ Header (CustomsFlow горе вдясно)
 st.markdown(
     """
     <div style="
         position: fixed;
-        top: 20px;
-        right: 30px;
-        font-size: 34px;
+        top: 10px;
+        right: 25px;
+        font-size: 36px;
         font-weight: 900;
         color: white;
         text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
-        z-index: 1000;
+        z-index: 9999;
     ">
         CustomsFlow
     </div>
@@ -66,9 +65,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ✅ избори
+# ✅ (по желание) лого – ако файлът съществува
+try:
+    st.image("logo.png", width=120)
+except:
+    pass
+
+# ✅ Основни избори
 source_type = st.radio("👉 Избери източник", ["PDF", "Excel"])
 menu = st.sidebar.selectbox("Доставчик", ["Castrol", "MOTUL"])
+
 # ======================================================
 # ✅ MOTUL (ФИНАЛЕН 100%)
 # ======================================================
