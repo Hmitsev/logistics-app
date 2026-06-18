@@ -564,7 +564,7 @@ def parse_valvoline_excel(file):
 
         code = str(r["code"])[:8]
         pack = str(r["pack"])
-        qty = float(r["qty"])          # ✅ литри
+        qty = float(r["qty"])
         weight = float(r["weight"])
         packages = float(r["packages"]) if "packages" in df.columns else 0
 
@@ -572,37 +572,31 @@ def parse_valvoline_excel(file):
         # ✅ ПРАВИЛЕН wid extraction
         # ======================================================
 
-        # 1️⃣  формат: 4x5 L
         multi_L = re.search(r"(\d+)\s*x\s*(\d+)\s*L", pack, re.I)
-
-        # 2️⃣ формат: 24x400 G
         multi_G = re.search(r"(\d+)\s*x\s*(\d+)\s*G", pack, re.I)
-
-        # 3️⃣ single: 20 L
         single_L = re.search(r"(\d+)\s*L", pack, re.I)
 
         if multi_L:
-            wid = int(multi_L.group(2))   # ✅ 5
+            wid = int(multi_L.group(2))
 
         elif multi_G:
-            wid = int(multi_G.group(2))   # ✅ 400
+            wid = int(multi_G.group(2))
 
         elif single_L:
-            wid = int(single_L.group(1))  # ✅ 20 / 208
+            wid = int(single_L.group(1))
 
         else:
             wid = 1
 
-        # ======================================================
-        # ✅ DIRECT MAPPING (NO CALCULATIONS)
-        # ======================================================
+        # ✅ директен mapping
         rows.append({
             "Тарифен код": code,
-            "Количество": packages,   # ✅ broj
+            "Количество": packages,
             "wid": wid,
-            "kolichestvo": qty,       # ✅ литри
+            "kolichestvo": qty,
             "тегло": weight
         })
+
 
     df = pd.DataFrame(rows)
 
