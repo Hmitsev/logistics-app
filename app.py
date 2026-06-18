@@ -332,12 +332,13 @@ ALLOWED_CODES = [
 
 
 # ======================================================
-# ✅ CASTROL
+# ✅ CASTROL FINAL (UNIFIED FORMAT)
 # ======================================================
 def parse_castrol(text):
 
     rows = []
     lines = text.split("\n")
+
     current_liters = 0
 
     for line in lines:
@@ -346,26 +347,52 @@ def parse_castrol(text):
         single = re.search(r"(\d+)L", line)
 
         if multi:
-            current_liters = int(multi.group(1)) * int(multi.group(2))
-        elif single:
-            current_liters = int(single.group(1))
+            units = int(multi.group(1))
+            liters = int(multi.group(2))
+            wid = liters
 
+        elif single:
+            units = 1
+            liters = int(single.group(1))
+            wid = liters
+
+        # ✅ когато намерим код
         if "Cod Vamal" in line:
             try:
-                code = re.search(r"Cod Vamal:(\d+)", line).group(1)
-                qty = int(re.search(r"ST\s*(\d+)", line).group(1))
+                code = re.search(r"Cod Vamal:(\d+)", line).group(1)[:8]
+                qty = float(re.search(r"ST\s*(\d+)", line).group(1))  # ✅ BROJ
+
+                # ✅ сметка
+                broj = qty
+                colic = qty * wid
+                teglo = 0  # CASTROL няма weight в PDF
 
                 rows.append({
-                    "Тарифен код": code,
-                    "Количество": qty,
-                    "wid": current_liters,
-                    "kolichestvo": qty * current_liters,
-                    "тегло": 0
+                    "Code": code,
+                    "wid": wid,
+                    "teglo": teglo,
+                    "colic": colic,
+                    "Broj": broj
                 })
+
             except:
                 pass
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        return df
+
+    df = df.groupby(
+        ["Code", "wid"],
+        as_index=False
+    ).agg({
+        "Broj": "sum",
+        "colic": "sum",
+        "teglo": "sum"
+    })
+
+    return df
 
 # ======================================================
 # ✅ MOTUL (FINAL REAL WORKING)
