@@ -394,21 +394,23 @@ def parse_motul(text):
                 pass
 
         # ======================================================
-        # ✅ ТЕГЛО
+        # ✅ ТЕГЛО (ФИНАЛЕН FIX ✅)
         # ======================================================
-weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
 
-if len(weights) >= 2 and last_weight == 0:
-    try:
-        clean_weights = [
-            float(w.replace(" ", "").replace(",", "."))
-            for w in weights
-        ]
+        # ✅ взимаме САМО първото валидно тегло за продукта
+        if len(weights) >= 2 and last_weight == 0:
+            try:
+                clean_weights = [
+                    float(w.replace(" ", "").replace(",", "."))
+                    for w in weights
+                ]
 
-        last_weight = min(clean_weights)
+                # ✅ теглото е по-малкото число
+                last_weight = min(clean_weights)
 
-    except:
-        pass
+            except:
+                pass
 
         # ======================================================
         # ✅ РАЗФАСОВКА (wid)
@@ -449,7 +451,7 @@ if len(weights) >= 2 and last_weight == 0:
                     "тегло": last_weight
                 })
 
-                # ✅ RESET
+                # ✅ RESET (КРИТИЧНО)
                 current_qty = 0
                 liters_per_unit = 0
                 units_in_box = 1
