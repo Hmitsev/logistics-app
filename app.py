@@ -387,7 +387,17 @@ if uploaded_files:
                 df = parse_motul(text)
 
         else:
-            df = pd.read_excel(file)
+            else:
+    df_raw = pd.read_excel(file)
+
+    # ✅ преобразуване към твоя формат
+    df = pd.DataFrame({
+        "Тарифен код": df_raw["Comm./imp. code no."],
+        "Количество": df_raw["Delivery quantity"],
+        "wid": 1,
+        "kolichestvo": df_raw["Delivery quantity"],
+        "тегло": df_raw["Net Weight"]
+    })
 
         all_data.append(df)
 
