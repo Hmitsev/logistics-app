@@ -485,9 +485,6 @@ def parse_neste_excel(file):
 # ======================================================
 def parse_valvoline_excel(file):
 
-    import pandas as pd
-    import re
-
     xls = pd.ExcelFile(file)
 
     sheet_name = None
@@ -501,20 +498,43 @@ def parse_valvoline_excel(file):
         st.stop()
 
     df = xls.parse(sheet_name)
+
+    # ✅ CLEAN колони
     df.columns = df.columns.str.strip()
 
-    df = df.rename(columns={
-        "Tariff No.": "code",
-        "Packaging": "pack",
-        "Qty": "qty",
-        "Net Kg": "weight"
-    })
+    # ✅ DEBUG (ако пак има проблем)
+    # st.write(df.columns)
+
+    column_map = {}
+
+    for col in df.columns:
+        c = col.lower()
+
+        if "tariff" in c:
+            column_map[col] = "code"
+        elif "pack" in c:
+            column_map[col] = "pack"
+        elif c == "qty":
+            column_map[col] = "qty"
+        elif "net" in c:
+            column_map[col] = "weight"
+
+    df = df.rename(columns=column_map)
+
+    # ✅ защита
+    required = ["code", "pack", "qty", "weight"]
+    missing = [c for c in required if c not in df.columns]
+
+    if missing:
+        st.error(f"❌ Липсват колони VALVOLINE: {missing}")
+        st.write(df.columns)
+        st.stop()
 
     df = df.dropna(subset=["code"])
 
     rows = []
 
-    for _, r in df.iterrows():
+    for
 
         code = str(r["code"])[:8]  # ✅ махаме последните 2 цифри
         qty = r["qty"]
