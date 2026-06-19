@@ -123,7 +123,7 @@ st.markdown("""
 .source-title {
     font-size: 23px;
     font-weight: 800;
-    color: #36c165;  /* ✅ зелено */
+    color: #36c165;  /* ✅ оранжево */ 
 }
 
 /* ✅ Add file малък */
