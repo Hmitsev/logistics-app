@@ -401,21 +401,18 @@ def parse_motul(text):
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
 
-        # ✅ ТЕГЛО
-        weights = re.findall(r"\d{1,3}(?:\s\d{3})*,\d+", line)
+        # ✅ ✅ ФИКС — ТЕГЛО = NET KG (ПЪРВОТО ЧИСЛО)
+        weight_match = re.search(
+            r"\d+\s+([\d\s,]+)\s+([\d\s,]+)",
+            line
+        )
 
-        qty_match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
-
-        if weights and qty_match:
+        if weight_match:
             try:
-                values = [
-                    float(w.replace(" ", "").replace(",", "."))
-                    for w in weights
-                ]
-
-                if len(values) >= 2:
-                    current_weight = min(values[-2:])
-
+                net_weight = float(
+                    weight_match.group(1).replace(" ", "").replace(",", ".")
+                )
+                current_weight = net_weight  # ✅ винаги NET
             except:
                 pass
 
