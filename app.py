@@ -436,12 +436,12 @@ def parse_motul(text):
                         real_qty = current_qty
 
                 rows.append({
-                    "Тарифен код": code_value,
-                    "Количество": real_qty,
-                    "wid": liters_per_unit,
-                    "kolichestvo": real_qty * liters_per_unit,
-                    "тегло": current_weight
-                })
+    "Тарифен код": code_value,
+    "Количество": real_qty,
+    "wid": liters_per_unit,
+    "kolichestvo": round(real_qty * liters_per_unit, 3),
+    "тегло": round(current_weight, 3)
+})
 
                 # ✅ RESET
                 current_qty = 0
