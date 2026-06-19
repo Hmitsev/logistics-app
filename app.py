@@ -602,28 +602,30 @@ if uploaded_files:
 
         df = None
 
-        # ✅ NESTE
+        # ✅ NESTE (Excel директно)
         if menu == "NESTE":
             df = parse_neste_excel(file)
 
         # ✅ PDF
         elif source_type == "PDF":
+
             reader = PdfReader(file)
             text = ""
 
             for page in reader.pages:
                 text += page.extract_text() + "\n"
-                if menu == "CASTROL":
-    df = parse_castrol(text)
 
-elif menu == "GASOLINE":
-    df = parse_gasoline(text)
+            # ✅ избор на parser (ВАЖНО – правилен indent)
+            if menu == "CASTROL":
+                df = parse_castrol(text)
 
-else:
-    df = parse_motul(text)
+            elif menu == "GASOLINE":
+                df = parse_gasoline(text)
 
+            else:
+                df = parse_motul(text)
 
-        # ✅ Excel fallback  🔥 ВЪТРЕ В LOOP-А!
+        # ✅ Excel fallback
         else:
 
             df = pd.read_excel(file)
@@ -660,7 +662,7 @@ else:
                 "Net Weight": "тегло"
             })
 
-        # ✅ SAFE APPEND (вътре!)
+        # ✅ SAFE APPEND
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
