@@ -556,7 +556,7 @@ if uploaded_files and len(uploaded_files) > 0:
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            if menu == "Castrol":
+            if menu == "CASTROL":
                 df = parse_castrol(text)
             else:
                 df = parse_motul(text)
@@ -602,8 +602,8 @@ if uploaded_files and len(uploaded_files) > 0:
             missing = [c for c in required_cols if c not in df.columns]
 
             if missing:
-                st.error(f"❌ Липсват колони: {missing}")
-                st.stop()
+                st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
+                continue
 
             df = df.groupby(
                 ["Commodity code", "Type of packaging"],
@@ -623,6 +623,7 @@ if uploaded_files and len(uploaded_files) > 0:
             })
 
         # ✅ ADD RESULT
+        if isinstance(df, pd.DataFrame) and not df.empty:
         all_data.append(df)
 
     # ======================================================
