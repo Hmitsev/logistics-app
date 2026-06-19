@@ -553,10 +553,14 @@ if uploaded_files:
 
             if menu == "CASTROL":
                 df = parse_castrol(text)
+
+            elif menu == "GASOLINE":
+                df = parse_gasoline(text)
+
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel fallback  🔥 ВЪТРЕ В LOOP-А!
+        # ✅ Excel fallback
         else:
 
             df = pd.read_excel(file)
@@ -593,7 +597,7 @@ if uploaded_files:
                 "Net Weight": "тегло"
             })
 
-        # ✅ SAFE APPEND (вътре!)
+        # ✅ SAFE APPEND
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
@@ -608,10 +612,19 @@ if uploaded_files:
         st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
         st.stop()
 
+    # ✅ ✅ ✅ FINAL CLEAN BLOCK
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["тегло"] > 0]
+    final_df["Тарифен код"] = final_df["Тарифен код"].str[:8]
 
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+
+    if "тегло" not in final_df.columns:
+        final_df["тегло"] = 0
+
+    if menu in ["MOTUL", "NESTE"]:
+        final_df = final_df[final_df["тегло"] > 0]
+
+    # ✅ REPORT
     report = build_final_report(final_df)
 
     report = report.rename(columns={
