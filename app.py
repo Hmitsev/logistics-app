@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL", "NESTE", "GASOLINE"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE"])
 
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
@@ -366,9 +366,8 @@ def parse_castrol(text):
 
     return pd.DataFrame(rows)
 
-
 # ======================================================
-# ✅ MOTUL
+# ✅ MOTUL (FINAL REAL WORKING)
 # ======================================================
 def parse_motul(text):
 
@@ -382,6 +381,7 @@ def parse_motul(text):
 
     for line in lines:
 
+        # ✅ КОЛИЧЕСТВО
         match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
         if match:
             try:
@@ -389,6 +389,7 @@ def parse_motul(text):
             except:
                 pass
 
+        # ✅ РАЗФАСОВКА
         multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
         single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
 
@@ -399,6 +400,7 @@ def parse_motul(text):
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
 
+        # ✅ ✅ ТЕГЛО (ТОЧНО NET след Quantity)
         weight_match = re.search(
             r"\d+\s+\d+\s+(\d+)\s+([\d\s,]+)\s+([\d\s,]+)",
             line
@@ -410,11 +412,14 @@ def parse_motul(text):
                     weight_match.group(2).replace(" ", "").replace(",", ".")
                 )
 
+                # ✅ защита
                 if net_weight < 100000:
                     current_weight = net_weight
+
             except:
                 pass
 
+        # ✅ HS CODE (само веднъж!)
         if "HS code" in line:
             code = re.search(r"HS code\s*:\s*(\d+)", line)
 
@@ -430,13 +435,14 @@ def parse_motul(text):
                         real_qty = current_qty
 
                 rows.append({
-                    "Тарифен код": code_value,
-                    "Количество": real_qty,
-                    "wid": liters_per_unit,
-                    "kolichestvo": round(real_qty * liters_per_unit, 3),
-                    "тегло": round(current_weight, 3)
-                })
+    "Тарифен код": code_value,
+    "Количество": real_qty,
+    "wid": liters_per_unit,
+    "kolichestvo": round(real_qty * liters_per_unit, 3),
+    "тегло": round(current_weight, 3)
+})
 
+                # ✅ RESET
                 current_qty = 0
                 current_weight = 0
                 liters_per_unit = 0
@@ -444,75 +450,8 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 
-
 # ======================================================
-# ✅ GASOLINE (НОВ ✅)
-# ======================================================
-def parse_gasoline(text):
-
-    rows = []
-    lines = text.split("\n")
-
-    current_liters = 0
-    current_weight = 0
-    current_wid = 1  # ✅ default
-
-    for line in lines:
-
-        # ✅ LITERS
-        liters_match = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
-        if liters_match:
-            try:
-                current_liters = float(
-                    liters_match.group(1).replace(".", "").replace(",", ".")
-                )
-            except:
-                pass
-
-        # ✅ KG
-        weight_match = re.search(r"([\d\.,]+)\s*kg", line, re.IGNORECASE)
-        if weight_match:
-            try:
-                current_weight = float(
-                    weight_match.group(1).replace(".", "").replace(",", ".")
-                )
-            except:
-                pass
-
-        # ✅ BOX (6x1 / 4x5)
-        multi = re.search(r"(\d+)x(\d+)", line, re.IGNORECASE)
-        if multi:
-            try:
-                current_wid = float(multi.group(2))
-            except:
-                pass
-
-        # ✅ CODE
-        if "Zolltarifnummer" in line:
-            code_match = re.search(r"(\d+)", line)
-
-            if code_match and current_liters > 0:
-
-                code_value = code_match.group(1)[:8]
-                broj = current_liters / current_wid
-
-                rows.append({
-                    "Тарифен код": code_value,
-                    "Количество": round(broj, 3),
-                    "wid": current_wid,
-                    "kolichestvo": round(current_liters, 3),
-                    "тегло": round(current_weight, 3)
-                })
-
-                # ✅ RESET
-                current_liters = 0
-                current_weight = 0
-                current_wid = 1
-
-    return pd.DataFrame(rows)
-
-# ======================================================
-# ✅ NESTE (EXCEL)
+# ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
 def parse_neste_excel(file):
 
@@ -600,30 +539,24 @@ if uploaded_files:
 
         df = None
 
-        # ✅ NESTE (Excel директно)
+        # ✅ NESTE
         if menu == "NESTE":
             df = parse_neste_excel(file)
 
         # ✅ PDF
         elif source_type == "PDF":
-
             reader = PdfReader(file)
             text = ""
 
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            # ✅ избор на parser
             if menu == "CASTROL":
                 df = parse_castrol(text)
-
-            elif menu == "GASOLINE":
-                df = parse_gasoline(text)
-
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel fallback
+        # ✅ Excel fallback  🔥 ВЪТРЕ В LOOP-А!
         else:
 
             df = pd.read_excel(file)
@@ -660,7 +593,7 @@ if uploaded_files:
                 "Net Weight": "тегло"
             })
 
-        # ✅ SAFE APPEND
+        # ✅ SAFE APPEND (вътре!)
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
@@ -675,14 +608,10 @@ if uploaded_files:
         st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
         st.stop()
 
-    # ✅ CLEAN + FILTER
-    final_df["Тарифен код"] = final_df["Тарифен код"].str[:8]
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
 
-    if menu in ["MOTUL", "NESTE"]:
-        final_df = final_df[final_df["тегло"] > 0]
-
-    # ✅ REPORT
     report = build_final_report(final_df)
 
     report = report.rename(columns={
@@ -693,7 +622,6 @@ if uploaded_files:
         "Количество": "Broj"
     })
 
-    # ✅ OUTPUT
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
