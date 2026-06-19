@@ -448,7 +448,9 @@ def parse_motul(text):
 # ======================================================
 # ✅ GASOLINE (НОВ ✅)
 # ======================================================
-def parse_gasoline(text):def parse_gas rows = []
+def parse_gasoline(text):
+
+    rows = []
     lines = text.split("\n")
 
     current_liters = 0
@@ -477,7 +479,7 @@ def parse_gasoline(text):def parse_gas rows = []
             except:
                 pass
 
-        # ✅ BOX FORMAT (6x1 / 4x5)
+        # ✅ BOX (6x1 / 4x5)
         multi = re.search(r"(\d+)x(\d+)", line, re.IGNORECASE)
         if multi:
             try:
@@ -492,7 +494,6 @@ def parse_gasoline(text):def parse_gas rows = []
             if code_match and current_liters > 0:
 
                 code_value = code_match.group(1)[:8]
-
                 broj = current_liters / current_wid
 
                 rows.append({
