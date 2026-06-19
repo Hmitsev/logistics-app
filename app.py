@@ -539,15 +539,6 @@ if uploaded_files and len(uploaded_files) > 0:
     for file in uploaded_files:
 
         # ======================================================
-# ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
-# ======================================================
-if uploaded_files and len(uploaded_files) > 0:
-
-    all_data = []
-
-    for file in uploaded_files:
-
-        # ======================================================
         # ✅ FILE PROCESSING
         # ======================================================
 
@@ -565,7 +556,7 @@ if uploaded_files and len(uploaded_files) > 0:
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            if menu == "CASTROL":
+            if menu == "Castrol":
                 df = parse_castrol(text)
             else:
                 df = parse_motul(text)
@@ -597,6 +588,7 @@ if uploaded_files and len(uploaded_files) > 0:
                     column_map[col] = "Net Weight"
 
             df = df.rename(columns=column_map)
+
             df = df.loc[:, ~df.columns.duplicated()]
 
             required_cols = [
@@ -610,8 +602,8 @@ if uploaded_files and len(uploaded_files) > 0:
             missing = [c for c in required_cols if c not in df.columns]
 
             if missing:
-                st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
-                continue
+                st.error(f"❌ Липсват колони: {missing}")
+                st.stop()
 
             df = df.groupby(
                 ["Commodity code", "Type of packaging"],
@@ -630,13 +622,13 @@ if uploaded_files and len(uploaded_files) > 0:
                 "Net Weight": "тегло"
             })
 
-        # ✅ SAFE APPEND (ВЪТРЕ В LOOP)
-        if isinstance(df, pd.DataFrame) and not df.empty:
-            all_data.append(df)
+        # ✅ ADD RESULT
+        all_data.append(df)
 
     # ======================================================
     # ✅ FINAL COMBINE
     # ======================================================
+
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -662,7 +654,6 @@ if uploaded_files and len(uploaded_files) > 0:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
-
     # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)
 # ======================================================
