@@ -677,13 +677,14 @@ if uploaded_files:
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    if menu != "CASTROL":
+final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+
+if menu != "CASTROL":
     final_df = final_df[final_df["тегло"] > 0]
 
-    report = build_final_report(final_df)
+report = build_final_report(final_df)
 
-    report = report.rename(columns={
+report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
         "тегло": "teglo",
