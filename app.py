@@ -676,10 +676,10 @@ if uploaded_files:
         st.stop()
 
     # ✅ CLEAN + FILTER
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df["Тарифен код"] = final_df["Тарифен код"].str[:8]
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
 
-    if menu != "CASTROL":
+    if menu in ["MOTUL", "NESTE"]:
         final_df = final_df[final_df["тегло"] > 0]
 
     # ✅ REPORT
