@@ -448,19 +448,17 @@ def parse_motul(text):
 # ======================================================
 # ✅ GASOLINE (НОВ ✅)
 # ======================================================
-def parse_gasoline(text):
-
-    rows = []
+def parse_gasoline(text):def parse_gas rows = []
     lines = text.split("\n")
 
     current_liters = 0
-    current_wid = 0
     current_weight = 0
+    current_wid = 1  # ✅ default
 
     for line in lines:
 
         # ✅ LITERS
-        liters_match = re.search(r"([\d\.,]+)\s+Liter", line)
+        liters_match = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
         if liters_match:
             try:
                 current_liters = float(
@@ -479,26 +477,21 @@ def parse_gasoline(text):
             except:
                 pass
 
-        # ✅ MULTI (6x1 Liter)
+        # ✅ BOX FORMAT (6x1 / 4x5)
         multi = re.search(r"(\d+)x(\d+)", line, re.IGNORECASE)
         if multi:
-            current_wid = float(multi.group(2))
-
-        # ✅ SINGLE
-        single = re.search(r"(\d+)\s+Liter", line)
-        if single and current_wid == 0:
-            current_wid = float(single.group(1))
+            try:
+                current_wid = float(multi.group(2))
+            except:
+                pass
 
         # ✅ CODE
         if "Zolltarifnummer" in line:
             code_match = re.search(r"(\d+)", line)
 
-            if code_match and current_liters > 0 and current_weight > 0:
+            if code_match and current_liters > 0:
 
                 code_value = code_match.group(1)[:8]
-
-                if current_wid == 0:
-                    current_wid = 1
 
                 broj = current_liters / current_wid
 
@@ -510,13 +503,12 @@ def parse_gasoline(text):
                     "тегло": round(current_weight, 3)
                 })
 
-                # RESET
+                # ✅ RESET
                 current_liters = 0
-                current_wid = 0
                 current_weight = 0
+                current_wid = 1
 
     return pd.DataFrame(rows)
-
 
 # ======================================================
 # ✅ NESTE (EXCEL)
