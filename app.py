@@ -539,98 +539,104 @@ if uploaded_files and len(uploaded_files) > 0:
     for file in uploaded_files:
 
         # ======================================================
-# ✅ FILE PROCESSING
+# ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
 # ======================================================
+if uploaded_files and len(uploaded_files) > 0:
 
-# ✅ NESTE → Excel
-if menu == "NESTE":
+    all_data = []
 
-    df = parse_neste_excel(file)
+    for file in uploaded_files:
 
-# ✅ PDF (Castrol + MOTUL)
-elif source_type == "PDF":
+        # ======================================================
+        # ✅ FILE PROCESSING
+        # ======================================================
 
-    reader = PdfReader(file)
-    text = ""
+        # ✅ NESTE → Excel
+        if menu == "NESTE":
 
-    for page in reader.pages:
-        text += page.extract_text() + "\n"
+            df = parse_neste_excel(file)
 
-    if menu == "CASTROL":
-        df = parse_castrol(text)
-    else:
-        df = parse_motul(text)
+        # ✅ PDF (Castrol + MOTUL)
+        elif source_type == "PDF":
 
-# ✅ Excel fallback (GENERIC)
-else:
+            reader = PdfReader(file)
+            text = ""
 
-    df = pd.read_excel(file)
-    df.columns = df.columns.str.strip()
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
 
-    column_map = {}
+            if menu == "CASTROL":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
 
-    for col in df.columns:
-        c = col.lower()
+        # ✅ Excel fallback (GENERIC)
+        else:
 
-        if "comm" in c or "code" in c:
-            column_map[col] = "Commodity code"
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
-        elif "pack" in c:
-            column_map[col] = "Type of packaging"
+            column_map = {}
 
-        elif "delivery quantity" in c or "qty" in c or "quantity" in c:
-            column_map[col] = "Delivery quantity"
+            for col in df.columns:
+                c = col.lower()
 
-        elif "volume" in c:
-            column_map[col] = "Volume"
+                if "comm" in c or "code" in c:
+                    column_map[col] = "Commodity code"
 
-        elif "net weight" in c or "weight" in c:
-            column_map[col] = "Net Weight"
+                elif "pack" in c:
+                    column_map[col] = "Type of packaging"
 
-    df = df.rename(columns=column_map)
-    df = df.loc[:, ~df.columns.duplicated()]
+                elif "delivery quantity" in c or "qty" in c or "quantity" in c:
+                    column_map[col] = "Delivery quantity"
 
-    required_cols = [
-        "Commodity code",
-        "Type of packaging",
-        "Delivery quantity",
-        "Volume",
-        "Net Weight"
-    ]
+                elif "volume" in c:
+                    column_map[col] = "Volume"
 
-    missing = [c for c in required_cols if c not in df.columns]
+                elif "net weight" in c or "weight" in c:
+                    column_map[col] = "Net Weight"
 
-    if missing:
-        st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
-        continue
+            df = df.rename(columns=column_map)
+            df = df.loc[:, ~df.columns.duplicated()]
 
-    df = df.groupby(
-        ["Commodity code", "Type of packaging"],
-        as_index=False
-    ).agg({
-        "Delivery quantity": "sum",
-        "Volume": "sum",
-        "Net Weight": "sum"
-    })
+            required_cols = [
+                "Commodity code",
+                "Type of packaging",
+                "Delivery quantity",
+                "Volume",
+                "Net Weight"
+            ]
 
-    df = df.rename(columns={
-        "Commodity code": "Тарифен код",
-        "Type of packaging": "wid",
-        "Delivery quantity": "Количество",
-        "Volume": "kolichestvo",
-        "Net Weight": "тегло"
-    })
+            missing = [c for c in required_cols if c not in df.columns]
 
-# ======================================================
-# ✅ SAFE APPEND (ВАЖНО – ВЪТРЕ В LOOP-А)
-# ======================================================
-if isinstance(df, pd.DataFrame) and not df.empty:
-    all_data.append(df)
+            if missing:
+                st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
+                continue
+
+            df = df.groupby(
+                ["Commodity code", "Type of packaging"],
+                as_index=False
+            ).agg({
+                "Delivery quantity": "sum",
+                "Volume": "sum",
+                "Net Weight": "sum"
+            })
+
+            df = df.rename(columns={
+                "Commodity code": "Тарифен код",
+                "Type of packaging": "wid",
+                "Delivery quantity": "Количество",
+                "Volume": "kolichestvo",
+                "Net Weight": "тегло"
+            })
+
+        # ✅ SAFE APPEND (ВЪТРЕ В LOOP)
+        if isinstance(df, pd.DataFrame) and not df.empty:
+            all_data.append(df)
 
     # ======================================================
     # ✅ FINAL COMBINE
     # ======================================================
-
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -656,6 +662,7 @@ if isinstance(df, pd.DataFrame) and not df.empty:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
+
     # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)
 # ======================================================
