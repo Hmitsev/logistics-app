@@ -449,6 +449,76 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
+    # ======================================================
+# ✅ GASOLINE
+# ======================================================
+def parse_gasoline(text):
+
+    rows = []
+    lines = text.split("\n")
+
+    current_liters = 0
+    current_weight = 0
+    current_wid = 1
+
+    for line in lines:
+
+        # ✅ LITERS
+        liters_match = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
+        if liters_match:
+            try:
+                current_liters = float(
+                    liters_match.group(1).replace(".", "").replace(",", ".")
+                )
+            except:
+                pass
+
+        # ✅ KG
+        weight_match = re.search(r"([\d\.,]+)\s*kg", line, re.IGNORECASE)
+        if weight_match:
+            try:
+                current_weight = float(
+                    weight_match.group(1).replace(".", "").replace(",", ".")
+                )
+            except:
+                pass
+
+        # ✅ BOX (6x1 / 4x5)
+        multi = re.search(r"(\d+)x(\d+)", line, re.IGNORECASE)
+        if multi:
+            try:
+                current_wid = float(multi.group(2))
+            except:
+                pass
+
+        # ✅ CODE
+        if "Zolltarifnummer" in line:
+            code_match = re.search(r"(\d+)", line)
+
+            if code_match and current_liters > 0:
+
+                code_value = code_match.group(1)[:8]
+
+                # ✅ автоматично тегло ако липсва
+                weight_for_row = current_weight
+                if weight_for_row == 0:
+                    weight_for_row = current_liters * 0.85
+
+                rows.append({
+                    "Тарифен код": code_value,
+                    "Количество": round(current_liters / current_wid, 3),
+                    "wid": current_wid,
+                    "kolichestvo": round(current_liters, 3),
+                    "тегло": round(weight_for_row, 3)
+                })
+
+                # reset
+                current_liters = 0
+                current_weight = 0
+                current_wid = 1
+
+    return pd.DataFrame(rows)
+
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
