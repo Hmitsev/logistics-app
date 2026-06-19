@@ -489,9 +489,12 @@ def parse_gasoline(text):
         if single:
             current_wid = float(single.group(1))
 
-        # ✅ CODE
+        # ✅ CODE (✅ ВАЖНО – вътре в for)
         if "Zolltarifnummer" in line:
             code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
+
+            if code_match and current_liters > 0 and current_wid > 0 and current_weight > 0:
+
                 code_value = code_match.group(1)[:8]
                 broj = current_liters / current_wid
 
@@ -503,13 +506,12 @@ def parse_gasoline(text):
                     "тегло": round(current_weight, 3)
                 })
 
+                # ✅ RESET
                 current_liters = 0
                 current_wid = 0
                 current_weight = 0
 
-    return pd.DataFrame(rows)
-
-
+    return pd.DataFrame(rows)  # ✅ извън for
 # ======================================================
 # ✅ NESTE (EXCEL)
 # ======================================================
@@ -676,7 +678,8 @@ if uploaded_files:
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    if menu != "CASTROL":if menu != " final_df = final_df[final_df["тегло"] > 0]
+    if menu != "CASTROL":
+    final_df = final_df[final_df["тегло"] > 0]
 
     report = build_final_report(final_df)
 
