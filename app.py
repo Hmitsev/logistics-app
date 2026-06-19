@@ -572,6 +572,11 @@ if uploaded_files:
 
     final_df = pd.concat(all_data, ignore_index=True)
 
+    # ✅ SAFE CHECK (НОВО – срещу KeyError)
+    if "Тарифен код" not in final_df.columns:
+        st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
+        st.stop()
+
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
     final_df = final_df[final_df["тегло"] > 0]
@@ -600,4 +605,3 @@ if uploaded_files:
         data=output.getvalue(),
         file_name="final_report.xlsx"
     )
-
