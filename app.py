@@ -584,6 +584,7 @@ if uploaded_files:
                     column_map[col] = "Net Weight"
 
             df = df.rename(columns=column_map)
+            df = df.loc[:, ~df.columns.duplicated()]
 
             df = df.rename(columns={
                 "Commodity code": "Тарифен код",
