@@ -457,64 +457,40 @@ def parse_gasoline(text):
     current_wid = 0
     current_weight = 0
 
-    for line in lines:
+    for line in lines:   # ✅ ТУК започва
 
-        # ✅ LITERS
-        liters_match = re.search(r"([\d\.,]+)\s+Liter", line)
-        if liters_match:
-            try:
-                current_liters = float(
-                    liters_match.group(1).replace(".", "").replace(",", ".")
-                )
-            except:
-                pass
+        liters_match = ...
+        weight_match = ...
+        multi = ...
+        single = ...
 
-        # ✅ KG
-        weight_match = re.search(r"([\d\.,]+)\s*kg", line, re.IGNORECASE)
-        if weight_match:
-            try:
-                current_weight = float(
-                    weight_match.group(1).replace(".", "").replace(",", ".")
-                )
-            except:
-                pass
+        # ✅ CODE ВЪТРЕ
+        if "Zolltarifnummer" in line:
+            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
 
-        # ✅ MULTI
-        multi = re.search(r"(\d+)x(\d+)\s+Liter", line, re.IGNORECASE)
-        if multi:
-            current_wid = float(multi.group(2))
+            if code_match and current_liters > 0 and current_weight > 0:
 
-        # ✅ SINGLE
-        single = re.search(r"(\d+)\s+Liter\s+Kanne", line, re.IGNORECASE)
-        if single:
-            current_wid = float(single.group(1))
+                code_value = code_match.group(1)[:8]
 
-        # ✅ CODE (ПО-ГЪВКАВ ВАРИАНТ)
-if "Zolltarifnummer" in line:
-    code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
+                if current_wid == 0:
+                    current_wid = 1
 
-    if code_match and current_liters > 0 and current_weight > 0:
+                broj = current_liters / current_wid
 
-        code_value = code_match.group(1)[:8]
+                rows.append({
+                    "Тарифен код": code_value,
+                    "Количество": round(broj, 3),
+                    "wid": current_wid,
+                    "kolichestvo": round(current_liters, 3),
+                    "тегло": round(current_weight, 3)
+                })
 
-        # ✅ ако няма wid → default 1
-        if current_wid == 0:
-            current_wid = 1
+                current_liters = 0
+                current_wid = 0
+                current_weight = 0
 
-        broj = current_liters / current_wid
-
-        rows.append({
-            "Тарифен код": code_value,
-            "Количество": round(broj, 3),
-            "wid": current_wid,
-            "kolichestvo": round(current_liters, 3),
-            "тегло": round(current_weight, 3)
-        })
-
-        # ✅ RESET
-        current_liters = 0
-        current_wid = 0
-        current_weight = 0
+    # ✅ ИЗВЪН for
+    return pd.DataFrame(rows)
 # ======================================================
 # ✅ NESTE (EXCEL)
 # ======================================================
