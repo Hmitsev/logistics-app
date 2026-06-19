@@ -623,7 +623,7 @@ if uploaded_files and len(uploaded_files) > 0:
             })
 
         # ✅ ADD RESULT
-        if isinstance(df, pd.DataFrame) and not df.empty:
+    if isinstance(df, pd.DataFrame) and not df.empty:
         all_data.append(df)
 
     # ======================================================
