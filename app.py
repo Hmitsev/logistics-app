@@ -479,19 +479,19 @@ def parse_gasoline(text):
             except:
                 pass
 
-        # ✅ MULTI
-        multi = re.search(r"(\d+)x(\d+)\s+Liter", line, re.IGNORECASE)
+        # ✅ MULTI (6x1 Liter)
+        multi = re.search(r"(\d+)x(\d+)", line, re.IGNORECASE)
         if multi:
             current_wid = float(multi.group(2))
 
         # ✅ SINGLE
-        single = re.search(r"(\d+)\s+Liter\s+Kanne", line, re.IGNORECASE)
-        if single:
+        single = re.search(r"(\d+)\s+Liter", line)
+        if single and current_wid == 0:
             current_wid = float(single.group(1))
 
         # ✅ CODE
         if "Zolltarifnummer" in line:
-            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
+            code_match = re.search(r"(\d+)", line)
 
             if code_match and current_liters > 0 and current_weight > 0:
 
@@ -510,12 +510,13 @@ def parse_gasoline(text):
                     "тегло": round(current_weight, 3)
                 })
 
-                # ✅ RESET
+                # RESET
                 current_liters = 0
                 current_wid = 0
                 current_weight = 0
 
     return pd.DataFrame(rows)
+
 
 # ======================================================
 # ✅ NESTE (EXCEL)
