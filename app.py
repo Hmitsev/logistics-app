@@ -614,7 +614,7 @@ if uploaded_files:
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            # ✅ избор на parser (ВАЖНО – правилен indent)
+            # ✅ избор на parser
             if menu == "CASTROL":
                 df = parse_castrol(text)
 
@@ -676,25 +676,27 @@ if uploaded_files:
         st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
         st.stop()
 
+    # ✅ CLEAN + FILTER
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
 
-if menu != "CASTROL":
-    final_df = final_df[final_df["тегло"] > 0]
+    if menu != "CASTROL":
+        final_df = final_df[final_df["тегло"] > 0]
 
-# ✅ ВСИЧКО НА ЕДНО НИВО
-report = build_final_report(final_df)
+    # ✅ REPORT
+    report = build_final_report(final_df)
 
-report = report.rename(columns={
-    "Тарифен код": "Code",
-    "wid": "wid",
-    "тегло": "teglo",
-    "kolichestvo": "colic-v L",
-    "Количество": "Broj"
-})
+    report = report.rename(columns={
+        "Тарифен код": "Code",
+        "wid": "wid",
+        "тегло": "teglo",
+        "kolichestvo": "colic-v L",
+        "Количество": "Broj"
+    })
 
-st.subheader("📊 Финален отчет")
-st.dataframe(report)
+    # ✅ OUTPUT
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
 
     output = io.BytesIO()
 
