@@ -401,25 +401,24 @@ def parse_motul(text):
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
 
-        # ✅ ТЕГЛО (ТОЧНО NET след Quantity)
-weight_match = re.search(
-    r"\d+\s+\d+\s+(\d+)\s+([\d\s,]+)\s+([\d\s,]+)",
-    line
-)
-
-if weight_match:
-    try:
-        qty = int(weight_match.group(1))
-        net_weight = float(
-            weight_match.group(2).replace(" ", "").replace(",", ".")
+        # ✅ ✅ ТЕГЛО (ТОЧНО NET след Quantity)
+        weight_match = re.search(
+            r"\d+\s+\d+\s+(\d+)\s+([\d\s,]+)\s+([\d\s,]+)",
+            line
         )
 
-        # ✅ sanity check (много важно)
-        if net_weight < 100000:  
-            current_weight = net_weight
+        if weight_match:
+            try:
+                net_weight = float(
+                    weight_match.group(2).replace(" ", "").replace(",", ".")
+                )
 
-    except:
-        pass
+                # ✅ защита
+                if net_weight < 100000:
+                    current_weight = net_weight
+
+            except:
+                pass
 
         # ✅ HS CODE (само веднъж!)
         if "HS code" in line:
@@ -451,7 +450,6 @@ if weight_match:
                 units_in_box = 1
 
     return pd.DataFrame(rows)
-
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
