@@ -679,7 +679,7 @@ if uploaded_files:
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["тегло"] > 0]
+    if menu != "CASTROL":if menu != " final_df = final_df[final_df["тегло"] > 0]
 
     report = build_final_report(final_df)
 
