@@ -557,57 +557,53 @@ if uploaded_files:
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel fallback
-           
-else:
+        # ✅ Excel fallback  🔥 ВЪТРЕ В LOOP-А!
+        else:
 
-    df = pd.read_excel(file)
-    df.columns = df.columns.str.strip()
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
-    # ✅ mapping (ВАЖНО)
-    column_map = {}
+            column_map = {}
 
-    for col in df.columns:
-        c = col.lower()
+            for col in df.columns:
+                c = col.lower()
 
-        if "commodity" in c or "code" in c:
-            column_map[col] = "Commodity code"
+                if "commodity" in c or "code" in c:
+                    column_map[col] = "Commodity code"
 
-        elif "pack" in c:
-            column_map[col] = "Type of packaging"
+                elif "pack" in c:
+                    column_map[col] = "Type of packaging"
 
-        elif "delivery quantity" in c or "qty" in c:
-            column_map[col] = "Delivery quantity"
+                elif "delivery quantity" in c or "qty" in c:
+                    column_map[col] = "Delivery quantity"
 
-        elif "volume" in c:
-            column_map[col] = "Volume"
+                elif "volume" in c:
+                    column_map[col] = "Volume"
 
-        elif "net weight" in c or "weight" in c:
-            column_map[col] = "Net Weight"
+                elif "net weight" in c or "weight" in c:
+                    column_map[col] = "Net Weight"
 
-    df = df.rename(columns=column_map)
+            df = df.rename(columns=column_map)
 
-    # ✅ твоя стандарт (ТУК се оправя проблема)
-    df = df.rename(columns={
-        "Commodity code": "Тарифен код",
-        "Type of packaging": "wid",
-        "Delivery quantity": "Количество",
-        "Volume": "kolichestvo",
-        "Net Weight": "тегло"
-    })
+            df = df.rename(columns={
+                "Commodity code": "Тарифен код",
+                "Type of packaging": "wid",
+                "Delivery quantity": "Количество",
+                "Volume": "kolichestvo",
+                "Net Weight": "тегло"
+            })
 
-        # ✅ SAFE APPEND
+        # ✅ SAFE APPEND (вътре!)
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
-    # ✅ FINAL COMBINE (САМО АКО ИМА ФАЙЛОВЕ)
+    # ✅ FINAL COMBINE
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ SAFE CHECK (НОВО – срещу KeyError)
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
         st.stop()
@@ -618,7 +614,6 @@ else:
 
     report = build_final_report(final_df)
 
-    # ✅ RENAME
     report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
