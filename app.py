@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
     # ======================================================
-# ✅ GASOLINE (FINAL FIXED ✅)
+# ✅ GASOLINE (FINAL CORRECT BUSINESS LOGIC ✅)
 # ======================================================
 def parse_gasoline(text):
 
@@ -463,8 +463,8 @@ def parse_gasoline(text):
 
     for line in lines:
 
-        # ✅ LITERS (поддържа 1.5 / 1,5 / 1.000,50 и т.н.)
-        liters_match = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
+        # ✅ LITERS (общото количество – 9160)
+        liters_match = re.search(r"\b([\d\.,]+)\s+Liter\b", line, re.IGNORECASE)
         if liters_match:
             try:
                 val = liters_match.group(1)
@@ -478,7 +478,7 @@ def parse_gasoline(text):
             except:
                 pass
 
-        # ✅ KG (същия безопасен parsing)
+        # ✅ KG (тегло – 8.683,68)
         weight_match = re.search(r"([\d\.,]+)\s*kg", line, re.IGNORECASE)
         if weight_match:
             try:
@@ -508,6 +508,21 @@ def parse_gasoline(text):
             except:
                 pass
 
+        # ✅ SINGLE PACK → "20 Liter Kanne" (най-важния FIX)
+        single_pack = re.search(r"([\d\.,]+)\s+Liter\s+Kanne", line, re.IGNORECASE)
+        if single_pack:
+            try:
+                val = single_pack.group(1)
+
+                if "." in val and "," in val:
+                    val = val.replace(".", "").replace(",", ".")
+                else:
+                    val = val.replace(",", ".")
+
+                current_wid = float(val)
+            except:
+                pass
+
         # ✅ HS CODE
         if "Zolltarifnummer" in line:
             code_match = re.search(r"(\d+)", line)
@@ -516,16 +531,20 @@ def parse_gasoline(text):
 
                 code_value = code_match.group(1)[:8]
 
-                # ✅ SMART тегло (ако липсва)
+                # ✅ BUSINESS LOGIC
+                broj = current_liters / current_wid
+                colic = broj * current_wid  # = original liters (safe)
+
+                # ✅ тегло (ако липсва → estimate)
                 weight_for_row = current_weight
                 if weight_for_row == 0:
-                    weight_for_row = current_liters * 0.85
+                    weight_for_row = colic * 0.85
 
                 rows.append({
                     "Тарифен код": code_value,
-                    "Количество": round(current_liters / current_wid, 3),
+                    "Количество": round(broj, 3),
                     "wid": current_wid,
-                    "kolichestvo": round(current_liters, 3),
+                    "kolichestvo": round(colic, 3),
                     "тегло": round(weight_for_row, 3)
                 })
 
