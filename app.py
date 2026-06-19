@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
     # ======================================================
-# ✅ GASOLINE
+# ✅ GASOLINE (FINAL FIXED ✅)
 # ======================================================
 def parse_gasoline(text):
 
@@ -463,35 +463,52 @@ def parse_gasoline(text):
 
     for line in lines:
 
-        # ✅ LITERS
+        # ✅ LITERS (поддържа 1.5 / 1,5 / 1.000,50 и т.н.)
         liters_match = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
         if liters_match:
             try:
-                current_liters = float(
-                    liters_match.group(1).replace(".", "").replace(",", ".")
-                )
+                val = liters_match.group(1)
+
+                if "." in val and "," in val:
+                    val = val.replace(".", "").replace(",", ".")
+                else:
+                    val = val.replace(",", ".")
+
+                current_liters = float(val)
             except:
                 pass
 
-        # ✅ KG
+        # ✅ KG (същия безопасен parsing)
         weight_match = re.search(r"([\d\.,]+)\s*kg", line, re.IGNORECASE)
         if weight_match:
             try:
-                current_weight = float(
-                    weight_match.group(1).replace(".", "").replace(",", ".")
-                )
+                val = weight_match.group(1)
+
+                if "." in val and "," in val:
+                    val = val.replace(".", "").replace(",", ".")
+                else:
+                    val = val.replace(",", ".")
+
+                current_weight = float(val)
             except:
                 pass
 
-        # ✅ BOX (6x1 / 4x5)
-        multi = re.search(r"(\d+)x(\d+)", line, re.IGNORECASE)
+        # ✅ BOX FORMAT (6x1 / 4x5 / 6x1.5)
+        multi = re.search(r"(\d+)x([\d\.,]+)", line, re.IGNORECASE)
         if multi:
             try:
-                current_wid = float(multi.group(2))
+                val = multi.group(2)
+
+                if "." in val and "," in val:
+                    val = val.replace(".", "").replace(",", ".")
+                else:
+                    val = val.replace(",", ".")
+
+                current_wid = float(val)
             except:
                 pass
 
-        # ✅ CODE
+        # ✅ HS CODE
         if "Zolltarifnummer" in line:
             code_match = re.search(r"(\d+)", line)
 
@@ -499,7 +516,7 @@ def parse_gasoline(text):
 
                 code_value = code_match.group(1)[:8]
 
-                # ✅ автоматично тегло ако липсва
+                # ✅ SMART тегло (ако липсва)
                 weight_for_row = current_weight
                 if weight_for_row == 0:
                     weight_for_row = current_liters * 0.85
@@ -512,13 +529,12 @@ def parse_gasoline(text):
                     "тегло": round(weight_for_row, 3)
                 })
 
-                # reset
+                # ✅ RESET
                 current_liters = 0
                 current_weight = 0
                 current_wid = 1
 
     return pd.DataFrame(rows)
-
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
