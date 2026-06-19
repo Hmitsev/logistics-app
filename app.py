@@ -628,31 +628,40 @@ if uploaded_files and len(uploaded_files) > 0:
             all_data.append(df)
 
     # ======================================================
-    # ✅ FINAL COMBINE
-    # ======================================================
+# ✅ FINAL COMBINE
+# ======================================================
 
-    if not all_data:
-        st.warning("⚠️ Няма данни")
-        st.stop()
+if not all_data:
+    st.warning("⚠️ Няма данни")
+    st.stop()
 
-    final_df = pd.concat(all_data, ignore_index=True)
+final_df = pd.concat(all_data, ignore_index=True)
 
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-    final_df = final_df[final_df["тегло"] > 0]
+final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+final_df = final_df[final_df["тегло"] > 0]
 
-    report = build_final_report(final_df)
+report = build_final_report(final_df)
 
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
+# ✅ RENAME COLUMNS (FINAL DISPLAY)
+report = report.rename(columns={
+    "Тарифен код": "Code",
+    "wid": "wid",
+    "тегло": "teglo",
+    "kolichestvo": "colic-v L",
+    "Количество": "Broj"
+})
 
-    output = io.BytesIO()
+st.subheader("📊 Финален отчет")
+st.dataframe(report)
 
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
+output = io.BytesIO()
 
-    st.download_button(
-        "📥 Изтегли Excel",
-        data=output.getvalue(),
-        file_name="final_report.xlsx"
-    )
+with pd.ExcelWriter(output, engine='openpyxl') as writer:
+    report.to_excel(writer, index=False)
+
+st.download_button(
+    "📥 Изтегли Excel",
+    data=output.getvalue(),
+    file_name="final_report.xlsx"
+)
