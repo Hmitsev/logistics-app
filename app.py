@@ -591,13 +591,14 @@ def parse_neste_excel(file):
 def build_final_report(df):
 
     grouped = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
+    ["Тарифен код", "wid"],
+    as_index=False
+).agg({
+    "Количество": "sum",     # units
+    "kolichestvo": "sum",    # liters (реалното)
+    "тегло": "sum"           # weight
+})
+
 
     rows = []
 
