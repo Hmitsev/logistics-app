@@ -451,67 +451,83 @@ def parse_motul(text):
     return pd.DataFrame(rows)
     
 # ✅ GASOLINE  👇 ТУК ГО СЛАГАШ
-def parse_gasoline(text):
+def parse_motul(text):
 
     rows = []
     lines = text.split("\n")
 
-    current_liters = 0
-    current_wid = 0
+    current_qty = 0
     current_weight = 0
+    liters_per_unit = 0
+    units_in_box = 1
 
     for line in lines:
 
-        # ✅ LITERS
-        liters_match = re.search(r"([\d\.,]+)\s+Liter", line)
-        if liters_match:
+        # ✅ КОЛИЧЕСТВО
+        match = re.search(r"\d+\s+\d+\s+(\d+)\s+[\d,\.]+\s+[\d,\.]+", line)
+        if match:
             try:
-                current_liters = float(
-                    liters_match.group(1).replace(".", "").replace(",", ".")
-                )
+                current_qty = int(match.group(1))
             except:
                 pass
 
-        # ✅ KG
-        weight_match = re.search(r"([\d\.,]+)\s+kg", line, re.IGNORECASE)
+        # ✅ РАЗФАСОВКА
+        multi = re.findall(r"(\d+)X([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
+        single = re.search(r"([\d\.,]+)(?:L|kg)", line, re.IGNORECASE)
+
+        if multi:
+            units_in_box = int(multi[-1][0])
+            liters_per_unit = float(multi[-1][1].replace(",", "."))
+        elif single:
+            units_in_box = 1
+            liters_per_unit = float(single.group(1).replace(",", "."))
+
+        # ✅ ТЕГЛО
+        weight_match = re.search(
+            r"\d+\s+\d+\s+(\d+)\s+([\d\s,]+)\s+([\d\s,]+)",
+            line
+        )
+
         if weight_match:
             try:
-                current_weight = float(
-                    weight_match.group(1).replace(".", "").replace(",", ".")
+                net_weight = float(
+                    weight_match.group(2).replace(" ", "").replace(",", ".")
                 )
+
+                if net_weight < 100000:
+                    current_weight = net_weight
+
             except:
                 pass
 
-        # ✅ MULTI
-        multi = re.search(r"(\d+)x(\d+)\s+Liter", line, re.IGNORECASE)
-        if multi:
-            current_wid = float(multi.group(2))
+        # ✅ HS CODE
+        if "HS code" in line:
+            code = re.search(r"HS code\s*:\s*(\d+)", line)
 
-        # ✅ SINGLE (20L)
-        single = re.search(r"(\d+)\s+Liter\s+Kanne", line, re.IGNORECASE)
-        if single:
-            current_wid = float(single.group(1))
+            if code:
+                code_value = code.group(1)[:8]
 
-        # ✅ CODE
-        if "Zolltarifnummer" in line:
-            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
-
-            if code_match and current_liters > 0 and current_wid > 0:
-
-                code_value = code_match.group(1)[:8]
-                broj = current_liters / current_wid
+                if current_qty * units_in_box * liters_per_unit > 100000:
+                    real_qty = current_qty
+                else:
+                    if units_in_box > 1 and liters_per_unit <= 5:
+                        real_qty = current_qty * units_in_box
+                    else:
+                        real_qty = current_qty
 
                 rows.append({
                     "Тарифен код": code_value,
-                    "Количество": round(broj, 3),
-                    "wid": current_wid,
-                    "kolichestvo": round(current_liters, 3),
+                    "Количество": real_qty,
+                    "wid": liters_per_unit,
+                    "kolichestvo": round(real_qty * liters_per_unit, 3),
                     "тегло": round(current_weight, 3)
                 })
 
-                current_liters = 0
-                current_wid = 0
+                # ✅ RESET
+                current_qty = 0
                 current_weight = 0
+                liters_per_unit = 0
+                units_in_box = 1
 
     return pd.DataFrame(rows)
 
