@@ -457,14 +457,39 @@ def parse_gasoline(text):
     current_wid = 0
     current_weight = 0
 
-    for line in lines:   # ✅ ТУК започва
+    for line in lines:
 
-        liters_match = ...
-        weight_match = ...
-        multi = ...
-        single = ...
+        # ✅ LITERS
+        liters_match = re.search(r"([\d\.,]+)\s+Liter", line)
+        if liters_match:
+            try:
+                current_liters = float(
+                    liters_match.group(1).replace(".", "").replace(",", ".")
+                )
+            except:
+                pass
 
-        # ✅ CODE ВЪТРЕ
+        # ✅ KG
+        weight_match = re.search(r"([\d\.,]+)\s*kg", line, re.IGNORECASE)
+        if weight_match:
+            try:
+                current_weight = float(
+                    weight_match.group(1).replace(".", "").replace(",", ".")
+                )
+            except:
+                pass
+
+        # ✅ MULTI
+        multi = re.search(r"(\d+)x(\d+)\s+Liter", line, re.IGNORECASE)
+        if multi:
+            current_wid = float(multi.group(2))
+
+        # ✅ SINGLE
+        single = re.search(r"(\d+)\s+Liter\s+Kanne", line, re.IGNORECASE)
+        if single:
+            current_wid = float(single.group(1))
+
+        # ✅ CODE
         if "Zolltarifnummer" in line:
             code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
 
@@ -485,12 +510,13 @@ def parse_gasoline(text):
                     "тегло": round(current_weight, 3)
                 })
 
+                # ✅ RESET
                 current_liters = 0
                 current_wid = 0
                 current_weight = 0
 
-    # ✅ ИЗВЪН for
     return pd.DataFrame(rows)
+
 # ======================================================
 # ✅ NESTE (EXCEL)
 # ======================================================
