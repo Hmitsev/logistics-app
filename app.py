@@ -470,7 +470,7 @@ def parse_gasoline(text):
                 pass
 
         # ✅ KG
-        weight_match = re.search(r"([\d\.,]+)\s+kg", line, re.IGNORECASE)
+        weight_match = re.search(r"([\d\.,]+)\s*kg", line, re.IGNORECASE)
         if weight_match:
             try:
                 current_weight = float(
