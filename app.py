@@ -252,7 +252,6 @@ with col2:
 
 
 # ✅ ✅ ПРАВИЛЕН РЕД (FIX)
-st.markdown("<div class='add-file'>Add file</div>", unsafe_allow_html=True)
 
 uploaded_files = st.file_uploader(
     "",
