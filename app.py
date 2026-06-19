@@ -558,8 +558,43 @@ if uploaded_files:
                 df = parse_motul(text)
 
         # ✅ Excel fallback
-        else:
-            df = pd.read_excel(file)
+           
+else:
+
+    df = pd.read_excel(file)
+    df.columns = df.columns.str.strip()
+
+    # ✅ mapping (ВАЖНО)
+    column_map = {}
+
+    for col in df.columns:
+        c = col.lower()
+
+        if "commodity" in c or "code" in c:
+            column_map[col] = "Commodity code"
+
+        elif "pack" in c:
+            column_map[col] = "Type of packaging"
+
+        elif "delivery quantity" in c or "qty" in c:
+            column_map[col] = "Delivery quantity"
+
+        elif "volume" in c:
+            column_map[col] = "Volume"
+
+        elif "net weight" in c or "weight" in c:
+            column_map[col] = "Net Weight"
+
+    df = df.rename(columns=column_map)
+
+    # ✅ твоя стандарт (ТУК се оправя проблема)
+    df = df.rename(columns={
+        "Commodity code": "Тарифен код",
+        "Type of packaging": "wid",
+        "Delivery quantity": "Количество",
+        "Volume": "kolichestvo",
+        "Net Weight": "тегло"
+    })
 
         # ✅ SAFE APPEND
         if isinstance(df, pd.DataFrame) and not df.empty:
