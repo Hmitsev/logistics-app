@@ -474,7 +474,8 @@ def parse_gasoline(text):
                 else:
                     val = val.replace(",", ".")
 
-                current_liters = float(val)
+               
+                    current_liters = float(val)
             except:
                 pass
 
@@ -504,7 +505,8 @@ def parse_gasoline(text):
                 else:
                     val = val.replace(",", ".")
 
-                current_wid = float(val)
+                if current_wid == 1:
+                    current_wid = float(val)
             except:
                 pass
 
