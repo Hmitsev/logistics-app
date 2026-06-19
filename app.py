@@ -530,138 +530,74 @@ def build_final_report(df):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL FIXED - PDF + EXCEL)
+# ✅ PROCESS
 # ======================================================
-if uploaded_files and len(uploaded_files) > 0:
+if uploaded_files:
 
     all_data = []
 
     for file in uploaded_files:
 
-        # ======================================================
-        # ✅ FILE PROCESSING
-        # ======================================================
+        df = None
 
-        df = None  # ✅ safety reset
-
-        # ✅ NESTE → Excel
+        # ✅ NESTE
         if menu == "NESTE":
-
             df = parse_neste_excel(file)
 
-        # ✅ PDF (Castrol + MOTUL)
+        # ✅ PDF
         elif source_type == "PDF":
-
             reader = PdfReader(file)
             text = ""
 
             for page in reader.pages:
                 text += page.extract_text() + "\n"
 
-            if menu == "CASTROL":   # ✅ FIX (главни букви)
+            if menu == "CASTROL":
                 df = parse_castrol(text)
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel fallback (GENERIC)
+        # ✅ Excel fallback
         else:
-
             df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
 
-            column_map = {}
-
-            for col in df.columns:
-                c = col.lower()
-
-                if "comm" in c or "code" in c:
-                    column_map[col] = "Commodity code"
-
-                elif "pack" in c:
-                    column_map[col] = "Type of packaging"
-
-                elif "delivery quantity" in c or "qty" in c or "quantity" in c:
-                    column_map[col] = "Delivery quantity"
-
-                elif "volume" in c:
-                    column_map[col] = "Volume"
-
-                elif "net weight" in c or "weight" in c:
-                    column_map[col] = "Net Weight"
-
-            df = df.rename(columns=column_map)
-            df = df.loc[:, ~df.columns.duplicated()]
-
-            required_cols = [
-                "Commodity code",
-                "Type of packaging",
-                "Delivery quantity",
-                "Volume",
-                "Net Weight"
-            ]
-
-            missing = [c for c in required_cols if c not in df.columns]
-
-            if missing:
-                st.warning(f"⚠️ Файлът не е разпознат ({file.name}) - пропускам")
-                continue
-
-            df = df.groupby(
-                ["Commodity code", "Type of packaging"],
-                as_index=False
-            ).agg({
-                "Delivery quantity": "sum",
-                "Volume": "sum",
-                "Net Weight": "sum"
-            })
-
-            df = df.rename(columns={
-                "Commodity code": "Тарифен код",
-                "Type of packaging": "wid",
-                "Delivery quantity": "Количество",
-                "Volume": "kolichestvo",
-                "Net Weight": "тегло"
-            })
-
-        # ✅ SAFE APPEND (КРИТИЧНО)
+        # ✅ SAFE APPEND
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
-    # ======================================================
-# ✅ FINAL COMBINE
-# ======================================================
+    # ✅ FINAL COMBINE (САМО АКО ИМА ФАЙЛОВЕ)
+    if not all_data:
+        st.warning("⚠️ Няма данни")
+        st.stop()
 
-if not all_data:
-    st.warning("⚠️ Няма данни")
-    st.stop()
+    final_df = pd.concat(all_data, ignore_index=True)
 
-final_df = pd.concat(all_data, ignore_index=True)
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
 
-final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-final_df = final_df[final_df["тегло"] > 0]
+    report = build_final_report(final_df)
 
-report = build_final_report(final_df)
+    # ✅ RENAME
+    report = report.rename(columns={
+        "Тарифен код": "Code",
+        "wid": "wid",
+        "тегло": "teglo",
+        "kolichestvo": "colic-v L",
+        "Количество": "Broj"
+    })
 
-# ✅ RENAME COLUMNS (FINAL DISPLAY)
-report = report.rename(columns={
-    "Тарифен код": "Code",
-    "wid": "wid",
-    "тегло": "teglo",
-    "kolichestvo": "colic-v L",
-    "Количество": "Broj"
-})
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
 
-st.subheader("📊 Финален отчет")
-st.dataframe(report)
+    output = io.BytesIO()
 
-output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        report.to_excel(writer, index=False)
 
-with pd.ExcelWriter(output, engine='openpyxl') as writer:
-    report.to_excel(writer, index=False)
+    st.download_button(
+        "📥 Изтегли Excel",
+        data=output.getvalue(),
+        file_name="final_report.xlsx"
+    )
 
-st.download_button(
-    "📥 Изтегли Excel",
-    data=output.getvalue(),
-    file_name="final_report.xlsx"
-)
