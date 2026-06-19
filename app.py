@@ -492,9 +492,6 @@ def parse_gasoline(text):
         # ✅ CODE
         if "Zolltarifnummer" in line:
             code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
-
-            if code_match and current_liters > 0 and current_wid > 0:
-
                 code_value = code_match.group(1)[:8]
                 broj = current_liters / current_wid
 
