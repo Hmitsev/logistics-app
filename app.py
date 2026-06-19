@@ -621,10 +621,10 @@ if uploaded_files and len(uploaded_files) > 0:
                 "Volume": "kolichestvo",
                 "Net Weight": "тегло"
             })
+            # ✅ ADD RESULT (ВЪТРЕ В LOOP-А)
+        if isinstance(df, pd.DataFrame) and not df.empty:
+            all_data.append(df)
 
-        # ✅ ADD RESULT
-    if isinstance(df, pd.DataFrame) and not df.empty:
-        all_data.append(df)
 
     # ======================================================
     # ✅ FINAL COMBINE
