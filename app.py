@@ -489,29 +489,32 @@ def parse_gasoline(text):
         if single:
             current_wid = float(single.group(1))
 
-        # ✅ CODE (✅ ВАЖНО – вътре в for)
-        if "Zolltarifnummer" in line:
-            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
+        # ✅ CODE (ПО-ГЪВКАВ ВАРИАНТ)
+if "Zolltarifnummer" in line:
+    code_match = re.search(r"Zolltarifnummer:\s*(\d+)", line)
 
-            if code_match and current_liters > 0 and current_wid > 0 and current_weight > 0:
+    if code_match and current_liters > 0 and current_weight > 0:
 
-                code_value = code_match.group(1)[:8]
-                broj = current_liters / current_wid
+        code_value = code_match.group(1)[:8]
 
-                rows.append({
-                    "Тарифен код": code_value,
-                    "Количество": round(broj, 3),
-                    "wid": current_wid,
-                    "kolichestvo": round(current_liters, 3),
-                    "тегло": round(current_weight, 3)
-                })
+        # ✅ ако няма wid → default 1
+        if current_wid == 0:
+            current_wid = 1
 
-                # ✅ RESET
-                current_liters = 0
-                current_wid = 0
-                current_weight = 0
+        broj = current_liters / current_wid
 
-    return pd.DataFrame(rows)  # ✅ извън for
+        rows.append({
+            "Тарифен код": code_value,
+            "Количество": round(broj, 3),
+            "wid": current_wid,
+            "kolichestvo": round(current_liters, 3),
+            "тегло": round(current_weight, 3)
+        })
+
+        # ✅ RESET
+        current_liters = 0
+        current_wid = 0
+        current_weight = 0
 # ======================================================
 # ✅ NESTE (EXCEL)
 # ======================================================
