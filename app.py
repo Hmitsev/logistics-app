@@ -121,9 +121,9 @@ set_bg("background.png")
 st.markdown("""
 <style>
 .source-title {
-    font-size: 22px;
+    font-size: 23px;
     font-weight: 800;
-    color: white;
+    color: #36c165;  /* ✅ зелено */
 }
 
 /* ✅ Add file малък */
