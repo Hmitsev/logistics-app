@@ -682,18 +682,19 @@ final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
 if menu != "CASTROL":
     final_df = final_df[final_df["тегло"] > 0]
 
+# ✅ ВСИЧКО НА ЕДНО НИВО
 report = build_final_report(final_df)
 
 report = report.rename(columns={
-        "Тарифен код": "Code",
-        "wid": "wid",
-        "тегло": "teglo",
-        "kolichestvo": "colic-v L",
-        "Количество": "Broj"
-    })
+    "Тарифен код": "Code",
+    "wid": "wid",
+    "тегло": "teglo",
+    "kolichestvo": "colic-v L",
+    "Количество": "Broj"
+})
 
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
+st.subheader("📊 Финален отчет")
+st.dataframe(report)
 
     output = io.BytesIO()
 
