@@ -488,19 +488,52 @@ def parse_flukar_excel(file):
 
     df.columns = df.columns.str.strip()
 
-    df = df.rename(columns={
-        "CN code": "Тарифен код",
-        "Quantity": "Количество",
-        "capacity [L]": "wid",
-        "Liters": "kolichestvo",
-        "Nett weight [kg]": "тегло"
-    })
+    # ✅ SMART rename (работи за всички варианти)
+    rename_map = {}
 
+    for col in df.columns:
+        c = col.lower()
+
+        if "cn" in c:
+            rename_map[col] = "Тарифен код"
+
+        elif "quantity" in c or "pcs" in c:
+            rename_map[col] = "Количество"
+
+        elif "capacity" in c:
+            rename_map[col] = "wid"
+
+        elif "liter" in c:
+            rename_map[col] = "kolichestvo"
+
+        elif "nett" in c or "net" in c:
+            rename_map[col] = "тегло"
+
+    df = df.rename(columns=rename_map)
+
+    # ✅ DEBUG (ще ти помогне ако пак има проблем)
+    # st.write(df.columns)
+
+    # ✅ CHECK дали има нужните колони
+    required = ["Тарифен код", "Количество", "wid", "тегло"]
+
+    for col in required:
+        if col not in df.columns:
+            st.error(f"❌ Липсва колона: {col}")
+            return pd.DataFrame()
+
+    # ✅ маха празни
     df = df.dropna(subset=["Тарифен код"])
 
-    if df["kolichestvo"].isnull().any():
+    # ✅ fallback за литри
+    if "kolichestvo" not in df.columns:
         df["kolichestvo"] = df["Количество"] * df["wid"]
+    else:
+        df["kolichestvo"] = df["kolichestvo"].fillna(
+            df["Количество"] * df["wid"]
+        )
 
+    # ✅ group
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
