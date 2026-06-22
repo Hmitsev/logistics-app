@@ -486,7 +486,7 @@ def parse_gasoline(file):
         line = lines[i]
 
         # ✅ трябва да има Liter
-        if "Liter" not in line:
+        if not re.match(r"^\s*\d+[\.,]?\d*\s+Liter", line):
             continue
 
         # ✅ малък блок
