@@ -700,7 +700,7 @@ if uploaded_files:
                 df = parse_castrol(text)
 
             elif menu == "GASOLINE":
-                df = parse_gasoline(text)
+                df = parse_gasoline(file)
 
             else:
                 df = parse_motul(text)
