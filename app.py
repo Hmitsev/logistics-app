@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL WORKING VERSION ✅)
+# ✅ GASOLINE (FINAL REAL FIX ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -469,99 +469,78 @@ def parse_gasoline(file):
         except:
             return 0
 
-    # ======================================================
-    # ✅ READ PDF
-    # ======================================================
     reader = PdfReader(file)
-    lines = []
+    text = ""
 
     for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            lines.extend(text.split("\n"))
+        t = page.extract_text()
+        if t:
+            text += t + "\n"
+
+    lines = text.split("\n")
 
     rows = []
 
-    # ======================================================
-    # ✅ BLOCK PARSING (ключовото)
-    # ======================================================
-    i = 0
-    while i < len(lines):
+    current_colic = 0
+    current_wid = 1
+    current_weight = 0
 
-        line = lines[i].lower()
+    for i in range(len(lines)):
 
-        # ✅ търсим старт → Menge
-        if "liter" in line:
+        line = lines[i]
 
-            try:
-                # ✅ COLIC
-                m = re.search(r"([\d\.,]+)\s+liter", lines[i])
-                if not m:
-                    i += 1
-                    continue
+        # ✅ 1. Menge (Liter)
+        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
+        if m:
+            current_colic = parse_float(m.group(1))
 
-                colic = parse_float(m.group(1))
+        # ✅ 2. Wid
+        multi = re.search(r"(\d+)x([\d\.,]+)", line, re.IGNORECASE)
+        if multi:
+            current_wid = parse_float(multi.group(2))
 
-                # ✅ следващите няколко реда са блока
-                block = " ".join(lines[i:i+4])
+        single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", line, re.IGNORECASE)
+        if single:
+            current_wid = parse_float(single.group(1))
 
-                # ✅ WID
-                wid = 1
+        # ✅ 3. Gewicht (тегло)
+        nums = re.findall(r"[\d\.,]+", line)
+        for n in nums:
+            val = parse_float(n)
+            if 50 < val < 10000:
+                current_weight = val
 
-                multi = re.search(r"(\d+)x([\d\.,]+)", block, re.IGNORECASE)
-                if multi:
-                    wid = parse_float(multi.group(2))
+        # ✅ 4. CODE → trigger за запис
+        if "Zolltarifnummer" in line:
 
-                single = re.search(r"([\d\.,]+)\s+liter\s+(fass|kanne)", block, re.IGNORECASE)
-                if single:
-                    wid = parse_float(single.group(1))
+            code_match = re.search(r"(\d+)", line)
 
-                if wid == 0:
-                    wid = 1
-
-                # ✅ ТЕГЛО (в блока има едно такова число)
-                weight = 0
-                nums = re.findall(r"[\d\.,]+", block)
-
-                for n in nums:
-                    val = parse_float(n)
-                    if 50 < val < 10000:
-                        weight = val
-                        break
-
-                # ✅ CODE
-                code_match = re.search(r"zolltarifnummer:\s*(\d+)", block, re.IGNORECASE)
-                if not code_match:
-                    i += 1
-                    continue
+            if code_match and current_colic > 0:
 
                 code = code_match.group(1)[:8]
 
-                # ✅ BROJ
-                broj = colic / wid if wid != 0 else 0
+                wid = current_wid if current_wid > 0 else 1
+                broj = current_colic / wid if wid else 0
 
                 rows.append({
                     "Тарифен код": code,
                     "wid": round(wid, 3),
                     "Количество": round(broj, 3),
-                    "kolichestvo": round(colic, 3),
-                    "тегло": round(weight, 3)
+                    "kolichestvo": round(current_colic, 3),
+                    "тегло": round(current_weight, 3)
                 })
 
-                i += 4  # jump block
-                continue
-
-            except:
-                pass
-
-        i += 1
+                # ✅ RESET
+                current_colic = 0
+                current_wid = 1
+                current_weight = 0
 
     df = pd.DataFrame(rows)
 
     if df.empty:
         return df
 
-    # ✅ aggregation (Excel логика)
+    # ✅ aggregation
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
