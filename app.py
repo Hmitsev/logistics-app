@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (WORKING 1L FIX ✅)
+# ✅ GASOLINE (FINAL PRODUCTION VERSION ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -486,7 +486,7 @@ def parse_gasoline(file):
 
         line = lines[i]
 
-        # ✅ ✅ FIX → search вместо match
+        # ✅ Menge (colic)
         m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
 
         if not m:
@@ -495,7 +495,7 @@ def parse_gasoline(file):
 
         colic = parse_float(m.group(1))
 
-        # ✅ динамичен блок
+        # ✅ dynamic block (до Zolltarifnummer)
         block_lines = [line]
         j = i + 1
 
@@ -509,12 +509,27 @@ def parse_gasoline(file):
 
         block = " ".join(block_lines)
 
-        # ✅ STRICT 1L → само x1 (не всяко "1 Liter")
-        if not re.search(r"\d+\s*x\s*1\b", block, re.IGNORECASE):
-            i = j + 1
-            continue
+        # =========================
+        # ✅ WID (разфасовка)
+        # =========================
+        wid = 1
 
+        # 12x1 / 4x4 / 3x5
+        multi = re.search(r"(\d+)\s*x\s*([\d\.,]+)", block, re.IGNORECASE)
+        if multi:
+            wid = parse_float(multi.group(2))
+
+        # 209 Liter Fass / 55 Liter Fass / 20 Liter Kanne
+        single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block, re.IGNORECASE)
+        if single:
+            wid = parse_float(single.group(1))
+
+        if wid == 0:
+            wid = 1
+
+        # =========================
         # ✅ CODE
+        # =========================
         code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
         if not code_match:
             i = j + 1
@@ -522,38 +537,61 @@ def parse_gasoline(file):
 
         code = code_match.group(1)[:8]
 
-        # ✅ тегло
+        # =========================
+        # ✅ ТЕГЛО
+        # =========================
         weight = 0
+
         nums = re.findall(r"[\d\.,]+", block)
 
         for n in nums:
             val = parse_float(n)
 
-            if val != colic and val > 50:
+            # теглото е число различно от colic
+            if val != colic and val > 1 and val < 10000:
                 weight = val
                 break
 
+        # ✅ FALLBACK ако липсва тегло
+        if weight == 0:
+
+            # специален продукт
+            if "Shell Rimula R6 LM 10w40" in block:
+                weight = colic * 0.666
+            else:
+                weight = colic * 0.88
+
+        # =========================
+        # ✅ BROJ
+        # =========================
+        broj = colic / wid if wid != 0 else 0
+
         rows.append({
             "Тарифен код": code,
-            "wid": 1,
-            "Количество": 0,
-            "kolichestvo": colic,
-            "тегло": weight
+            "wid": round(wid, 3),
+            "Количество": round(broj, 3),
+            "kolichestvo": round(colic, 3),
+            "тегло": round(weight, 3)
         })
 
         i = j + 1
 
     df = pd.DataFrame(rows)
 
-    if not df.empty:
-        df = df.groupby(
-            ["Тарифен код", "wid"],
-            as_index=False
-        ).agg({
-            "Количество": "sum",
-            "kolichestvo": "sum",
-            "тегло": "sum"
-        })
+    if df.empty:
+        return df
+
+    # =========================
+    # ✅ AGGREGATION (Excel logic)
+    # =========================
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
 
     return df
 
