@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (1L FINAL FIXED ✅)
+# ✅ GASOLINE (1L FINAL WORKING ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -494,12 +494,11 @@ def parse_gasoline(file):
 
         colic = parse_float(m.group(1))
 
-        # ✅ ВАЖНО → динамичен блок
+        # ✅ динамичен блок
         block_lines = [line]
-
         j = i + 1
-        while j < len(lines):
 
+        while j < len(lines):
             block_lines.append(lines[j])
 
             if "Zolltarifnummer" in lines[j]:
@@ -509,12 +508,17 @@ def parse_gasoline(file):
 
         block = " ".join(block_lines)
 
-        # ✅ само 1L
-        if not re.search(r"\d+x1", block, re.IGNORECASE):
+        # ✅ ✅ FIX → разпознаване на 1L (всякакви формати)
+        is_1L = (
+            re.search(r"x\s*1\b", block, re.IGNORECASE) or
+            re.search(r"1\s*Liter", block, re.IGNORECASE)
+        )
+
+        if not is_1L:
             i = j + 1
             continue
 
-        # ✅ код
+        # ✅ CODE
         code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
 
         if not code_match:
@@ -541,7 +545,6 @@ def parse_gasoline(file):
             "тегло": weight
         })
 
-        # ✅ скачаме след блока
         i = j + 1
 
     df = pd.DataFrame(rows)
@@ -557,6 +560,7 @@ def parse_gasoline(file):
         })
 
     return df
+
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
