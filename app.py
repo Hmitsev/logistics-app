@@ -712,6 +712,8 @@ if uploaded_files:
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
+    715 st.write("DEBUG DF:", final_df.head(20))
+    st.write("COLUMNS:", final_df.columns)
 
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
