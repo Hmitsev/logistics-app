@@ -537,23 +537,7 @@ def parse_gasoline(file):
 
         code = code_match.group(1)[:8]
 
-        # =========================
-        # ✅ ТЕГЛО
-        # =========================
-        weight = 0
-
-        nums = re.findall(r"[\d\.,]+", block)
-
-        for n in nums:
-            val = parse_float(n)
-
-            # теглото е число различно от colic
-            if val != colic and val > 1 and val < 10000:
-                weight = val
-                break
-
-        # ✅ FALLBACK ако липсва тегло
-        if weight == 0:
+        :
 
             # специален продукт
             if "Shell Rimula R6 LM 10w40" in block:
