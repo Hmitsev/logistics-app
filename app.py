@@ -669,11 +669,15 @@ if uploaded_files:
 
             for page in reader.pages:
                 text += page.extract_text() + "\n"
+                if menu == "CASTROL":
+    df = parse_castrol(text)
 
-            if menu == "CASTROL":
-                df = parse_castrol(text)
-            else:
-                df = parse_motul(text)
+elif menu == "GASOLINE":
+    df = parse_gasoline(file)
+
+else:
+    df = parse_motul(text)
+
 
         # ✅ Excel fallback  🔥 ВЪТРЕ В LOOP-А!
         else:
