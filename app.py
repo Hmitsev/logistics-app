@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL PRODUCTION VERSION ✅)
+# ✅ GASOLINE (FINAL FIXED VERSION ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -460,7 +460,7 @@ def parse_gasoline(file):
 
     def parse_float(val):
         try:
-            val = val.strip()
+            val = str(val).strip()
             if "." in val and "," in val:
                 val = val.replace(".", "").replace(",", ".")
             else:
@@ -486,7 +486,9 @@ def parse_gasoline(file):
 
         line = lines[i]
 
-        # ✅ Menge (colic)
+        # =========================
+        # ✅ COLIC (Menge)
+        # =========================
         m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
 
         if not m:
@@ -495,11 +497,14 @@ def parse_gasoline(file):
 
         colic = parse_float(m.group(1))
 
-        # ✅ dynamic block (до Zolltarifnummer)
+        # =========================
+        # ✅ BLOCK (до Zolltarifnummer)
+        # =========================
         block_lines = [line]
-        j = i + 1
 
+        j = i + 1
         while j < len(lines):
+
             block_lines.append(lines[j])
 
             if "Zolltarifnummer" in lines[j]:
@@ -508,24 +513,6 @@ def parse_gasoline(file):
             j += 1
 
         block = " ".join(block_lines)
-
-        # =========================
-        # ✅ WID (разфасовка)
-        # =========================
-        wid = 1
-
-        # 12x1 / 4x4 / 3x5
-        multi = re.search(r"(\d+)\s*x\s*([\d\.,]+)", block, re.IGNORECASE)
-        if multi:
-            wid = parse_float(multi.group(2))
-
-        # 209 Liter Fass / 55 Liter Fass / 20 Liter Kanne
-        single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block, re.IGNORECASE)
-        if single:
-            wid = parse_float(single.group(1))
-
-        if wid == 0:
-            wid = 1
 
         # =========================
         # ✅ CODE
@@ -537,9 +524,45 @@ def parse_gasoline(file):
 
         code = code_match.group(1)[:8]
 
-        :
+        # =========================
+        # ✅ WID (разфасовка)
+        # =========================
+        wid = 1
 
-            # специален продукт
+        # пример: 12x1 / 4x4 / 3x5
+        multi = re.search(r"(\d+)\s*x\s*([\d\.,]+)", block, re.IGNORECASE)
+        if multi:
+            wid = parse_float(multi.group(2))
+
+        # пример: 209 Liter Fass / 55 Liter Fass / 20 Liter Kanne
+        single = re.search(
+            r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)",
+            block,
+            re.IGNORECASE
+        )
+        if single:
+            wid = parse_float(single.group(1))
+
+        if wid == 0:
+            wid = 1
+
+        # =========================
+        # ✅ ТЕГЛО (FIXED ✅)
+        # =========================
+        weight = 0
+
+        weight_match = re.search(
+            r"([\d\.,]+)\s+(?:\d+\s*x\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
+            block,
+            re.IGNORECASE
+        )
+
+        if weight_match:
+            weight = parse_float(weight_match.group(1))
+
+        # ✅ FALLBACK
+        if weight == 0:
+
             if "Shell Rimula R6 LM 10w40" in block:
                 weight = colic * 0.666
             else:
@@ -558,6 +581,7 @@ def parse_gasoline(file):
             "тегло": round(weight, 3)
         })
 
+        # ✅ jump след блока
         i = j + 1
 
     df = pd.DataFrame(rows)
@@ -566,7 +590,7 @@ def parse_gasoline(file):
         return df
 
     # =========================
-    # ✅ AGGREGATION (Excel logic)
+    # ✅ AGGREGATION
     # =========================
     df = df.groupby(
         ["Тарифен код", "wid"],
