@@ -568,7 +568,7 @@ if uploaded_files:
 
     for file in uploaded_files:
 
-df = None
+     df = None
 
     # ✅ NESTE
     if menu == "NESTE":
