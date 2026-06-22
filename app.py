@@ -479,7 +479,8 @@ def parse_neste_excel(file):
 
     return df
 
-# ======================================================# =================================================UKAR (EXCEL ONLY ✅)
+# ======================================================
+# ✅ FLUKAR (EXCEL ONLY ✅)
 # ======================================================
 def parse_flukar_excel(file):
 
@@ -501,71 +502,76 @@ def parse_flukar_excel(file):
 
     # ✅ четем правилния header
     df = pd.read_excel(file, header=header_row)
-
     df.columns = df.columns.astype(str).str.strip()
 
-    # ✅ SMART rename (fixed - no duplicate wid!)
-    rename_map = {}
+    # ======================================================
+    # ✅ ИЗВЛИЧАМЕ САМО НУЖНИТЕ КОЛОНИ
+    # ======================================================
+
+    result = pd.DataFrame()
 
     for col in df.columns:
         c = col.lower()
 
+        # ✅ код
         if "cn" in c:
-            rename_map[col] = "Тарифен код"
+            result["Тарифен код"] = df[col]
 
-        elif "quantity" in c or "pcs" in c:
-            rename_map[col] = "Количество"
+        # ✅ количество (брой)
+        elif "quantity" in c or "pcs" in c or "колич" in c:
+            result["Количество"] = df[col]
 
-        # ✅ само capacity → wid
-        elif "capacity" in c:
-            rename_map[col] = "wid"
+        # ✅ wid (л/брой)
+        elif "capacity" in c or "package" in c:
+            # взимаме ПЪРВАТА срещната такава колона
+            if "wid" not in result.columns:
+                result["wid"] = df[col]
 
-        # ❗ package игнорираме (много важно)
-        elif "package" in c:
-            continue
-
+        # ✅ литри
         elif "liter" in c:
-            rename_map[col] = "kolichestvo"
+            result["kolichestvo"] = df[col]
 
-        elif "nett" in c or "net" in c:
-            rename_map[col] = "тегло"
-
-    df = df.rename(columns=rename_map)
-
-    # ✅ маха duplicate колони (safety)
-    df = df.loc[:, ~df.columns.duplicated()]
+        # ✅ тегло
+        elif "nett" in c or "net" in c or "тегло" in c:
+            result["тегло"] = df[col]
 
     # ✅ проверка
     required = ["Тарифен код", "Количество", "wid", "тегло"]
 
     for col in required:
-        if col not in df.columns:
+        if col not in result.columns:
             st.error(f"❌ Липсва колона: {col}")
-            st.write("Колони:", df.columns)
+            st.write("Намерени колони:", df.columns)
             return pd.DataFrame()
 
-    # ✅ махаме празните редове
-    df = df.dropna(subset=["Тарифен код"])
+    # ======================================================
+    # ✅ DATA CLEANING
+    # ======================================================
 
-    # ✅ правим колоните numeric (FIX за последната ти грешка)
-    df["Количество"] = pd.to_numeric(df["Количество"], errors="coerce")
-    df["wid"] = pd.to_numeric(df["wid"], errors="coerce")
-    df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
+    result = result.dropna(subset=["Тарифен код"])
+
+    # ✅ numeric
+    result["Количество"] = pd.to_numeric(result["Количество"], errors="coerce")
+    result["wid"] = pd.to_numeric(result["wid"], errors="coerce")
+    result["тегло"] = pd.to_numeric(result["тегло"], errors="coerce")
 
     # ✅ литри
-    if "kolichestvo" not in df.columns:
-        df["kolichestvo"] = df["Количество"] * df["wid"]
+    if "kolichestvo" not in result.columns:
+        result["kolichestvo"] = result["Количество"] * result["wid"]
     else:
-        df["kolichestvo"] = pd.to_numeric(df["kolichestvo"], errors="coerce")
-        df["kolichestvo"] = df["kolichestvo"].fillna(
-            df["Количество"] * df["wid"]
+        result["kolichestvo"] = pd.to_numeric(result["kolichestvo"], errors="coerce")
+        result["kolichestvo"] = result["kolichestvo"].fillna(
+            result["Количество"] * result["wid"]
         )
 
-    # ✅ махаме редове без стойности
-    df = df.dropna(subset=["Количество", "wid", "тегло"])
+    # ✅ махаме празни редове
+    result = result.dropna(subset=["Количество", "wid", "тегло"])
 
-    # ✅ group
-    df = df.groupby(
+    # ======================================================
+    # ✅ GROUP
+    # ======================================================
+
+    result = result.groupby(
         ["Тарифен код", "wid"],
         as_index=False
     ).agg({
@@ -574,53 +580,8 @@ def parse_flukar_excel(file):
         "тегло": "sum"
     })
 
-    return df
-# ======================================================
-# ✅ FINAL REPORT
-# ======================================================
-def build_final_report(df):
+    return result
 
-    grouped = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    rows = []
-
-    for code, group in grouped.groupby("Тарифен код"):
-
-        for _, r in group.iterrows():
-            rows.append(r.to_dict())
-
-        rows.append({
-            "Тарифен код": str(code) + " -",
-            "wid": "",
-            "Количество": "",
-            "kolichestvo": group["kolichestvo"].sum(),
-            "тегло": group["тегло"].sum()
-        })
-
-        rows.append({
-            "Тарифен код": "",
-            "wid": "",
-            "Количество": "",
-            "kolichestvo": "",
-            "тегло": ""
-        })
-
-    rows.append({
-        "Тарифен код": "GRAND TOTAL",
-        "wid": "",
-        "Количество": "",
-        "kolichestvo": grouped["kolichestvo"].sum(),
-        "тегло": grouped["тегло"].sum()
-    })
-
-    return pd.DataFrame(rows)
 
 
 # ======================================================
