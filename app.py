@@ -631,6 +631,10 @@ if uploaded_files:
     if isinstance(df, pd.DataFrame) and not df.empty:
         all_data.append(df)
 
+    # ✅ SAFE APPEND
+    if isinstance(df, pd.DataFrame) and not df.empty:
+        all_data.append(df)
+
     # ✅ FINAL COMBINE
     if not all_data:
         st.warning("⚠️ Няма данни")
