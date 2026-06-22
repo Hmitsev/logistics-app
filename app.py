@@ -507,7 +507,9 @@ def parse_gasoline(file):
                 continue
             code = code_match.group(1)
 
+            # =====================
             # ✅ WID
+            # =====================
             wid = 1
 
             multi = re.search(r"(\d+)\s*[xX]\s*([\d\.,]+)\s*Liter", block)
