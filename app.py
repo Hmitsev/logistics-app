@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL REAL FIX ✅)
+# ✅ GASOLINE (FINAL CORRECT BUSINESS VERSION ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -481,66 +481,74 @@ def parse_gasoline(file):
 
     rows = []
 
-    current_colic = 0
-    current_wid = 1
-    current_weight = 0
-
     for i in range(len(lines)):
 
-        line = lines[i]
+        # ✅ търсим начало → Menge
+        m = re.search(r"([\d\.,]+)\s+Liter", lines[i], re.IGNORECASE)
 
-        # ✅ 1. Menge (Liter)
-        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
-        if m:
-            current_colic = parse_float(m.group(1))
+        if not m:
+            continue
 
-        # ✅ 2. Wid
-        multi = re.search(r"(\d+)x([\d\.,]+)", line, re.IGNORECASE)
-        if multi:
-            current_wid = parse_float(multi.group(2))
+        try:
+            colic = parse_float(m.group(1))
 
-        single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", line, re.IGNORECASE)
-        if single:
-            current_wid = parse_float(single.group(1))
+            # ✅ взимаме локален блок (следващите редове)
+            block = " ".join(lines[i:i+5])
 
-        # ✅ 3. Gewicht (тегло)
-        nums = re.findall(r"[\d\.,]+", line)
-        for n in nums:
-            val = parse_float(n)
-            if 50 < val < 10000:
-                current_weight = val
+            # ✅ WID
+            wid = 1
 
-        # ✅ 4. CODE → trigger за запис
-        if "Zolltarifnummer" in line:
+            multi = re.search(r"(\d+)x([\d\.,]+)", block, re.IGNORECASE)
+            if multi:
+                wid = parse_float(multi.group(2))
 
-            code_match = re.search(r"(\d+)", line)
+            single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block, re.IGNORECASE)
+            if single:
+                wid = parse_float(single.group(1))
 
-            if code_match and current_colic > 0:
+            if wid == 0:
+                wid = 1
 
-                code = code_match.group(1)[:8]
+            # ✅ CODE
+            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block, re.IGNORECASE)
+            if not code_match:
+                continue
 
-                wid = current_wid if current_wid > 0 else 1
-                broj = current_colic / wid if wid else 0
+            code = code_match.group(1)[:8]
 
-                rows.append({
-                    "Тарифен код": code,
-                    "wid": round(wid, 3),
-                    "Количество": round(broj, 3),
-                    "kolichestvo": round(current_colic, 3),
-                    "тегло": round(current_weight, 3)
-                })
+            # ✅ ТЕГЛО → намираме най-близкото число след colic
+            weight = 0
 
-                # ✅ RESET
-                current_colic = 0
-                current_wid = 1
-                current_weight = 0
+            nums = re.findall(r"[\d\.,]+", block)
+
+            for n in nums:
+                val = parse_float(n)
+
+                # теглото винаги е близко до colic и разумно
+                if 1 < val < 10000 and val != colic:
+                    weight = val
+                    break
+
+            # ✅ BROJ
+            broj = colic / wid if wid else 0
+
+            rows.append({
+                "Тарифен код": code,
+                "wid": round(wid, 3),
+                "Количество": round(broj, 3),
+                "kolichestvo": round(colic, 3),
+                "тегло": round(weight, 3)
+            })
+
+        except:
+            continue
 
     df = pd.DataFrame(rows)
 
     if df.empty:
         return df
 
-    # ✅ aggregation
+    # ✅ aggregation → точно като Excel
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
