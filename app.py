@@ -449,113 +449,143 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
-    # ======================================================
-# ✅ GASOLINE (FINAL CORRECT BUSINESS LOGIC ✅)
+# ======================================================
+# ✅ GASOLINE (FINAL ALL-IN-ONE ✅)
 # ======================================================
 def parse_gasoline(text):
+
+    import re
+    import pandas as pd
+
+    # ✅ Check Lieferschein
+    if "lieferschein" not in text.lower():
+        return pd.DataFrame()
+
+    def parse_float(val):
+        try:
+            val = val.strip()
+            if "." in val and "," in val:
+                val = val.replace(".", "").replace(",", ".")
+            else:
+                val = val.replace(",", ".")
+            return float(val)
+        except:
+            return 0
 
     rows = []
     lines = text.split("\n")
 
-    current_liters = 0
-    current_weight = 0
-    current_wid = 1
-
     for line in lines:
 
-        # ✅ LITERS (общото количество – 9160)
-        liters_match = re.search(r"\b([\d\.,]+)\s+Liter\b", line, re.IGNORECASE)
-        if liters_match:
-            try:
-                val = liters_match.group(1)
+        l = line.lower()
 
-                if "." in val and "," in val:
-                    val = val.replace(".", "").replace(",", ".")
-                else:
-                    val = val.replace(",", ".")
+        # ✅ само продуктови редове
+        if "liter" not in l:
+            continue
+        if "zolltarifnummer" not in l:
+            continue
 
-               
-                    current_liters = float(val)
-            except:
-                pass
+        try:
+            # -------------------------
+            # ✅ COLIC
+            # -------------------------
+            m = re.search(r"([\d\.,]+)\s+liter", line, re.IGNORECASE)
+            if not m:
+                continue
+            colic = parse_float(m.group(1))
 
-        # ✅ KG (тегло – 8.683,68)
-        weight_match = re.search(r"([\d\.,]+)\s*kg", line, re.IGNORECASE)
-        if weight_match:
-            try:
-                val = weight_match.group(1)
+            # -------------------------
+            # ✅ WID
+            # -------------------------
+            wid = 1
 
-                if "." in val and "," in val:
-                    val = val.replace(".", "").replace(",", ".")
-                else:
-                    val = val.replace(",", ".")
+            multi = re.search(r"(\d+)x([\d\.,]+)", line, re.IGNORECASE)
+            if multi:
+                wid = parse_float(multi.group(2))
 
-                current_weight = float(val)
-            except:
-                pass
+            single = re.search(
+                r"([\d\.,]+)\s+liter\s+(fass|kanne)",
+                line,
+                re.IGNORECASE
+            )
+            if single:
+                wid = parse_float(single.group(1))
 
-        # ✅ BOX FORMAT (6x1 / 4x5 / 6x1.5)
-        multi = re.search(r"(\d+)x([\d\.,]+)", line, re.IGNORECASE)
-        if multi:
-            try:
-                val = multi.group(2)
+            if wid == 0:
+                wid = 1
 
-                if "." in val and "," in val:
-                    val = val.replace(".", "").replace(",", ".")
-                else:
-                    val = val.replace(",", ".")
+            # -------------------------
+            # ✅ ТЕГЛО
+            # -------------------------
+            weight = 0
 
-                if current_wid == 1:
-                    current_wid = float(val)
-            except:
-                pass
+            w = re.search(
+                r"liter.*?([\d\.,]+)\s+(?:\d+x|\d+\s+liter)",
+                line,
+                re.IGNORECASE
+            )
+            if w:
+                weight = parse_float(w.group(1))
+            else:
+                w2 = re.search(
+                    r"\s([\d\.,]+)\s+(?:\d+x|\d+\s+liter)",
+                    line,
+                    re.IGNORECASE
+                )
+                if w2:
+                    weight = parse_float(w2.group(1))
 
-        # ✅ SINGLE PACK → "20 Liter Kanne" (най-важния FIX)
-        single_pack = re.search(r"([\d\.,]+)\s+Liter\s+Kanne", line, re.IGNORECASE)
-        if single_pack:
-            try:
-                val = single_pack.group(1)
+            # -------------------------
+            # ✅ CODE
+            # -------------------------
+            code_match = re.search(
+                r"zolltarifnummer:\s*(\d+)",
+                line,
+                re.IGNORECASE
+            )
+            if not code_match:
+                continue
 
-                if "." in val and "," in val:
-                    val = val.replace(".", "").replace(",", ".")
-                else:
-                    val = val.replace(",", ".")
+            code = code_match.group(1)[:8]
 
-                current_wid = float(val)
-            except:
-                pass
+            # -------------------------
+            # ✅ BROJ
+            # -------------------------
+            broj = colic / wid if wid != 0 else 0
 
-        # ✅ HS CODE
-        if "Zolltarifnummer" in line:
-            code_match = re.search(r"(\d+)", line)
+            rows.append({
+                "Тарифен код": code,
+                "wid": round(wid, 3),
+                "Количество": round(broj, 3),
+                "kolichestvo": round(colic, 3),
+                "тегло": round(weight, 3)
+            })
 
-            if code_match and current_liters > 0:
+        except:
+            continue
 
-                code_value = code_match.group(1)[:8]
+    df = pd.DataFrame(rows)
 
-                # ✅ BUSINESS LOGIC
-                broj = current_liters / current_wid
-                colic = broj * current_wid  # = original liters (safe)
+    # ✅ Safety – ако няма данни → връща празно
+    if df.empty:
+        return df
 
-                # ✅ тегло (ако липсва → estimate)
-                weight_for_row = current_weight
-                if weight_for_row == 0:
-                    weight_for_row = colic * 0.85
+    # ======================================================
+    # ✅ ✅ AGGREGATION (ключовото нещо от Excel)
+    # ======================================================
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
 
-                rows.append({
-                    "Тарифен код": code_value,
-                    "Количество": round(broj, 3),
-                    "wid": current_wid,
-                    "kolichestvo": round(colic, 3),
-                    "тегло": round(weight_for_row, 3)
-                })
+    # ✅ cleanup
+    df = df[df["kolichestvo"] > 0]
 
-                # ✅ RESET
-                current_liters = 0
-                current_weight = 0
-                current_wid = 1
-
-    return pd.DataFrame(rows)
+    return df
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
