@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (RAW EXTRACT ONLY ✅)
+# ✅ GASOLINE (FOCUS → 1L ONLY ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -483,65 +483,61 @@ def parse_gasoline(file):
 
     for i in range(len(lines)):
 
-        # ✅ търсим ред с количество (Menge)
+        # ✅ Menge
         m = re.search(r"([\d\.,]+)\s+Liter", lines[i], re.IGNORECASE)
 
         if not m:
             continue
 
-        try:
-            colic = parse_float(m.group(1))
+        colic = parse_float(m.group(1))
 
-            # ✅ взимаме малък блок около продукта
-            block = " ".join(lines[i:i+5])
+        # ✅ блок (реда + следващите)
+        block = " ".join(lines[i:i+4])
 
-            # ✅ WID
-            wid = 1
-
-            multi = re.search(r"(\d+)x([\d\.,]+)", block, re.IGNORECASE)
-            if multi:
-                wid = parse_float(multi.group(2))
-
-            single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block, re.IGNORECASE)
-            if single:
-                wid = parse_float(single.group(1))
-
-            if wid == 0:
-                wid = 1
-
-            # ✅ ТЕГЛО – най-близкото число след Menge
-            weight = 0
-            nums = re.findall(r"[\d\.,]+", block)
-
-            for n in nums:
-                val = parse_float(n)
-
-                # теглото винаги е различно от colic и разумно
-                if val != colic and 1 < val < 10000:
-                    weight = val
-                    break
-
-            # ✅ CODE
-            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block, re.IGNORECASE)
-
-            if not code_match:
-                continue
-
-            code = code_match.group(1)[:8]
-
-            # ✅ ДОБАВЯМЕ (без изчисления)
-            rows.append({
-                "Тарифен код": code,
-                "wid": round(wid, 3),
-                "Количество": 0,  # ✅ както поиска
-                "kolichestvo": round(colic, 3),
-                "тегло": round(weight, 3)
-            })
-
-        except:
+        # ✅ ✅ КЛЮЧОВО → само 1L
+        if not re.search(r"\d+x1", block, re.IGNORECASE):
             continue
 
-    return pd.DataFrame(rows)
+        # ✅ тегло
+        weight = 0
+        nums = re.findall(r"[\d\.,]+", block)
+
+        for n in nums:
+            val = parse_float(n)
+            if val != colic and 1 < val < 10000:
+                weight = val
+                break
+
+        # ✅ код
+        code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
+
+        if not code_match:
+            continue
+
+        code = code_match.group(1)[:8]
+
+        rows.append({
+            "Тарифен код": code,
+            "wid": 1,
+            "Количество": 0,
+            "kolichestvo": colic,
+            "тегло": weight
+        })
+
+    df = pd.DataFrame(rows)
+
+    # ✅ aggregation само за 1L
+    if not df.empty:
+        df = df.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        ).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": "sum"
+        })
+
+    return df
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
