@@ -450,10 +450,133 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL NO-GROUP VERSION ✅)
+# ✅ GASOLINE (FINAL FIXED ✅)
 # ======================================================
-if "Zolltarifnummer" in lines[j]:
-    break
+def parse_gasoline(file):
+
+    import re
+    import pandas as pd
+    from PyPDF2 import PdfReader
+
+    def parse_float(val):
+        try:
+            val = str(val).strip()
+            if "." in val and "," in val:
+                val = val.replace(".", "").replace(",", ".")
+            else:
+                val = val.replace(",", ".")
+            return float(val)
+        except:
+            return 0
+
+    reader = PdfReader(file)
+
+    text = ""
+    for page in reader.pages:
+        t = page.extract_text()
+        if t:
+            text += t + "\n"
+
+    lines = text.split("\n")
+    rows = []
+
+    i = 0
+    while i < len(lines):
+
+        line = lines[i]
+
+        # ✅ старт САМО от Menge ред
+        if not re.match(r"^\s*\d+[\.,]?\d*\s+Liter", line):
+            i += 1
+            continue
+
+        # ✅ събираме block за продукта
+        block_lines = [line]
+        j = i + 1
+
+        while j < len(lines):
+
+            block_lines.append(lines[j])
+
+            # ✅ ✅ ✅ ТУК Е FIX-ЪТ (вътре в while)
+            if "Zolltarifnummer" in lines[j]:
+                break
+
+            j += 1
+
+        block = " ".join(block_lines)
+
+        try:
+            # ✅ COLIC
+            m = re.search(r"([\d\.,]+)\s+Liter", block)
+            if not m:
+                i = j + 1
+                continue
+
+            colic = parse_float(m.group(1))
+
+            # ✅ CODE
+            code_match = re.search(r"(\d{8})", block)
+            if not code_match:
+                i = j + 1
+                continue
+
+            code = code_match.group(1)
+
+            # ✅ WID
+            wid = 1
+
+            multi = re.search(r"(\d+)\s*[xX]\s*([\d\.,]+)\s*Liter", block)
+
+            if multi:
+                wid = parse_float(multi.group(2))
+            else:
+                single = re.search(
+                    r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block
+                )
+                if single:
+                    wid = parse_float(single.group(1))
+
+            if wid == 0:
+                wid = 1
+
+            # ✅ ТЕГЛО
+            weight = 0
+
+            w = re.search(
+                r"([\d\.,]+)\s+(?:\d+\s*x\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
+                block
+            )
+
+            if w:
+                weight = parse_float(w.group(1))
+
+            # ✅ fallback
+            if weight == 0:
+                if "Shell Rimula R6 LM 10w40" in block:
+                    weight = colic * 0.666
+                else:
+                    weight = colic * 0.88
+
+            # ✅ BROJ
+            broj = colic / wid if wid else 0
+
+            rows.append({
+                "Тарифен код": code,
+                "wid": round(wid, 3),
+                "Количество": round(broj, 3),
+                "kolichestvo": round(colic, 3),
+                "тегло": round(weight, 3)
+            })
+
+        except:
+            pass
+
+        # ✅ скачаме към следващ продукт
+        i = j + 1
+
+    return pd.DataFrame(rows)
+
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
