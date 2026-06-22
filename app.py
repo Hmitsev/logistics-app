@@ -508,23 +508,28 @@ def parse_flukar_excel(file):
     # ✅ SMART rename (всички варианти)
     rename_map = {}
 
-    for col in df.columns:
-        c = col.lower()
+for col in df.columns:
+    c = col.lower()
 
-        if "cn" in c:
-            rename_map[col] = "Тарифен код"
+    if "cn" in c:
+        rename_map[col] = "Тарифен код"
 
-        elif "quantity" in c or "pcs" in c:
-            rename_map[col] = "Количество"
+    elif "quantity" in c or "pcs" in c:
+        rename_map[col] = "Количество"
 
-        elif "capacity" in c or "package" in c:
-            rename_map[col] = "wid"
+    # ✅ само capacity отива в wid
+    elif "capacity" in c:
+        rename_map[col] = "wid"
 
-        elif "liter" in c:
-            rename_map[col] = "kolichestvo"
+    # ❗ package НЕ го ползваме
+    elif "package" in c:
+        continue
 
-        elif "nett" in c or "net" in c:
-            rename_map[col] = "тегло"
+    elif "liter" in c:
+        rename_map[col] = "kolichestvo"
+
+    elif "nett" in c or "net" in c:
+        rename_map[col] = "тегло"
 
     df = df.rename(columns=rename_map)
 
