@@ -484,15 +484,28 @@ def parse_neste_excel(file):
 # ======================================================
 def parse_flukar_excel(file):
 
-    # ✅ опит 1
-    df = pd.read_excel(file, header=6)
+    df_raw = pd.read_excel(file, header=None)
 
-    # ✅ ако не е уцелен header
-    if not any("cn" in str(col).lower() for col in df.columns):
-        df = pd.read_excel(file, header=7)
+    header_row = None
+
+    # ✅ търсим реда с CN code
+    for i in range(len(df_raw)):
+        row = df_raw.iloc[i].astype(str).str.lower()
+
+        if any("cn" in cell for cell in row):
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ Не може да се намери header ред (CN code)")
+        return pd.DataFrame()
+
+    # ✅ четем от намерения header
+    df = pd.read_excel(file, header=header_row)
 
     df.columns = df.columns.str.strip()
 
+    # ✅ rename
     rename_map = {}
 
     for col in df.columns:
@@ -515,14 +528,19 @@ def parse_flukar_excel(file):
 
     df = df.rename(columns=rename_map)
 
-    # ✅ проверка
-    if "Тарифен код" not in df.columns:
-        st.error("❌ Не може да се разпознае форматът на FLUKAR файла")
-        st.write("Колони в файла:", df.columns)
-        return pd.DataFrame()
+    # ✅ check
+    required = ["Тарифен код", "Количество", "wid", "тегло"]
 
+    for col in required:
+        if col not in df.columns:
+            st.error(f"❌ Липсва колона: {col}")
+            st.write("Колони:", df.columns)
+            return pd.DataFrame()
+
+    # ✅ махаме празни
     df = df.dropna(subset=["Тарифен код"])
 
+    # ✅ fallback литри
     if "kolichestvo" not in df.columns:
         df["kolichestvo"] = df["Количество"] * df["wid"]
     else:
@@ -530,6 +548,7 @@ def parse_flukar_excel(file):
             df["Количество"] * df["wid"]
         )
 
+    # ✅ group
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -540,6 +559,7 @@ def parse_flukar_excel(file):
     })
 
     return df
+
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
