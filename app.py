@@ -519,7 +519,7 @@ def parse_gasoline(file):
             # =====================
             wid = 1
 
-            multi = re.search(r"(\d+)\s*x\s*([\d\.,]+)", block)
+            multi = re.search(r"(\d+)\s*[xX]\s*([\d\.,]+)\s*Liter", block
             if multi:
                 wid = parse_float(multi.group(2))
 
