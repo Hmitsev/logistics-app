@@ -470,41 +470,45 @@ def parse_gasoline(file):
             return 0
 
     reader = PdfReader(file)
-    text = ""
 
+    text = ""
     for page in reader.pages:
         t = page.extract_text()
         if t:
             text += t + "\n"
 
-    lines = text.split("\n")
+    # ✅ SPLIT ПО ПРОДУКТИ (ТОВА Е КЛЮЧА)
+    blocks = text.split("Zolltarifnummer")
 
     rows = []
 
-    for i in range(len(lines)):
-
-        if "Liter" not in lines[i]:
-            continue
-
-        if "Zolltarifnummer" not in " ".join(lines[i:i+6]):
-            continue
+    for block in blocks:
 
         try:
-            block = " ".join(lines[i:i+6])
+            if "Liter" not in block:
+                continue
 
-            # ✅ COLIC
+            # =========================
+            # ✅ CODE
+            # =========================
+            code_match = re.search(r"(\d{8})", block)
+            if not code_match:
+                continue
+
+            code = code_match.group(1)
+
+            # =========================
+            # ✅ COLIC (Menge)
+            # =========================
             m = re.search(r"([\d\.,]+)\s+Liter", block)
             if not m:
                 continue
+
             colic = parse_float(m.group(1))
 
-            # ✅ CODE
-            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
-            if not code_match:
-                continue
-            code = code_match.group(1)[:8]
-
+            # =========================
             # ✅ WID
+            # =========================
             wid = 1
 
             multi = re.search(r"(\d+)\s*x\s*([\d\.,]+)", block)
@@ -518,13 +522,16 @@ def parse_gasoline(file):
             if wid == 0:
                 wid = 1
 
-            # ✅ WEIGHT (точно преди packaging)
+            # =========================
+            # ✅ WEIGHT (точно преди опаковка)
+            # =========================
             weight = 0
 
             w = re.search(
                 r"([\d\.,]+)\s+(?:\d+\s*x\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
                 block
             )
+
             if w:
                 weight = parse_float(w.group(1))
 
@@ -535,7 +542,9 @@ def parse_gasoline(file):
                 else:
                     weight = colic * 0.88
 
+            # =========================
             # ✅ BROJ
+            # =========================
             broj = colic / wid if wid else 0
 
             rows.append({
@@ -554,14 +563,18 @@ def parse_gasoline(file):
     if df.empty:
         return df
 
-    # ✅ aggregation се случва ПОСЛЕ (важното!)
-    df = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
+    # ✅ aggregation след всички PDF-и
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
         "Количество": "sum",
         "kolichestvo": "sum",
         "тегло": "sum"
     })
 
     return df
+
 
 
 # ======================================================
