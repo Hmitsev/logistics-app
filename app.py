@@ -481,121 +481,81 @@ def parse_gasoline(file):
 
     rows = []
 
-    i = 0
-    while i < len(lines):
+    for i in range(len(lines)):
 
-        line = lines[i]
-
-        # =========================
-        # ✅ COLIC (Menge)
-        # =========================
-        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
-
-        if not m:
-            i += 1
+        if "Liter" not in lines[i]:
             continue
 
-        colic = parse_float(m.group(1))
-
-        # =========================
-        # ✅ BLOCK (до Zolltarifnummer)
-        # =========================
-        block_lines = [line]
-
-        j = i + 1
-        while j < len(lines):
-
-            block_lines.append(lines[j])
-
-            if "Zolltarifnummer" in lines[j]:
-                break
-
-            j += 1
-
-        block = " ".join(block_lines)
-
-        # =========================
-        # ✅ CODE
-        # =========================
-        code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
-        if not code_match:
-            i = j + 1
+        if "Zolltarifnummer" not in " ".join(lines[i:i+6]):
             continue
 
-        code = code_match.group(1)[:8]
+        try:
+            block = " ".join(lines[i:i+6])
 
-        # =========================
-        # ✅ WID (разфасовка)
-        # =========================
-        wid = 1
+            # ✅ COLIC
+            m = re.search(r"([\d\.,]+)\s+Liter", block)
+            if not m:
+                continue
+            colic = parse_float(m.group(1))
 
-        # пример: 12x1 / 4x4 / 3x5
-        multi = re.search(r"(\d+)\s*x\s*([\d\.,]+)", block, re.IGNORECASE)
-        if multi:
-            wid = parse_float(multi.group(2))
+            # ✅ CODE
+            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
+            if not code_match:
+                continue
+            code = code_match.group(1)[:8]
 
-        # пример: 209 Liter Fass / 55 Liter Fass / 20 Liter Kanne
-        single = re.search(
-            r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)",
-            block,
-            re.IGNORECASE
-        )
-        if single:
-            wid = parse_float(single.group(1))
-
-        if wid == 0:
+            # ✅ WID
             wid = 1
 
-        # =========================
-        # ✅ ТЕГЛО (FIXED ✅)
-        # =========================
-        weight = 0
+            multi = re.search(r"(\d+)\s*x\s*([\d\.,]+)", block)
+            if multi:
+                wid = parse_float(multi.group(2))
 
-        weight_match = re.search(
-            r"([\d\.,]+)\s+(?:\d+\s*x\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
-            block,
-            re.IGNORECASE
-        )
+            single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block)
+            if single:
+                wid = parse_float(single.group(1))
 
-        if weight_match:
-            weight = parse_float(weight_match.group(1))
+            if wid == 0:
+                wid = 1
 
-        # ✅ FALLBACK
-        if weight == 0:
+            # ✅ WEIGHT (точно преди packaging)
+            weight = 0
 
-            if "Shell Rimula R6 LM 10w40" in block:
-                weight = colic * 0.666
-            else:
-                weight = colic * 0.88
+            w = re.search(
+                r"([\d\.,]+)\s+(?:\d+\s*x\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
+                block
+            )
+            if w:
+                weight = parse_float(w.group(1))
 
-        # =========================
-        # ✅ BROJ
-        # =========================
-        broj = colic / wid if wid != 0 else 0
+            # ✅ fallback
+            if weight == 0:
+                if "Shell Rimula R6 LM 10w40" in block:
+                    weight = colic * 0.666
+                else:
+                    weight = colic * 0.88
 
-        rows.append({
-            "Тарифен код": code,
-            "wid": round(wid, 3),
-            "Количество": round(broj, 3),
-            "kolichestvo": round(colic, 3),
-            "тегло": round(weight, 3)
-        })
+            # ✅ BROJ
+            broj = colic / wid if wid else 0
 
-        # ✅ jump след блока
-        i = j + 1
+            rows.append({
+                "Тарифен код": code,
+                "wid": wid,
+                "Количество": broj,
+                "kolichestvo": colic,
+                "тегло": weight
+            })
+
+        except:
+            continue
 
     df = pd.DataFrame(rows)
 
     if df.empty:
         return df
 
-    # =========================
-    # ✅ AGGREGATION
-    # =========================
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
+    # ✅ aggregation се случва ПОСЛЕ (важното!)
+    df = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
         "Количество": "sum",
         "kolichestvo": "sum",
         "тегло": "sum"
