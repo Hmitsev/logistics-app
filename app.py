@@ -450,16 +450,12 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL ALL-IN-ONE ✅)
+# ✅ GASOLINE (FINAL FIXED ✅)
 # ======================================================
 def parse_gasoline(text):
 
     import re
     import pandas as pd
-
-    # ✅ Check Lieferschein
-    if "lieferschein" not in text.lower():
-        return pd.DataFrame()
 
     def parse_float(val):
         try:
@@ -479,9 +475,12 @@ def parse_gasoline(text):
 
         l = line.lower()
 
-        # ✅ само продуктови редове
+        # ✅ ключов FIX → махаме Lieferschein check
+
+        # ✅ търсим реален продуктов ред
         if "liter" not in l:
             continue
+
         if "zolltarifnummer" not in l:
             continue
 
@@ -519,21 +518,16 @@ def parse_gasoline(text):
             # -------------------------
             weight = 0
 
-            w = re.search(
-                r"liter.*?([\d\.,]+)\s+(?:\d+x|\d+\s+liter)",
-                line,
-                re.IGNORECASE
-            )
-            if w:
-                weight = parse_float(w.group(1))
-            else:
-                w2 = re.search(
-                    r"\s([\d\.,]+)\s+(?:\d+x|\d+\s+liter)",
-                    line,
-                    re.IGNORECASE
-                )
-                if w2:
-                    weight = parse_float(w2.group(1))
+            # ✅ подобрен parser (по твоите PDF-и)
+            parts = line.split()
+
+            for i, p in enumerate(parts):
+                if "," in p or "." in p:
+                    val = parse_float(p)
+
+                    # реалното тегло винаги е разумно
+                    if 1 < val < 10000:
+                        weight = val
 
             # -------------------------
             # ✅ CODE
@@ -566,13 +560,10 @@ def parse_gasoline(text):
 
     df = pd.DataFrame(rows)
 
-    # ✅ Safety – ако няма данни → връща празно
     if df.empty:
         return df
 
-    # ======================================================
-    # ✅ ✅ AGGREGATION (ключовото нещо от Excel)
-    # ======================================================
+    # ✅ aggregation (ЗАДЪЛЖИТЕЛНО)
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -582,10 +573,8 @@ def parse_gasoline(text):
         "тегло": "sum"
     })
 
-    # ✅ cleanup
-    df = df[df["kolichestvo"] > 0]
-
     return df
+
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
