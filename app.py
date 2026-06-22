@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE","GASOLINE"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE"])
 
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
@@ -449,107 +449,6 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
-# ======================================================
-# ✅ GASOLINE (FINAL – BLOCK LOGIC ✅)
-# ======================================================
-def parse_gasoline(file):
-
-    import re
-    import pandas as pd
-    from PyPDF2 import PdfReader
-
-    def parse_float(val):
-        try:
-            val = str(val).replace(",", ".")
-            return float(val)
-        except:
-            return 0
-
-    reader = PdfReader(file)
-
-    text = ""
-    for page in reader.pages:
-        t = page.extract_text()
-        if t:
-            text += t + "\n"
-
-    # ✅ режем директно по продукти
-    blocks = text.split("Zolltarifnummer")
-
-    rows = []
-
-    for block in blocks:
-
-        # =====================
-        # ✅ CODE
-        # =====================
-        code_match = re.search(r"(\d{8})", block)
-        if not code_match:
-            continue
-
-        code = code_match.group(1)
-
-        # =====================
-        # ✅ COLIC (НАЙ-ГОЛЯМОТО Liter)
-        # =====================
-        liters = re.findall(r"(\d+[\.,]?\d*)\s+Liter", block)
-        if not liters:
-            continue
-
-        colic = max(parse_float(x) for x in liters)
-
-        # =====================
-        # ✅ WID
-        # =====================
-        multi = re.search(r"\d+\s*[xX]\s*(\d+)", block)
-
-        if multi:
-            wid = parse_float(multi.group(1))
-        else:
-            single = re.search(r"(\d+)\s+Liter\s+(Fass|Kanne)", block)
-            wid = parse_float(single.group(1)) if single else 1
-
-        # =====================
-        # ✅ BROJ
-        # =====================
-        broj = colic / wid if wid else 0
-
-        # =====================
-        # ✅ WEIGHT
-        # =====================
-        weight_match = re.search(r"(\d+[\.,]\d+)", block)
-        weight = parse_float(weight_match.group(1)) if weight_match else 0
-
-        if weight == 0:
-            weight = colic * 0.89
-
-        # =====================
-        # ✅ SAVE
-        # =====================
-        rows.append({
-            "Тарифен код": code,
-            "wid": wid,
-            "Количество": round(broj, 3),
-            "kolichestvo": round(colic, 3),
-            "тегло": round(weight, 3)
-        })
-
-    df = pd.DataFrame(rows)
-
-    if df.empty:
-        return df
-
-    # ✅ GROUP
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
@@ -628,6 +527,7 @@ def build_final_report(df):
 
     return pd.DataFrame(rows)
 
+
 # ======================================================
 # ✅ PROCESS
 # ======================================================
@@ -649,21 +549,14 @@ if uploaded_files:
             text = ""
 
             for page in reader.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"
+                text += page.extract_text() + "\n"
 
-            # ✅ ВАЖНО — ТУК Е ЛОГИКАТА
             if menu == "CASTROL":
                 df = parse_castrol(text)
-
-            elif menu == "GASOLINE":
-                df = parse_gasoline(file)
-
             else:
                 df = parse_motul(text)
 
-        # ✅ Excel fallback
+        # ✅ Excel fallback  🔥 ВЪТРЕ В LOOP-А!
         else:
 
             df = pd.read_excel(file)
@@ -700,7 +593,7 @@ if uploaded_files:
                 "Net Weight": "тегло"
             })
 
-        # ✅ SAFE APPEND
+        # ✅ SAFE APPEND (вътре!)
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
@@ -712,17 +605,13 @@ if uploaded_files:
     final_df = pd.concat(all_data, ignore_index=True)
 
     if "Тарифен код" not in final_df.columns:
-        st.warning("⚠️ Данните не съдържат тарифен код")
+        st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+    final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ ФИЛТЪР (само където трябва)
-    if menu in ["MOTUL", "NESTE"]:
-        final_df = final_df[final_df["тегло"] > 0]
-
-    # ✅ REPORT
     report = build_final_report(final_df)
 
     report = report.rename(columns={
