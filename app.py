@@ -479,8 +479,7 @@ def parse_neste_excel(file):
 
     return df
 
-# ======================================================
-# ✅ FLUKAR (EXCEL ONLY ✅)
+# ======================================================# =================================================UKAR (EXCEL ONLY ✅)
 # ======================================================
 def parse_flukar_excel(file):
 
@@ -505,33 +504,36 @@ def parse_flukar_excel(file):
 
     df.columns = df.columns.astype(str).str.strip()
 
-    # ✅ SMART rename (всички варианти)
+    # ✅ SMART rename (fixed - no duplicate wid!)
     rename_map = {}
 
-for col in df.columns:
-    c = col.lower()
+    for col in df.columns:
+        c = col.lower()
 
-    if "cn" in c:
-        rename_map[col] = "Тарифен код"
+        if "cn" in c:
+            rename_map[col] = "Тарифен код"
 
-    elif "quantity" in c or "pcs" in c:
-        rename_map[col] = "Количество"
+        elif "quantity" in c or "pcs" in c:
+            rename_map[col] = "Количество"
 
-    # ✅ само capacity отива в wid
-    elif "capacity" in c:
-        rename_map[col] = "wid"
+        # ✅ само capacity → wid
+        elif "capacity" in c:
+            rename_map[col] = "wid"
 
-    # ❗ package НЕ го ползваме
-    elif "package" in c:
-        continue
+        # ❗ package игнорираме (много важно)
+        elif "package" in c:
+            continue
 
-    elif "liter" in c:
-        rename_map[col] = "kolichestvo"
+        elif "liter" in c:
+            rename_map[col] = "kolichestvo"
 
-    elif "nett" in c or "net" in c:
-        rename_map[col] = "тегло"
+        elif "nett" in c or "net" in c:
+            rename_map[col] = "тегло"
 
     df = df.rename(columns=rename_map)
+
+    # ✅ маха duplicate колони (safety)
+    df = df.loc[:, ~df.columns.duplicated()]
 
     # ✅ проверка
     required = ["Тарифен код", "Количество", "wid", "тегло"]
@@ -545,15 +547,24 @@ for col in df.columns:
     # ✅ махаме празните редове
     df = df.dropna(subset=["Тарифен код"])
 
-    # ✅ литри (ако ги няма → смятаме)
+    # ✅ правим колоните numeric (FIX за последната ти грешка)
+    df["Количество"] = pd.to_numeric(df["Количество"], errors="coerce")
+    df["wid"] = pd.to_numeric(df["wid"], errors="coerce")
+    df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
+
+    # ✅ литри
     if "kolichestvo" not in df.columns:
         df["kolichestvo"] = df["Количество"] * df["wid"]
     else:
+        df["kolichestvo"] = pd.to_numeric(df["kolichestvo"], errors="coerce")
         df["kolichestvo"] = df["kolichestvo"].fillna(
             df["Количество"] * df["wid"]
         )
 
-    # ✅ group (както при другите suppliers)
+    # ✅ махаме редове без стойности
+    df = df.dropna(subset=["Количество", "wid", "тегло"])
+
+    # ✅ group
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -564,7 +575,6 @@ for col in df.columns:
     })
 
     return df
-
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
