@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FOCUS → 1L ONLY ✅)
+# ✅ GASOLINE (1L FINAL FIXED ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -481,22 +481,47 @@ def parse_gasoline(file):
 
     rows = []
 
-    for i in range(len(lines)):
+    i = 0
+    while i < len(lines):
 
-        # ✅ Menge
-        m = re.search(r"([\d\.,]+)\s+Liter", lines[i], re.IGNORECASE)
+        line = lines[i]
+
+        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
 
         if not m:
+            i += 1
             continue
 
         colic = parse_float(m.group(1))
 
-        # ✅ блок (реда + следващите)
-        block = " ".join(lines[i:i+4])
+        # ✅ ВАЖНО → динамичен блок
+        block_lines = [line]
 
-        # ✅ ✅ КЛЮЧОВО → само 1L
+        j = i + 1
+        while j < len(lines):
+
+            block_lines.append(lines[j])
+
+            if "Zolltarifnummer" in lines[j]:
+                break
+
+            j += 1
+
+        block = " ".join(block_lines)
+
+        # ✅ само 1L
         if not re.search(r"\d+x1", block, re.IGNORECASE):
+            i = j + 1
             continue
+
+        # ✅ код
+        code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
+
+        if not code_match:
+            i = j + 1
+            continue
+
+        code = code_match.group(1)[:8]
 
         # ✅ тегло
         weight = 0
@@ -508,14 +533,6 @@ def parse_gasoline(file):
                 weight = val
                 break
 
-        # ✅ код
-        code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
-
-        if not code_match:
-            continue
-
-        code = code_match.group(1)[:8]
-
         rows.append({
             "Тарифен код": code,
             "wid": 1,
@@ -524,9 +541,11 @@ def parse_gasoline(file):
             "тегло": weight
         })
 
+        # ✅ скачаме след блока
+        i = j + 1
+
     df = pd.DataFrame(rows)
 
-    # ✅ aggregation само за 1L
     if not df.empty:
         df = df.groupby(
             ["Тарифен код", "wid"],
