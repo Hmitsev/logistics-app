@@ -490,7 +490,7 @@ def parse_gasoline(file):
             continue
 
         # ✅ малък блок
-        block = " ".join(lines[i:i+6])
+        block = " ".join(lines[i:i+12])
 
         # ✅ трябва да има код
         if "Zolltarifnummer" not in block:
