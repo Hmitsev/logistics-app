@@ -492,7 +492,7 @@ def parse_flukar_excel(file):
     for i in range(len(df_raw)):
         row = df_raw.iloc[i].astype(str).str.lower()
 
-        if any("cn" in cell for cell in row):
+        if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
             header_row = i
             break
 
