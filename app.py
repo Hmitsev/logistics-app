@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL REAL FIX ✅)
+# ✅ GASOLINE (STABLE LINE LOGIC – FINAL ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -460,7 +460,7 @@ def parse_gasoline(file):
 
     def parse_float(val):
         try:
-            val = val.strip()
+            val = str(val).strip()
             if "." in val and "," in val:
                 val = val.replace(".", "").replace(",", ".")
             else:
@@ -485,17 +485,19 @@ def parse_gasoline(file):
     current_wid = 1
     current_weight = 0
 
-    for i in range(len(lines)):
+    for line in lines:
 
-        line = lines[i]
-
-        # ✅ 1. Menge (Liter)
+        # =====================
+        # ✅ 1. COLIC (Menge)
+        # =====================
         m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
         if m:
             current_colic = parse_float(m.group(1))
 
-        # ✅ 2. Wid
-        multi = re.search(r"(\d+)x([\d\.,]+)", line, re.IGNORECASE)
+        # =====================
+        # ✅ 2. WID (по-точен)
+        # =====================
+        multi = re.search(r"(\d+)\s*[xX]\s*([\d\.,]+)", line)
         if multi:
             current_wid = parse_float(multi.group(2))
 
@@ -503,34 +505,48 @@ def parse_gasoline(file):
         if single:
             current_wid = parse_float(single.group(1))
 
-        # ✅ 3. Gewicht (тегло)
-        nums = re.findall(r"[\d\.,]+", line)
-        for n in nums:
-            val = parse_float(n)
-            if 50 < val < 10000:
-                current_weight = val
+        # =====================
+        # ✅ 3. WEIGHT (по-сигурен)
+        # =====================
+        weight_match = re.search(
+            r"([\d\.,]+)\s+(?:\d+\s*[xX]\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
+            line
+        )
 
-        # ✅ 4. CODE → trigger за запис
+        if weight_match:
+            current_weight = parse_float(weight_match.group(1))
+
+        # =====================
+        # ✅ 4. FINAL ROW (trigger)
+        # =====================
         if "Zolltarifnummer" in line:
 
-            code_match = re.search(r"(\d+)", line)
+            code_match = re.search(r"(\d{8})", line)
 
             if code_match and current_colic > 0:
 
-                code = code_match.group(1)[:8]
+                code = code_match.group(1)
 
                 wid = current_wid if current_wid > 0 else 1
                 broj = current_colic / wid if wid else 0
+
+                # ✅ fallback weight
+                weight = current_weight
+                if weight == 0:
+                    if "Shell Rimula R6 LM 10w40" in line:
+                        weight = current_colic * 0.666
+                    else:
+                        weight = current_colic * 0.88
 
                 rows.append({
                     "Тарифен код": code,
                     "wid": round(wid, 3),
                     "Количество": round(broj, 3),
                     "kolichestvo": round(current_colic, 3),
-                    "тегло": round(current_weight, 3)
+                    "тегло": round(weight, 3)
                 })
 
-                # ✅ RESET
+                # ✅ КРИТИЧЕН RESET
                 current_colic = 0
                 current_wid = 1
                 current_weight = 0
@@ -540,7 +556,7 @@ def parse_gasoline(file):
     if df.empty:
         return df
 
-    # ✅ aggregation
+    # ✅ aggregation (оставяме както е)
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -551,6 +567,7 @@ def parse_gasoline(file):
     })
 
     return df
+
 
 
 # ======================================================
