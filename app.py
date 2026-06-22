@@ -564,6 +564,8 @@ def parse_flukar_excel(file):
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
+dfrom decimal import Decimal, ROUND_HALF_UP
+
 def build_final_report(df):
 
     grouped = df.groupby(
@@ -582,13 +584,19 @@ def build_final_report(df):
         for _, r in group.iterrows():
             rows.append(r.to_dict())
 
-        # ✅ subtotal per code (ROUND ТУК!)
+        # ✅ precision fix
+        weight_sum = float(
+            Decimal(str(group["тегло"].sum())).quantize(
+                Decimal("1"), rounding=ROUND_HALF_UP
+            )
+        )
+
         rows.append({
             "Тарифен код": str(code) + " -",
             "wid": "",
             "Количество": "",
             "kolichestvo": group["kolichestvo"].sum(),
-            "тегло": round(group["тегло"].sum(), 0)
+            "тегло": weight_sum
         })
 
         rows.append({
@@ -599,13 +607,18 @@ def build_final_report(df):
             "тегло": ""
         })
 
-    # ✅ ✅ GRAND TOTAL (правилно използва grouped)
+    total_weight = float(
+        Decimal(str(grouped["тегло"].sum())).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP
+        )
+    )
+
     rows.append({
         "Тарифен код": "GRAND TOTAL",
         "wid": "",
         "Количество": "",
         "kolichestvo": grouped["kolichestvo"].sum(),
-        "тегло": round(grouped["тегло"].sum(), 0)
+        "тегло": total_weight
     })
 
     return pd.DataFrame(rows)
