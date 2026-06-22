@@ -449,6 +449,128 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
+    # ======================================================
+# ✅ GASOLINE (FINAL PRODUCTION ✅)
+# ======================================================
+def parse_gasoline(file):
+
+    import re
+    import pandas as pd
+    from PyPDF2 import PdfReader
+
+    def parse_float(val):
+        try:
+            val = str(val).strip()
+            if "." in val and "," in val:
+                val = val.replace(".", "").replace(",", ".")
+            else:
+                val = val.replace(",", ".")
+            return float(val)
+        except:
+            return 0
+
+    reader = PdfReader(file)
+
+    text = ""
+    for page in reader.pages:
+        t = page.extract_text()
+        if t:
+            text += t + "\n"
+
+    lines = text.split("\n")
+
+    rows = []
+
+    current_colic = 0
+    current_wid = 1
+    current_weight = 0
+
+    for line in lines:
+
+        # =====================
+        # ✅ COLIC (Liter)
+        # =====================
+        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
+        if m:
+            current_colic = parse_float(m.group(1))
+
+        # =====================
+        # ✅ WID (опаковка)
+        # =====================
+        multi = re.search(r"\d+\s*[xX]\s*([\d\.,]+)", line)
+        if multi:
+            current_wid = parse_float(multi.group(1))
+
+        single = re.search(
+            r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)",
+            line,
+            re.IGNORECASE
+        )
+        if single:
+            current_wid = parse_float(single.group(1))
+
+        # =====================
+        # ✅ WEIGHT
+        # =====================
+        weight_match = re.search(
+            r"([\d\.,]+)\s+(?:\d+\s*[xX]\s*\d+|\d+\s+Liter\s+(Fass|Kanne))",
+            line
+        )
+        if weight_match:
+            current_weight = parse_float(weight_match.group(1))
+
+        # =====================
+        # ✅ FINAL (код)
+        # =====================
+        if "Zolltarifnummer" in line:
+
+            code_match = re.search(r"(\d{8})", line)
+
+            if code_match and current_colic > 0:
+
+                code = code_match.group(1)
+
+                wid = current_wid if current_wid > 0 else 1
+                broj = current_colic / wid if wid else 0
+
+                # ✅ fallback тегло
+                weight = current_weight
+                if weight == 0:
+                    if "Rimula" in line:
+                        weight = current_colic * 0.666
+                    else:
+                        weight = current_colic * 0.88
+
+                rows.append({
+                    "Тарифен код": code,
+                    "wid": round(wid, 3),
+                    "Количество": round(broj, 3),
+                    "kolichestvo": round(current_colic, 3),
+                    "тегло": round(weight, 3)
+                })
+
+                # ✅ reset
+                current_colic = 0
+                current_wid = 1
+                current_weight = 0
+
+    df = pd.DataFrame(rows)
+
+    if df.empty:
+        return df
+
+    # ✅ ТУК Е КЛЮЧЪТ (сбор от ВСИЧКИ PDF-и)
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
+
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
