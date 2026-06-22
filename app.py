@@ -449,7 +449,7 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
-    # ======================================================
+  # ======================================================
 # ✅ GASOLINE (FINAL PRODUCTION ✅)
 # ======================================================
 def parse_gasoline(file):
@@ -513,7 +513,7 @@ def parse_gasoline(file):
         # ✅ WEIGHT
         # =====================
         weight_match = re.search(
-            r"([\d\.,]+)\s+(?:\d+\s*[xX]\s*\d+|\d+\s+Liter\s+(Fass|Kanne))",
+            r"([\d\.,]+)\s+(?:\d+\s*[xX]\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
             line
         )
         if weight_match:
@@ -533,12 +533,12 @@ def parse_gasoline(file):
                 wid = current_wid if current_wid > 0 else 1
                 broj = current_colic / wid if wid else 0
 
-                # ✅ fallback тегло (НОВА логика)
-weight = current_weight
-if weight == 0:
-    weight = current_colic * 0.89
+                # ✅ fallback тегло (ФИНАЛНО ПРАВИЛО)
+                weight = current_weight
+                if weight == 0:
+                    weight = current_colic * 0.89
 
-
+                # ✅ ДОБАВЯНЕ НА РЕД (МНОГО ВАЖНО!)
                 rows.append({
                     "Тарифен код": code,
                     "wid": round(wid, 3),
@@ -557,7 +557,7 @@ if weight == 0:
     if df.empty:
         return df
 
-    # ✅ ТУК Е КЛЮЧЪТ (сбор от ВСИЧКИ PDF-и)
+    # ✅ сбор на всички PDF-и
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
