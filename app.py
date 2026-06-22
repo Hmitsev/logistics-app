@@ -449,7 +449,7 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
-  # ======================================================
+# ======================================================
 # ✅ GASOLINE (FINAL PRODUCTION ✅)
 # ======================================================
 def parse_gasoline(file):
@@ -488,9 +488,9 @@ def parse_gasoline(file):
     for line in lines:
 
         # =====================
-        # ✅ COLIC (Liter)
+        # ✅ COLIC (САМО ПЪРВОТО!)
         # =====================
-        m = re.search(r"^([\d\.,]+)\s+Liter", line, re.IGNORECASE)
+        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
         if m and current_colic == 0:
             current_colic = parse_float(m.group(1))
 
@@ -520,7 +520,7 @@ def parse_gasoline(file):
             current_weight = parse_float(weight_match.group(1))
 
         # =====================
-        # ✅ FINAL (код)
+        # ✅ FINAL (само ако има Zolltarifnummer)
         # =====================
         if "Zolltarifnummer" in line:
 
@@ -533,12 +533,12 @@ def parse_gasoline(file):
                 wid = current_wid if current_wid > 0 else 1
                 broj = current_colic / wid if wid else 0
 
-                # ✅ fallback тегло (ФИНАЛНО ПРАВИЛО)
+                # ✅ fallback тегло
                 weight = current_weight
                 if weight == 0:
                     weight = current_colic * 0.89
 
-                # ✅ ДОБАВЯНЕ НА РЕД (МНОГО ВАЖНО!)
+                # ✅ ЗАПИС
                 rows.append({
                     "Тарифен код": code,
                     "wid": round(wid, 3),
@@ -547,7 +547,7 @@ def parse_gasoline(file):
                     "тегло": round(weight, 3)
                 })
 
-                # ✅ reset
+                # ✅ RESET
                 current_colic = 0
                 current_wid = 1
                 current_weight = 0
@@ -557,7 +557,7 @@ def parse_gasoline(file):
     if df.empty:
         return df
 
-    # ✅ сбор на всички PDF-и
+    # ✅ GROUPING (митница логика)
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -568,7 +568,7 @@ def parse_gasoline(file):
     })
 
     return df
-   
+
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
