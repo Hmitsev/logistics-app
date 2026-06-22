@@ -582,12 +582,13 @@ def build_final_report(df):
         for _, r in group.iterrows():
             rows.append(r.to_dict())
 
+        # ✅ subtotal per code (ROUND ТУК!)
         rows.append({
             "Тарифен код": str(code) + " -",
             "wid": "",
             "Количество": "",
             "kolichestvo": group["kolichestvo"].sum(),
-            "тегло": group["тегло"].sum()
+            "тегло": round(group["тегло"].sum(), 0)
         })
 
         rows.append({
@@ -598,15 +599,17 @@ def build_final_report(df):
             "тегло": ""
         })
 
+    # ✅ ✅ GRAND TOTAL (правилно използва grouped)
     rows.append({
         "Тарифен код": "GRAND TOTAL",
         "wid": "",
         "Количество": "",
         "kolichestvo": grouped["kolichestvo"].sum(),
-        "тегло": round(group["тегло"].sum(), 0)
+        "тегло": round(grouped["тегло"].sum(), 0)
     })
 
     return pd.DataFrame(rows)
+
 
 # ======================================================
 # ✅ PROCESS
