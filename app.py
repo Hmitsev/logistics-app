@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL ALL-IN-ONE ✅)
+# ✅ GASOLINE (FINAL WORKING VERSION ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -470,118 +470,98 @@ def parse_gasoline(file):
             return 0
 
     # ======================================================
-    # ✅ ЧЕТЕНЕ НА PDF (FIXED)
+    # ✅ READ PDF
     # ======================================================
     reader = PdfReader(file)
-    text = ""
+    lines = []
 
     for page in reader.pages:
-        page_text = page.extract_text()
-        if page_text:
-            text += page_text + "\n"
+        text = page.extract_text()
+        if text:
+            lines.extend(text.split("\n"))
 
-    # ✅ ако PDF е празен → няма crash
-    if len(text.strip()) < 20:
-        return pd.DataFrame()
-
-    # ======================================================
-    # ✅ PARSER
-    # ======================================================
     rows = []
-    lines = text.split("\n")
 
-    for line in lines:
+    # ======================================================
+    # ✅ BLOCK PARSING (ключовото)
+    # ======================================================
+    i = 0
+    while i < len(lines):
 
-        l = line.lower()
+        line = lines[i].lower()
 
-        # ✅ само валидни продуктови редове
-        if "liter" not in l:
-            continue
+        # ✅ търсим старт → Menge
+        if "liter" in line:
 
-        if "zolltarifnummer" not in l:
-            continue
+            try:
+                # ✅ COLIC
+                m = re.search(r"([\d\.,]+)\s+liter", lines[i])
+                if not m:
+                    i += 1
+                    continue
 
-        try:
-            # -------------------------
-            # ✅ COLIC (Menge)
-            # -------------------------
-            m = re.search(r"([\d\.,]+)\s+liter", line, re.IGNORECASE)
-            if not m:
-                continue
-            colic = parse_float(m.group(1))
+                colic = parse_float(m.group(1))
 
-            # -------------------------
-            # ✅ WID (разфасовка)
-            # -------------------------
-            wid = 1
+                # ✅ следващите няколко реда са блока
+                block = " ".join(lines[i:i+4])
 
-            multi = re.search(r"(\d+)x([\d\.,]+)", line, re.IGNORECASE)
-            if multi:
-                wid = parse_float(multi.group(2))
-
-            single = re.search(
-                r"([\d\.,]+)\s+liter\s+(fass|kanne)",
-                line,
-                re.IGNORECASE
-            )
-            if single:
-                wid = parse_float(single.group(1))
-
-            if wid == 0:
+                # ✅ WID
                 wid = 1
 
-            # -------------------------
-            # ✅ ТЕГЛО (директно от реда)
-            # -------------------------
-            weight = 0
+                multi = re.search(r"(\d+)x([\d\.,]+)", block, re.IGNORECASE)
+                if multi:
+                    wid = parse_float(multi.group(2))
 
-            parts = line.split()
+                single = re.search(r"([\d\.,]+)\s+liter\s+(fass|kanne)", block, re.IGNORECASE)
+                if single:
+                    wid = parse_float(single.group(1))
 
-            for p in parts:
-                if "," in p or "." in p:
-                    val = parse_float(p)
+                if wid == 0:
+                    wid = 1
 
-                    # realistic filter за тегло
-                    if 10 < val < 10000:
+                # ✅ ТЕГЛО (в блока има едно такова число)
+                weight = 0
+                nums = re.findall(r"[\d\.,]+", block)
+
+                for n in nums:
+                    val = parse_float(n)
+                    if 50 < val < 10000:
                         weight = val
+                        break
 
-            # -------------------------
-            # ✅ CODE
-            # -------------------------
-            code_match = re.search(
-                r"zolltarifnummer:\s*(\d+)",
-                line,
-                re.IGNORECASE
-            )
-            if not code_match:
+                # ✅ CODE
+                code_match = re.search(r"zolltarifnummer:\s*(\d+)", block, re.IGNORECASE)
+                if not code_match:
+                    i += 1
+                    continue
+
+                code = code_match.group(1)[:8]
+
+                # ✅ BROJ
+                broj = colic / wid if wid != 0 else 0
+
+                rows.append({
+                    "Тарифен код": code,
+                    "wid": round(wid, 3),
+                    "Количество": round(broj, 3),
+                    "kolichestvo": round(colic, 3),
+                    "тегло": round(weight, 3)
+                })
+
+                i += 4  # jump block
                 continue
 
-            code = code_match.group(1)[:8]
+            except:
+                pass
 
-            # -------------------------
-            # ✅ BROJ
-            # -------------------------
-            broj = colic / wid if wid != 0 else 0
-
-            rows.append({
-                "Тарифен код": code,
-                "wid": round(wid, 3),
-                "Количество": round(broj, 3),
-                "kolichestvo": round(colic, 3),
-                "тегло": round(weight, 3)
-            })
-
-        except:
-            continue
+        i += 1
 
     df = pd.DataFrame(rows)
 
     if df.empty:
         return df
 
-    # ======================================================
-    # ✅ ✅ AGGREGATION (Excel logic)
-    # ======================================================
+    # ✅ aggregation (Excel логика)
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
