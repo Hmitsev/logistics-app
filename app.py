@@ -450,12 +450,13 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL FIXED ✅)
+# ✅ GASOLINE (FINAL ALL-IN-ONE ✅)
 # ======================================================
-def parse_gasoline(text):
+def parse_gasoline(file):
 
     import re
     import pandas as pd
+    from PyPDF2 import PdfReader
 
     def parse_float(val):
         try:
@@ -468,6 +469,24 @@ def parse_gasoline(text):
         except:
             return 0
 
+    # ======================================================
+    # ✅ ЧЕТЕНЕ НА PDF (FIXED)
+    # ======================================================
+    reader = PdfReader(file)
+    text = ""
+
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text + "\n"
+
+    # ✅ ако PDF е празен → няма crash
+    if len(text.strip()) < 20:
+        return pd.DataFrame()
+
+    # ======================================================
+    # ✅ PARSER
+    # ======================================================
     rows = []
     lines = text.split("\n")
 
@@ -475,9 +494,7 @@ def parse_gasoline(text):
 
         l = line.lower()
 
-        # ✅ ключов FIX → махаме Lieferschein check
-
-        # ✅ търсим реален продуктов ред
+        # ✅ само валидни продуктови редове
         if "liter" not in l:
             continue
 
@@ -486,7 +503,7 @@ def parse_gasoline(text):
 
         try:
             # -------------------------
-            # ✅ COLIC
+            # ✅ COLIC (Menge)
             # -------------------------
             m = re.search(r"([\d\.,]+)\s+liter", line, re.IGNORECASE)
             if not m:
@@ -494,7 +511,7 @@ def parse_gasoline(text):
             colic = parse_float(m.group(1))
 
             # -------------------------
-            # ✅ WID
+            # ✅ WID (разфасовка)
             # -------------------------
             wid = 1
 
@@ -514,19 +531,18 @@ def parse_gasoline(text):
                 wid = 1
 
             # -------------------------
-            # ✅ ТЕГЛО
+            # ✅ ТЕГЛО (директно от реда)
             # -------------------------
             weight = 0
 
-            # ✅ подобрен parser (по твоите PDF-и)
             parts = line.split()
 
-            for i, p in enumerate(parts):
+            for p in parts:
                 if "," in p or "." in p:
                     val = parse_float(p)
 
-                    # реалното тегло винаги е разумно
-                    if 1 < val < 10000:
+                    # realistic filter за тегло
+                    if 10 < val < 10000:
                         weight = val
 
             # -------------------------
@@ -563,7 +579,9 @@ def parse_gasoline(text):
     if df.empty:
         return df
 
-    # ✅ aggregation (ЗАДЪЛЖИТЕЛНО)
+    # ======================================================
+    # ✅ ✅ AGGREGATION (Excel logic)
+    # ======================================================
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
