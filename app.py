@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL FIXED VERSION ✅)
+# ✅ GASOLINE (FINAL NO-GROUP VERSION ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -489,7 +489,7 @@ def parse_gasoline(file):
         if "Liter" not in line:
             continue
 
-        # ✅ малък стабилен блок
+        # ✅ малък блок
         block = " ".join(lines[i:i+6])
 
         # ✅ трябва да има код
@@ -508,7 +508,11 @@ def parse_gasoline(file):
             # =====================
             # ✅ CODE
             # =====================
-            code = re.search(r"(\d{8})", block).group(1)
+            code_match = re.search(r"(\d{8})", block)
+            if not code_match:
+                continue
+
+            code = code_match.group(1)
 
             # =====================
             # ✅ WID
@@ -523,8 +527,11 @@ def parse_gasoline(file):
             if single:
                 wid = parse_float(single.group(1))
 
+            if wid == 0:
+                wid = 1
+
             # =====================
-            # ✅ WEIGHT (ТОЧНО!)
+            # ✅ WEIGHT
             # =====================
             weight = 0
 
@@ -536,7 +543,7 @@ def parse_gasoline(file):
             if w:
                 weight = parse_float(w.group(1))
 
-            # fallback
+            # ✅ fallback
             if weight == 0:
                 if "Shell Rimula R6 LM 10w40" in block:
                     weight = colic * 0.666
@@ -548,36 +555,22 @@ def parse_gasoline(file):
             # =====================
             broj = colic / wid if wid else 0
 
+            # ✅ ЗАПИСВАМЕ РЕД (БЕЗ AGGREGATION)
             rows.append({
                 "Тарифен код": code,
-                "wid": wid,
-                "Количество": broj,
-                "kolichestvo": colic,
-                "тегло": weight
+                "wid": round(wid, 3),
+                "Количество": round(broj, 3),
+                "kolichestvo": round(colic, 3),
+                "тегло": round(weight, 3)
             })
 
         except:
             continue
 
+    # ✅ ВРЪЩАМЕ RAW DATA (ТОВА Е КЛЮЧЪТ)
     df = pd.DataFrame(rows)
 
-
-    if df.empty:
-        return df
-
-    # ✅ aggregation САМО НАКРАЯ
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
     return df
-
-
 
 
 # ======================================================
