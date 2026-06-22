@@ -583,6 +583,52 @@ def parse_flukar_excel(file):
     return result
 
 
+# ======================================================
+# ✅ FINAL REPORT
+# ======================================================
+def build_final_report(df):
+
+    grouped = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    rows = []
+
+    for code, group in grouped.groupby("Тарифен код"):
+
+        for _, r in group.iterrows():
+            rows.append(r.to_dict())
+
+        rows.append({
+            "Тарифен код": str(code) + " -",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": group["kolichestvo"].sum(),
+            "тегло": group["тегло"].sum()
+        })
+
+        rows.append({
+            "Тарифен код": "",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": "",
+            "тегло": ""
+        })
+
+    rows.append({
+        "Тарифен код": "GRAND TOTAL",
+        "wid": "",
+        "Количество": "",
+        "kolichestvo": grouped["kolichestvo"].sum(),
+        "тегло": grouped["тегло"].sum()
+    })
+
+    return pd.DataFrame(rows)
 
 # ======================================================
 # ✅ PROCESS
