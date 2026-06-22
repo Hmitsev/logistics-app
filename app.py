@@ -488,9 +488,9 @@ def parse_flukar_excel(file):
 
     header_row = None
 
-    # ✅ търсим реда с CN code
+    # ✅ намираме реда с CN (header)
     for i in range(len(df_raw)):
-        row = df_raw.iloc[i].astype(str).str.lower()
+        row = df_raw.iloc[i]
 
         if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
             header_row = i
@@ -500,12 +500,12 @@ def parse_flukar_excel(file):
         st.error("❌ Не може да се намери header ред (CN code)")
         return pd.DataFrame()
 
-    # ✅ четем от намерения header
+    # ✅ четем правилния header
     df = pd.read_excel(file, header=header_row)
 
-    df.columns = df.columns.str.strip()
+    df.columns = df.columns.astype(str).str.strip()
 
-    # ✅ rename
+    # ✅ SMART rename (всички варианти)
     rename_map = {}
 
     for col in df.columns:
@@ -517,7 +517,7 @@ def parse_flukar_excel(file):
         elif "quantity" in c or "pcs" in c:
             rename_map[col] = "Количество"
 
-        elif "capacity" in c:
+        elif "capacity" in c or "package" in c:
             rename_map[col] = "wid"
 
         elif "liter" in c:
@@ -528,7 +528,7 @@ def parse_flukar_excel(file):
 
     df = df.rename(columns=rename_map)
 
-    # ✅ check
+    # ✅ проверка
     required = ["Тарифен код", "Количество", "wid", "тегло"]
 
     for col in required:
@@ -537,10 +537,10 @@ def parse_flukar_excel(file):
             st.write("Колони:", df.columns)
             return pd.DataFrame()
 
-    # ✅ махаме празни
+    # ✅ махаме празните редове
     df = df.dropna(subset=["Тарифен код"])
 
-    # ✅ fallback литри
+    # ✅ литри (ако ги няма → смятаме)
     if "kolichestvo" not in df.columns:
         df["kolichestvo"] = df["Количество"] * df["wid"]
     else:
@@ -548,7 +548,7 @@ def parse_flukar_excel(file):
             df["Количество"] * df["wid"]
         )
 
-    # ✅ group
+    # ✅ group (както при другите suppliers)
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
