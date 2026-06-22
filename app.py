@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (1L FINAL WORKING ✅)
+# ✅ GASOLINE (CORRECT MENGE EXTRACTION ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -484,9 +484,10 @@ def parse_gasoline(file):
     i = 0
     while i < len(lines):
 
-        line = lines[i]
+        line = lines[i].strip()
 
-        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
+        # ✅ ✅ САМО редове започващи с количество
+        m = re.match(r"^([\d\.,]+)\s+Liter", line, re.IGNORECASE)
 
         if not m:
             i += 1
@@ -494,7 +495,7 @@ def parse_gasoline(file):
 
         colic = parse_float(m.group(1))
 
-        # ✅ динамичен блок
+        # ✅ блок до Zolltarifnummer
         block_lines = [line]
         j = i + 1
 
@@ -508,19 +509,13 @@ def parse_gasoline(file):
 
         block = " ".join(block_lines)
 
-        # ✅ ✅ FIX → разпознаване на 1L (всякакви формати)
-        is_1L = (
-            re.search(r"x\s*1\b", block, re.IGNORECASE) or
-            re.search(r"1\s*Liter", block, re.IGNORECASE)
-        )
-
-        if not is_1L:
+        # ✅ само 1L
+        if not re.search(r"x\s*1\b", block, re.IGNORECASE):
             i = j + 1
             continue
 
-        # ✅ CODE
+        # ✅ код
         code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block)
-
         if not code_match:
             i = j + 1
             continue
@@ -533,7 +528,9 @@ def parse_gasoline(file):
 
         for n in nums:
             val = parse_float(n)
-            if val != colic and 1 < val < 10000:
+
+            # теглото е второто голямо число
+            if val != colic and val > 50:
                 weight = val
                 break
 
