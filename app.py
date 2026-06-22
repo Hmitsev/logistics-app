@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL CORRECT BUSINESS VERSION ✅)
+# ✅ GASOLINE (RAW EXTRACT ONLY ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -483,7 +483,7 @@ def parse_gasoline(file):
 
     for i in range(len(lines)):
 
-        # ✅ търсим начало → Menge
+        # ✅ търсим ред с количество (Menge)
         m = re.search(r"([\d\.,]+)\s+Liter", lines[i], re.IGNORECASE)
 
         if not m:
@@ -492,7 +492,7 @@ def parse_gasoline(file):
         try:
             colic = parse_float(m.group(1))
 
-            # ✅ взимаме локален блок (следващите редове)
+            # ✅ взимаме малък блок около продукта
             block = " ".join(lines[i:i+5])
 
             # ✅ WID
@@ -509,33 +509,31 @@ def parse_gasoline(file):
             if wid == 0:
                 wid = 1
 
-            # ✅ CODE
-            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block, re.IGNORECASE)
-            if not code_match:
-                continue
-
-            code = code_match.group(1)[:8]
-
-            # ✅ ТЕГЛО → намираме най-близкото число след colic
+            # ✅ ТЕГЛО – най-близкото число след Menge
             weight = 0
-
             nums = re.findall(r"[\d\.,]+", block)
 
             for n in nums:
                 val = parse_float(n)
 
-                # теглото винаги е близко до colic и разумно
-                if 1 < val < 10000 and val != colic:
+                # теглото винаги е различно от colic и разумно
+                if val != colic and 1 < val < 10000:
                     weight = val
                     break
 
-            # ✅ BROJ
-            broj = colic / wid if wid else 0
+            # ✅ CODE
+            code_match = re.search(r"Zolltarifnummer:\s*(\d+)", block, re.IGNORECASE)
 
+            if not code_match:
+                continue
+
+            code = code_match.group(1)[:8]
+
+            # ✅ ДОБАВЯМЕ (без изчисления)
             rows.append({
                 "Тарифен код": code,
                 "wid": round(wid, 3),
-                "Количество": round(broj, 3),
+                "Количество": 0,  # ✅ както поиска
                 "kolichestvo": round(colic, 3),
                 "тегло": round(weight, 3)
             })
@@ -543,23 +541,7 @@ def parse_gasoline(file):
         except:
             continue
 
-    df = pd.DataFrame(rows)
-
-    if df.empty:
-        return df
-
-    # ✅ aggregation → точно като Excel
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
-
+    return pd.DataFrame(rows)
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
