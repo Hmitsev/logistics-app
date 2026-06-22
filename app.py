@@ -533,13 +533,11 @@ def parse_gasoline(file):
                 wid = current_wid if current_wid > 0 else 1
                 broj = current_colic / wid if wid else 0
 
-                # ✅ fallback тегло
-                weight = current_weight
-                if weight == 0:
-                    if "Rimula" in line:
-                        weight = current_colic * 0.666
-                    else:
-                        weight = current_colic * 0.88
+                # ✅ fallback тегло (НОВА логика)
+weight = current_weight
+if weight == 0:
+    weight = current_colic * 0.89
+
 
                 rows.append({
                     "Тарифен код": code,
