@@ -546,7 +546,6 @@ def parse_flukar_excel(file):
         result["kolichestvo"] = pd.to_numeric(result["kolichestvo"], errors="coerce")
 
     # ✅ ✅ 🔥 ВАЖНО — ROUND САМО НА ТЕГЛО (като FLUKAR)
-    result["тегло"] = result["тегло"].round(0)
 
     result = result.dropna(subset=["Количество", "wid", "тегло"])
 
@@ -604,7 +603,7 @@ def build_final_report(df):
         "wid": "",
         "Количество": "",
         "kolichestvo": grouped["kolichestvo"].sum(),
-        "тегло": grouped["тегло"].sum()
+        "тегло": round(group["тегло"].sum(), 0)
     })
 
     return pd.DataFrame(rows)
