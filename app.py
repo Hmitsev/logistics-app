@@ -654,7 +654,7 @@ def build_final_report(df):
 
 
 # ======================================================
-# ✅ PROCESS
+# ✅ PROCESS (FINAL FIXED ✅)
 # ======================================================
 if uploaded_files:
 
@@ -674,7 +674,9 @@ if uploaded_files:
             text = ""
 
             for page in reader.pages:
-                text += page.extract_text() + "\n"
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
 
             if menu == "CASTROL":
                 df = parse_castrol(text)
@@ -737,17 +739,28 @@ if uploaded_files:
         st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
         st.stop()
 
-    # ✅ ✅ ✅ FINAL CLEAN BLOCK
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df["Тарифен код"] = final_df["Тарифен код"].str[:8]
+    # ======================================================
+    # ✅ ✅ ✅ КРИТИЧЕН FIX (ТУК БЕШЕ ПРОБЛЕМЪТ)
+    # ======================================================
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str).str.strip()
+    final_df["Тарифен код"] = final_df["Тарифен код"].str.extract(r"(\d{8})")
 
+    # ✅ вместо strict match → стабилен filter
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+
+    # ======================================================
 
     if "тегло" not in final_df.columns:
         final_df["тегло"] = 0
 
     if menu in ["MOTUL", "NESTE"]:
         final_df = final_df[final_df["тегло"] > 0]
+
+    # ✅ ако след filter няма редове → показва реалния проблем
+    if final_df.empty:
+        st.warning("⚠️ Данните бяха намерени, но всички бяха филтрирани (провери кодовете)")
+        st.write("Намерени кодове:", pd.concat(all_data)["Тарифен код"].unique())
+        st.stop()
 
     # ✅ REPORT
     report = build_final_report(final_df)
