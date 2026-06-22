@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL PRODUCTION ✅)
+# ✅ GASOLINE (FINAL – BLOCK LOGIC ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -480,84 +480,71 @@ def parse_gasoline(file):
     lines = text.split("\n")
 
     rows = []
-
-    current_colic = 0
-    current_wid = 1
-    current_weight = 0
+    buffer = []
 
     for line in lines:
 
-        # =====================
-        # ✅ COLIC (САМО ПЪРВОТО!)
-        # =====================
-        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
-        if m and current_colic == 0:
-            current_colic = parse_float(m.group(1))
+        buffer.append(line)
 
-        # =====================
-        # ✅ WID (опаковка)
-        # =====================
-        multi = re.search(r"\d+\s*[xX]\s*([\d\.,]+)", line)
-        if multi:
-            current_wid = parse_float(multi.group(1))
-
-        single = re.search(
-            r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)",
-            line,
-            re.IGNORECASE
-        )
-        if single:
-            current_wid = parse_float(single.group(1))
-
-        # =====================
-        # ✅ WEIGHT
-        # =====================
-        weight_match = re.search(
-            r"([\d\.,]+)\s+(?:\d+\s*[xX]\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
-            line
-        )
-        if weight_match:
-            current_weight = parse_float(weight_match.group(1))
-
-        # =====================
-        # ✅ FINAL (само ако има Zolltarifnummer)
-        # =====================
+        # ✅ край на продукт
         if "Zolltarifnummer" in line:
 
-            code_match = re.search(r"(\d{8})", line)
+            block = " ".join(buffer)
 
-            if code_match and current_colic > 0:
+            # =====================
+            # ✅ COLIC (най-голямото число преди Liter)
+            # =====================
+            matches = re.findall(r"(\d+[\.,]?\d*)\s+Liter", block)
+            colic = max([parse_float(x) for x in matches]) if matches else 0
+
+            # =====================
+            # ✅ WID
+            # =====================
+            multi = re.search(r"\d+\s*[xX]\s*(\d+)", block)
+
+            if multi:
+                wid = float(multi.group(1))
+            else:
+                single = re.search(r"(\d+)\s+Liter\s+(Fass|Kanne)", block)
+                wid = float(single.group(1)) if single else 1
+
+            # =====================
+            # ✅ WEIGHT
+            # =====================
+            weight_matches = re.findall(r"\d+[\.,]\d+", block)
+            weight = parse_float(weight_matches[0]) if weight_matches else 0
+
+            if weight == 0:
+                weight = colic * 0.89
+
+            # =====================
+            # ✅ CODE
+            # =====================
+            code_match = re.search(r"(\d{8})", block)
+
+            if code_match and colic > 0:
 
                 code = code_match.group(1)
 
-                wid = current_wid if current_wid > 0 else 1
-                broj = current_colic / wid if wid else 0
+                broj = colic / wid if wid else 0
 
-                # ✅ fallback тегло
-                weight = current_weight
-                if weight == 0:
-                    weight = current_colic * 0.89
-
-                # ✅ ЗАПИС
                 rows.append({
                     "Тарифен код": code,
-                    "wid": round(wid, 3),
+                    "wid": wid,
                     "Количество": round(broj, 3),
-                    "kolichestvo": round(current_colic, 3),
+                    "kolichestvo": colic,
                     "тегло": round(weight, 3)
                 })
 
-                # ✅ RESET
-                current_colic = 0
-                current_wid = 1
-                current_weight = 0
+            # ✅ reset buffer
+            buffer = []
 
     df = pd.DataFrame(rows)
 
     if df.empty:
         return df
 
-    # ✅ GROUPING (митница логика)
+    # ✅ групиране митница стил
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -568,7 +555,6 @@ def parse_gasoline(file):
     })
 
     return df
-
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
