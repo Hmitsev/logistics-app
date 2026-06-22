@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL","NESTE"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL", "NESTE", "FLUKAR"])
 
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
@@ -479,7 +479,38 @@ def parse_neste_excel(file):
 
     return df
 
+# ======================================================
+# ✅ FLUKAR (EXCEL ONLY ✅)
+# ======================================================
+def parse_flukar_excel(file):
 
+    df = pd.read_excel(file)
+
+    df.columns = df.columns.str.strip()
+
+    df = df.rename(columns={
+        "CN code": "Тарифен код",
+        "Quantity": "Количество",
+        "capacity [L]": "wid",
+        "Liters": "kolichestvo",
+        "Nett weight [kg]": "тегло"
+    })
+
+    df = df.dropna(subset=["Тарифен код"])
+
+    if df["kolichestvo"].isnull().any():
+        df["kolichestvo"] = df["Количество"] * df["wid"]
+
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
@@ -537,65 +568,68 @@ if uploaded_files:
 
     for file in uploaded_files:
 
-        df = None
+    df = None
 
-        # ✅ NESTE
-        if menu == "NESTE":
-            df = parse_neste_excel(file)
+    # ✅ NESTE
+    if menu == "NESTE":
+        df = parse_neste_excel(file)
 
-        # ✅ PDF
-        elif source_type == "PDF":
-            reader = PdfReader(file)
-            text = ""
+    # ✅ FLUKAR
+    elif menu == "FLUKAR":
+        df = parse_flukar_excel(file)
 
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
+    # ✅ PDF
+    elif source_type == "PDF":
+        reader = PdfReader(file)
+        text = ""
 
-            if menu == "CASTROL":
-                df = parse_castrol(text)
-            else:
-                df = parse_motul(text)
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
 
-        # ✅ Excel fallback  🔥 ВЪТРЕ В LOOP-А!
+        if menu == "CASTROL":
+            df = parse_castrol(text)
         else:
+            df = parse_motul(text)
 
-            df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
+    # ✅ Excel fallback
+    else:
+        df = pd.read_excel(file)
+        df.columns = df.columns.str.strip()
 
-            column_map = {}
+        column_map = {}
 
-            for col in df.columns:
-                c = col.lower()
+        for col in df.columns:
+            c = col.lower()
 
-                if "commodity" in c or "code" in c:
-                    column_map[col] = "Commodity code"
+            if "commodity" in c or "code" in c:
+                column_map[col] = "Commodity code"
 
-                elif "pack" in c:
-                    column_map[col] = "Type of packaging"
+            elif "pack" in c:
+                column_map[col] = "Type of packaging"
 
-                elif "delivery quantity" in c or "qty" in c:
-                    column_map[col] = "Delivery quantity"
+            elif "delivery quantity" in c or "qty" in c:
+                column_map[col] = "Delivery quantity"
 
-                elif "volume" in c:
-                    column_map[col] = "Volume"
+            elif "volume" in c:
+                column_map[col] = "Volume"
 
-                elif "net weight" in c or "weight" in c:
-                    column_map[col] = "Net Weight"
+            elif "net weight" in c or "weight" in c:
+                column_map[col] = "Net Weight"
 
-            df = df.rename(columns=column_map)
-            df = df.loc[:, ~df.columns.duplicated()]
+        df = df.rename(columns=column_map)
+        df = df.loc[:, ~df.columns.duplicated()]
 
-            df = df.rename(columns={
-                "Commodity code": "Тарифен код",
-                "Type of packaging": "wid",
-                "Delivery quantity": "Количество",
-                "Volume": "kolichestvo",
-                "Net Weight": "тегло"
-            })
+        df = df.rename(columns={
+            "Commodity code": "Тарифен код",
+            "Type of packaging": "wid",
+            "Delivery quantity": "Количество",
+            "Volume": "kolichestvo",
+            "Net Weight": "тегло"
+        })
 
-        # ✅ SAFE APPEND (вътре!)
-        if isinstance(df, pd.DataFrame) and not df.empty:
-            all_data.append(df)
+    # ✅ SAFE APPEND
+    if isinstance(df, pd.DataFrame) and not df.empty:
+        all_data.append(df)
 
     # ✅ FINAL COMBINE
     if not all_data:
