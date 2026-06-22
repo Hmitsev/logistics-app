@@ -490,7 +490,7 @@ def parse_gasoline(file):
         # =====================
         # ✅ COLIC (Liter)
         # =====================
-        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
+        m = re.search(r"^([\d\.,]+)\s+Liter", line, re.IGNORECASE)
         if m:
             current_colic = parse_float(m.group(1))
 
