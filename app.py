@@ -460,11 +460,7 @@ def parse_gasoline(file):
 
     def parse_float(val):
         try:
-            val = str(val).strip()
-            if "." in val and "," in val:
-                val = val.replace(".", "").replace(",", ".")
-            else:
-                val = val.replace(",", ".")
+            val = str(val).replace(",", ".")
             return float(val)
         except:
             return 0
@@ -477,74 +473,73 @@ def parse_gasoline(file):
         if t:
             text += t + "\n"
 
-    lines = text.split("\n")
+    # ✅ режем директно по продукти
+    blocks = text.split("Zolltarifnummer")
 
     rows = []
-    buffer = []
 
-    for line in lines:
+    for block in blocks:
 
-        buffer.append(line)
+        # =====================
+        # ✅ CODE
+        # =====================
+        code_match = re.search(r"(\d{8})", block)
+        if not code_match:
+            continue
 
-        # ✅ край на продукт
-        if "Zolltarifnummer" in line:
+        code = code_match.group(1)
 
-            block = " ".join(buffer)
+        # =====================
+        # ✅ COLIC (НАЙ-ГОЛЯМОТО Liter)
+        # =====================
+        liters = re.findall(r"(\d+[\.,]?\d*)\s+Liter", block)
+        if not liters:
+            continue
 
-            # =====================
-            # ✅ COLIC (най-голямото число преди Liter)
-            # =====================
-            matches = re.findall(r"(\d+[\.,]?\d*)\s+Liter", block)
-            colic = max([parse_float(x) for x in matches]) if matches else 0
+        colic = max(parse_float(x) for x in liters)
 
-            # =====================
-            # ✅ WID
-            # =====================
-            multi = re.search(r"\d+\s*[xX]\s*(\d+)", block)
+        # =====================
+        # ✅ WID
+        # =====================
+        multi = re.search(r"\d+\s*[xX]\s*(\d+)", block)
 
-            if multi:
-                wid = float(multi.group(1))
-            else:
-                single = re.search(r"(\d+)\s+Liter\s+(Fass|Kanne)", block)
-                wid = float(single.group(1)) if single else 1
+        if multi:
+            wid = parse_float(multi.group(1))
+        else:
+            single = re.search(r"(\d+)\s+Liter\s+(Fass|Kanne)", block)
+            wid = parse_float(single.group(1)) if single else 1
 
-            # =====================
-            # ✅ WEIGHT
-            # =====================
-            weight_matches = re.findall(r"\d+[\.,]\d+", block)
-            weight = parse_float(weight_matches[0]) if weight_matches else 0
+        # =====================
+        # ✅ BROJ
+        # =====================
+        broj = colic / wid if wid else 0
 
-            if weight == 0:
-                weight = colic * 0.89
+        # =====================
+        # ✅ WEIGHT
+        # =====================
+        weight_match = re.search(r"(\d+[\.,]\d+)", block)
+        weight = parse_float(weight_match.group(1)) if weight_match else 0
 
-            # =====================
-            # ✅ CODE
-            # =====================
-            code_match = re.search(r"(\d{8})", block)
+        if weight == 0:
+            weight = colic * 0.89
 
-            if code_match and colic > 0:
-
-                code = code_match.group(1)
-
-                broj = colic / wid if wid else 0
-
-                rows.append({
-                    "Тарифен код": code,
-                    "wid": wid,
-                    "Количество": round(broj, 3),
-                    "kolichestvo": colic,
-                    "тегло": round(weight, 3)
-                })
-
-            # ✅ reset buffer
-            buffer = []
+        # =====================
+        # ✅ SAVE
+        # =====================
+        rows.append({
+            "Тарифен код": code,
+            "wid": wid,
+            "Количество": round(broj, 3),
+            "kolichestvo": round(colic, 3),
+            "тегло": round(weight, 3)
+        })
 
     df = pd.DataFrame(rows)
 
     if df.empty:
         return df
 
-    # ✅ групиране митница стил
+    # ✅ GROUP
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -555,6 +550,7 @@ def parse_gasoline(file):
     })
 
     return df
+
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
