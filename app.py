@@ -484,11 +484,15 @@ def parse_neste_excel(file):
 # ======================================================
 def parse_flukar_excel(file):
 
-    df = pd.read_excel(file)
+    # ✅ опит 1
+    df = pd.read_excel(file, header=6)
+
+    # ✅ ако не е уцелен header
+    if not any("cn" in str(col).lower() for col in df.columns):
+        df = pd.read_excel(file, header=7)
 
     df.columns = df.columns.str.strip()
 
-    # ✅ SMART rename (работи за всички варианти)
     rename_map = {}
 
     for col in df.columns:
@@ -511,21 +515,14 @@ def parse_flukar_excel(file):
 
     df = df.rename(columns=rename_map)
 
-    # ✅ DEBUG (ще ти помогне ако пак има проблем)
-    # st.write(df.columns)
+    # ✅ проверка
+    if "Тарифен код" not in df.columns:
+        st.error("❌ Не може да се разпознае форматът на FLUKAR файла")
+        st.write("Колони в файла:", df.columns)
+        return pd.DataFrame()
 
-    # ✅ CHECK дали има нужните колони
-    required = ["Тарифен код", "Количество", "wid", "тегло"]
-
-    for col in required:
-        if col not in df.columns:
-            st.error(f"❌ Липсва колона: {col}")
-            return pd.DataFrame()
-
-    # ✅ маха празни
     df = df.dropna(subset=["Тарифен код"])
 
-    # ✅ fallback за литри
     if "kolichestvo" not in df.columns:
         df["kolichestvo"] = df["Количество"] * df["wid"]
     else:
@@ -533,7 +530,6 @@ def parse_flukar_excel(file):
             df["Количество"] * df["wid"]
         )
 
-    # ✅ group
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
