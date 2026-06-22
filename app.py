@@ -561,11 +561,11 @@ def parse_flukar_excel(file):
 
     return result
 
-# ======================================================
-# ✅ FINAL REPORT
-# ======================================================
-dfrom decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP
 
+# ======================================================
+# ✅ FINAL REPORT (FIXED)
+# ======================================================
 def build_final_report(df):
 
     grouped = df.groupby(
@@ -581,14 +581,15 @@ def build_final_report(df):
 
     for code, group in grouped.groupby("Тарифен код"):
 
+        # ✅ редовете НЕ ги пипаме
         for _, r in group.iterrows():
             rows.append(r.to_dict())
 
-        # ✅ precision fix
-        weight_sum = float(
-            Decimal(str(group["тегло"].sum())).quantize(
-                Decimal("1"), rounding=ROUND_HALF_UP
-            )
+        # ✅ 👉 ключът е ТУК — high precision sum
+        total_weight = sum(Decimal(str(x)) for x in group["тегло"])
+
+        total_weight = float(
+            total_weight.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         )
 
         rows.append({
@@ -596,7 +597,7 @@ def build_final_report(df):
             "wid": "",
             "Количество": "",
             "kolichestvo": group["kolichestvo"].sum(),
-            "тегло": weight_sum
+            "тегло": total_weight
         })
 
         rows.append({
@@ -607,10 +608,10 @@ def build_final_report(df):
             "тегло": ""
         })
 
-    total_weight = float(
-        Decimal(str(grouped["тегло"].sum())).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        )
+    # ✅ ✅ GRAND TOTAL
+    grand_total = sum(Decimal(str(x)) for x in grouped["тегло"])
+    grand_total = float(
+        grand_total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     )
 
     rows.append({
@@ -618,7 +619,7 @@ def build_final_report(df):
         "wid": "",
         "Количество": "",
         "kolichestvo": grouped["kolichestvo"].sum(),
-        "тегло": total_weight
+        "тегло": grand_total
     })
 
     return pd.DataFrame(rows)
