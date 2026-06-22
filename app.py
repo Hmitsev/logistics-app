@@ -639,72 +639,68 @@ if uploaded_files:
 
     for file in uploaded_files:
 
-     df = None
+        df = None
 
-    # ✅ NESTE
-    if menu == "NESTE":
-        df = parse_neste_excel(file)
+        # ✅ NESTE
+        if menu == "NESTE":
+            df = parse_neste_excel(file)
 
-    # ✅ FLUKAR
-    elif menu == "FLUKAR":
-        df = parse_flukar_excel(file)
+        # ✅ FLUKAR
+        elif menu == "FLUKAR":
+            df = parse_flukar_excel(file)
 
-    # ✅ PDF
-    elif source_type == "PDF":
-        reader = PdfReader(file)
-        text = ""
+        # ✅ PDF
+        elif source_type == "PDF":
+            reader = PdfReader(file)
+            text = ""
 
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
 
-        if menu == "CASTROL":
-            df = parse_castrol(text)
+            if menu == "CASTROL":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
+
+        # ✅ Excel fallback
         else:
-            df = parse_motul(text)
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
-    # ✅ Excel fallback
-    else:
-        df = pd.read_excel(file)
-        df.columns = df.columns.str.strip()
+            column_map = {}
 
-        column_map = {}
+            for col in df.columns:
+                c = col.lower()
 
-        for col in df.columns:
-            c = col.lower()
+                if "commodity" in c or "code" in c:
+                    column_map[col] = "Commodity code"
 
-            if "commodity" in c or "code" in c:
-                column_map[col] = "Commodity code"
+                elif "pack" in c:
+                    column_map[col] = "Type of packaging"
 
-            elif "pack" in c:
-                column_map[col] = "Type of packaging"
+                elif "delivery quantity" in c or "qty" in c:
+                    column_map[col] = "Delivery quantity"
 
-            elif "delivery quantity" in c or "qty" in c:
-                column_map[col] = "Delivery quantity"
+                elif "volume" in c:
+                    column_map[col] = "Volume"
 
-            elif "volume" in c:
-                column_map[col] = "Volume"
+                elif "net weight" in c or "weight" in c:
+                    column_map[col] = "Net Weight"
 
-            elif "net weight" in c or "weight" in c:
-                column_map[col] = "Net Weight"
+            df = df.rename(columns=column_map)
+            df = df.loc[:, ~df.columns.duplicated()]
 
-        df = df.rename(columns=column_map)
-        df = df.loc[:, ~df.columns.duplicated()]
+            df = df.rename(columns={
+                "Commodity code": "Тарифен код",
+                "Type of packaging": "wid",
+                "Delivery quantity": "Количество",
+                "Volume": "kolichestvo",
+                "Net Weight": "тегло"
+            })
 
-        df = df.rename(columns={
-            "Commodity code": "Тарифен код",
-            "Type of packaging": "wid",
-            "Delivery quantity": "Количество",
-            "Volume": "kolichestvo",
-            "Net Weight": "тегло"
-        })
-
-    # ✅ SAFE APPEND
-    if isinstance(df, pd.DataFrame) and not df.empty:
-        all_data.append(df)
-
-    # ✅ SAFE APPEND
-    if isinstance(df, pd.DataFrame) and not df.empty:
-        all_data.append(df)
+        # ✅ SAFE APPEND
+        if isinstance(df, pd.DataFrame) and not df.empty:
+            all_data.append(df)
 
     # ✅ FINAL COMBINE
     if not all_data:
@@ -712,7 +708,9 @@ if uploaded_files:
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
-    715 st.write("DEBUG DF:", final_df.head(20))
+
+    # ✅ DEBUG
+    st.write("DEBUG DF:", final_df.head(20))
     st.write("COLUMNS:", final_df.columns)
 
     if "Тарифен код" not in final_df.columns:
@@ -720,7 +718,10 @@ if uploaded_files:
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-    final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+
+    # ❗ временно махаме този ред за debug
+    # final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
+
     final_df = final_df[final_df["тегло"] > 0]
 
     report = build_final_report(final_df)
@@ -735,14 +736,3 @@ if uploaded_files:
 
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
-
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
-
-    st.download_button(
-        "📥 Изтегли Excel",
-        data=output.getvalue(),
-        file_name="final_report.xlsx"
-    )
