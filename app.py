@@ -650,7 +650,7 @@ def build_final_report(df):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL FIXED ✅)
+# ✅ PROCESS (FINAL WITH 2 SHEETS ✅)
 # ======================================================
 if uploaded_files:
 
@@ -735,16 +735,12 @@ if uploaded_files:
         st.warning("⚠️ Данните не съдържат тарифен код – файлът не е разпознат")
         st.stop()
 
-    # ======================================================
-    # ✅ ✅ ✅ КРИТИЧЕН FIX (ТУК БЕШЕ ПРОБЛЕМЪТ)
-    # ======================================================
+    # ✅ FIX CODE
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str).str.strip()
     final_df["Тарифен код"] = final_df["Тарифен код"].str.extract(r"(\d{8})")
 
-    # ✅ вместо strict match → стабилен filter
+    # ✅ FILTER
     final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-
-    # ======================================================
 
     if "тегло" not in final_df.columns:
         final_df["тегло"] = 0
@@ -752,13 +748,13 @@ if uploaded_files:
     if menu in ["MOTUL", "NESTE"]:
         final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ ако след filter няма редове → показва реалния проблем
     if final_df.empty:
-        st.warning("⚠️ Данните бяха намерени, но всички бяха филтрирани (провери кодовете)")
-        st.write("Намерени кодове:", pd.concat(all_data)["Тарифен код"].unique())
+        st.warning("⚠️ Данните бяха намерени, но всички бяха филтрирани")
         st.stop()
 
-    # ✅ REPORT
+    # ======================================================
+    # ✅ ✅ REPORT (визуализация в Streamlit)
+    # ======================================================
     report = build_final_report(final_df)
 
     report = report.rename(columns={
@@ -772,10 +768,65 @@ if uploaded_files:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
+    # ======================================================
+    # ✅ ✅ ✅ EXCEL (2 SHEETS)
+    # ======================================================
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
+
+        # ==========================
+        # ✅ SHEET 1 → RAW (Report)
+        # ==========================
+        raw = pd.concat(all_data, ignore_index=True)
+
+        raw = raw.rename(columns={
+            "Тарифен код": "Code",
+            "Количество": "Broj",
+            "kolichestvo": "colic-v L",
+            "тегло": "teglo"
+        })
+
+        raw["Code"] = raw["Code"].astype(str).str[:8]
+
+        raw.to_excel(writer, index=False, sheet_name="Report")
+
+        # ==========================
+        # ✅ SHEET 2 → MITNICA (FORMULI)
+        # ==========================
+        workbook = writer.book
+        ws = workbook.create_sheet("Mitnica report")
+
+        headers = ["Code", "wid", "Broj", "colic-v L", "teglo"]
+        ws.append(headers)
+
+        unique = raw[["Code", "wid"]].drop_duplicates().values.tolist()
+
+        row_idx = 2
+
+        for code, wid in unique:
+
+            ws.cell(row=row_idx, column=1).value = code
+            ws.cell(row=row_idx, column=2).value = wid
+
+            ws.cell(row=row_idx, column=3).value = (
+                f'=SUMIFS(Report!Boj:Boj,Report!A:A,"{code}",Report!B:B,{wid})'
+            )
+
+            ws.cell(row=row_idx, column=4).value = (
+                f'=SUMIFS(Report!D:D,Report!A:A,"{code}",Report!B:B,{wid})'
+            )
+
+            ws.cell(row=row_idx, column=5).value = (
+                f'=SUMIFS(Report!E:E,Report!A:A,"{code}",Report!B:B,{wid})'
+            )
+
+            row_idx += 1
+
+        # ✅ TOTAL
+        ws.cell(row=row_idx + 1, column=1).value = "GRAND TOTAL"
+        ws.cell(row=row_idx + 1, column=4).value = f"=SUM(D2:D{row_idx-1})"
+        ws.cell(row=row_idx + 1, column=5).value = f"=SUM(E2:E{row_idx-1})"
 
     st.download_button(
         "📥 Изтегли Excel",
