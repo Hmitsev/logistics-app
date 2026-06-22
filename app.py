@@ -478,70 +478,51 @@ def parse_gasoline(file):
             text += t + "\n"
 
     lines = text.split("\n")
-
     rows = []
 
     for i in range(len(lines)):
 
         line = lines[i]
 
-        # ✅ трябва да има Liter
+        # ✅ САМО редове започващи с количество
         if not re.match(r"^\s*\d+[\.,]?\d*\s+Liter", line):
             continue
 
-        # ✅ малък блок
+        # ✅ ПО-ГОЛЯМ BLOCK (КРИТИЧНО)
         block = " ".join(lines[i:i+12])
 
-        # ✅ трябва да има код
         if "Zolltarifnummer" not in block:
             continue
 
         try:
-            # =====================
             # ✅ COLIC
-            # =====================
             m = re.search(r"([\d\.,]+)\s+Liter", block)
             if not m:
                 continue
             colic = parse_float(m.group(1))
 
-            # =====================
             # ✅ CODE
-            # =====================
             code_match = re.search(r"(\d{8})", block)
             if not code_match:
                 continue
-
             code = code_match.group(1)
 
-            # =====================
-            # =====================
             # ✅ WID
-            # =====================
             wid = 1
 
-            multi = re.search(
-                r"(\d+)\s*[xX]\s*([\d\.,]+)\s*Liter",
-                block
-            )
+            multi = re.search(r"(\d+)\s*[xX]\s*([\d\.,]+)\s*Liter", block)
 
             if multi:
                 wid = parse_float(multi.group(2))
-
             else:
-                single = re.search(
-                    r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)",
-                    block
-                )
-
+                single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block)
                 if single:
                     wid = parse_float(single.group(1))
 
             if wid == 0:
                 wid = 1
-            # =====================
+
             # ✅ WEIGHT
-            # =====================
             weight = 0
 
             w = re.search(
@@ -559,28 +540,21 @@ def parse_gasoline(file):
                 else:
                     weight = colic * 0.88
 
-            # =====================
             # ✅ BROJ
-            # =====================
             broj = colic / wid if wid else 0
 
-            # ✅ ЗАПИСВАМЕ РЕД (БЕЗ AGGREGATION)
             rows.append({
                 "Тарифен код": code,
-                "wid": round(wid, 3),
-                "Количество": round(broj, 3),
-                "kolichestvo": round(colic, 3),
-                "тегло": round(weight, 3)
+                "wid": wid,
+                "Количество": broj,
+                "kolichestvo": colic,
+                "тегло": weight
             })
 
         except:
             continue
 
-    # ✅ ВРЪЩАМЕ RAW DATA (ТОВА Е КЛЮЧЪТ)
-    df = pd.DataFrame(rows)
-
-    return df
-
+    return pd.DataFrame(rows)
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
