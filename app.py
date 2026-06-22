@@ -560,10 +560,6 @@ def parse_gasoline(file):
             continue
 
     df = pd.DataFrame(rows)
-    
-st.write("DEBUG ROWS:")
-for r in rows:
-    st.write(r)
 
 
     if df.empty:
