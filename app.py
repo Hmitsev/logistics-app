@@ -515,20 +515,25 @@ def parse_gasoline(file):
             code = code_match.group(1)
 
             # =====================
-            # ✅ WID
-            # =====================
-            wid = 1
+# ✅ WID
+# =====================
+wid = 1
 
-            multi = re.search(r"(\d+)\s*[xX]\s*([\d\.,]+)\s*Liter", block
-            if multi:
-                wid = parse_float(multi.group(2))
+# ✅ multi-pack (12x1, 3x5, 4x4, 20x1)
+multi = re.search(r"(\d+)\s*[xX]\s*([\d\.,]+)\s*Liter", block)
 
-            single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block)
-            if single:
-                wid = parse_float(single.group(1))
+if multi:
+    wid = parse_float(multi.group(2))
 
-            if wid == 0:
-                wid = 1
+else:
+    # ✅ Fass / Kanne (209L, 55L, 20L и т.н.)
+    single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block)
+
+    if single:
+        wid = parse_float(single.group(1))
+
+if wid == 0:
+    wid = 1
 
             # =====================
             # ✅ WEIGHT
