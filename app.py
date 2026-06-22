@@ -450,7 +450,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ GASOLINE (FINAL FIXED ✅)
+# ✅ GASOLINE (FINAL REAL FIX ✅)
 # ======================================================
 def parse_gasoline(file):
 
@@ -460,7 +460,7 @@ def parse_gasoline(file):
 
     def parse_float(val):
         try:
-            val = str(val).strip()
+            val = val.strip()
             if "." in val and "," in val:
                 val = val.replace(".", "").replace(",", ".")
             else:
@@ -470,112 +470,87 @@ def parse_gasoline(file):
             return 0
 
     reader = PdfReader(file)
-
     text = ""
+
     for page in reader.pages:
         t = page.extract_text()
         if t:
             text += t + "\n"
 
     lines = text.split("\n")
+
     rows = []
 
-    i = 0
-    while i < len(lines):
+    current_colic = 0
+    current_wid = 1
+    current_weight = 0
+
+    for i in range(len(lines)):
 
         line = lines[i]
 
-        # ✅ старт САМО от Menge ред
-        if not re.match(r"^\s*\d+[\.,]?\d*\s+Liter", line):
-            i += 1
-            continue
+        # ✅ 1. Menge (Liter)
+        m = re.search(r"([\d\.,]+)\s+Liter", line, re.IGNORECASE)
+        if m:
+            current_colic = parse_float(m.group(1))
 
-        # ✅ събираме block за продукта
-        block_lines = [line]
-        j = i + 1
+        # ✅ 2. Wid
+        multi = re.search(r"(\d+)x([\d\.,]+)", line, re.IGNORECASE)
+        if multi:
+            current_wid = parse_float(multi.group(2))
 
-        while j < len(lines):
+        single = re.search(r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", line, re.IGNORECASE)
+        if single:
+            current_wid = parse_float(single.group(1))
 
-            block_lines.append(lines[j])
+        # ✅ 3. Gewicht (тегло)
+        nums = re.findall(r"[\d\.,]+", line)
+        for n in nums:
+            val = parse_float(n)
+            if 50 < val < 10000:
+                current_weight = val
 
-            # ✅ ✅ ✅ ТУК Е FIX-ЪТ (вътре в while)
-            if "Zolltarifnummer" in lines[j]:
-                break
+        # ✅ 4. CODE → trigger за запис
+        if "Zolltarifnummer" in line:
 
-            j += 1
+            code_match = re.search(r"(\d+)", line)
 
-        block = " ".join(block_lines)
+            if code_match and current_colic > 0:
 
-        try:
-            # ✅ COLIC
-            m = re.search(r"([\d\.,]+)\s+Liter", block)
-            if not m:
-                i = j + 1
-                continue
+                code = code_match.group(1)[:8]
 
-            colic = parse_float(m.group(1))
+                wid = current_wid if current_wid > 0 else 1
+                broj = current_colic / wid if wid else 0
 
-            # ✅ CODE
-            code_match = re.search(r"(\d{8})", block)
-            if not code_match:
-                i = j + 1
-                continue
+                rows.append({
+                    "Тарифен код": code,
+                    "wid": round(wid, 3),
+                    "Количество": round(broj, 3),
+                    "kolichestvo": round(current_colic, 3),
+                    "тегло": round(current_weight, 3)
+                })
 
-            code = code_match.group(1)
+                # ✅ RESET
+                current_colic = 0
+                current_wid = 1
+                current_weight = 0
 
-            # ✅ WID
-            wid = 1
+    df = pd.DataFrame(rows)
 
-            multi = re.search(r"(\d+)\s*[xX]\s*([\d\.,]+)\s*Liter", block)
+    if df.empty:
+        return df
 
-            if multi:
-                wid = parse_float(multi.group(2))
-            else:
-                single = re.search(
-                    r"([\d\.,]+)\s+Liter\s+(Fass|Kanne)", block
-                )
-                if single:
-                    wid = parse_float(single.group(1))
+    # ✅ aggregation
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
 
-            if wid == 0:
-                wid = 1
-
-            # ✅ ТЕГЛО
-            weight = 0
-
-            w = re.search(
-                r"([\d\.,]+)\s+(?:\d+\s*x\s*\d+|\d+\s+Liter\s+(?:Fass|Kanne))",
-                block
-            )
-
-            if w:
-                weight = parse_float(w.group(1))
-
-            # ✅ fallback
-            if weight == 0:
-                if "Shell Rimula R6 LM 10w40" in block:
-                    weight = colic * 0.666
-                else:
-                    weight = colic * 0.88
-
-            # ✅ BROJ
-            broj = colic / wid if wid else 0
-
-            rows.append({
-                "Тарифен код": code,
-                "wid": round(wid, 3),
-                "Количество": round(broj, 3),
-                "kolichestvo": round(colic, 3),
-                "тегло": round(weight, 3)
-            })
-
-        except:
-            pass
-
-        # ✅ скачаме към следващ продукт
-        i = j + 1
-
-    return pd.DataFrame(rows)
+    return df
 
 
 # ======================================================
