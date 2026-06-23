@@ -753,16 +753,20 @@ if uploaded_files:
 
         df = None
 
+        # ✅ NESTE
         if menu == "NESTE":
-    df = parse_neste_excel(file)
+            df = parse_neste_excel(file)
 
-elif menu == "FLUKAR":
-    df = parse_flukar_excel(file)
+        # ✅ FLUKAR
+        elif menu == "FLUKAR":
+            df = parse_flukar_excel(file)
 
-elif menu == "CASTROL" and source_type == "Excel":
-    df = parse_castrol_excel(file)   # ✅ ТОВА ЛИПСВА
+        # ✅ ✅ CASTROL EXCEL (ВАЖНО!)
+        elif menu == "CASTROL" and source_type == "Excel":
+            df = parse_castrol_excel(file)
 
-elif source_type == "PDF":
+        # ✅ PDF
+        elif source_type == "PDF":
             reader = PdfReader(file)
             text = ""
 
@@ -774,13 +778,16 @@ elif source_type == "PDF":
             else:
                 df = parse_motul(text)
 
+        # ✅ fallback Excel (други случаи)
         else:
             df = pd.read_excel(file)
             df.columns = df.columns.str.strip()
 
+        # ✅ добавяме резултата
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
+    # ✅ няма данни
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -796,11 +803,10 @@ elif source_type == "PDF":
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
-    # ✅ временно без ограничения
-    # final_df = final_df[final_df["Тарифен код"].isin(ALLOWED_CODES)]
-
+    # ✅ филтър по тегло
     final_df = final_df[final_df["тегло"] > 0]
 
+    # ✅ FINAL REPORT
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
@@ -814,7 +820,7 @@ elif source_type == "PDF":
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ✅ EXPORT FIX
+    # ✅ EXPORT
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
