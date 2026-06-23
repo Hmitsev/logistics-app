@@ -477,7 +477,54 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
+# ======================================================
+# ✅ AMTRA (EXCEL ✅ CLEAN)
+# ======================================================
+def parse_amtra_excel(file):
 
+    df = pd.read_excel(file, engine="openpyxl")
+
+    df.columns = df.columns.astype(str).str.strip()
+
+    result = pd.DataFrame()
+
+    # ✅ mapping
+    for col in df.columns:
+        c = col.lower()
+
+        if "code cn" in c:
+            result["Тарифен код"] = df[col]
+
+        elif "ordered quantity" in c:
+            result["Количество"] = pd.to_numeric(df[col], errors="coerce")
+
+        elif "net weight total" in c:
+            result["тегло"] = pd.to_numeric(df[col], errors="coerce")
+
+        elif "packing" in c:
+            result["wid"] = pd.to_numeric(df[col], errors="coerce")
+
+    # ✅ cleaning
+    result = result.dropna(subset=["Тарифен код", "Количество", "тегло"])
+
+    # ✅ ако wid липсва → 1
+    if "wid" not in result.columns:
+        result["wid"] = 1
+
+    # ✅ кол литри (или бройки)
+    result["kolichestvo"] = result["Количество"]
+
+    # ✅ group
+    result = result.groupby(
+        ["Тарифен код"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return result
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
