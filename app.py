@@ -826,19 +826,23 @@ if uploaded_files:
 
         df = None
 
+        # ✅ NESTE
         if menu == "NESTE":
-    df = parse_neste_excel(file)
+            df = parse_neste_excel(file)
 
-elif menu == "FLUKAR":
-    df = parse_flukar_excel(file)
+        # ✅ FLUKAR
+        elif menu == "FLUKAR":
+            df = parse_flukar_excel(file)
 
-elif menu == "FEBI":
-    df = parse_febi_excel(file)
+        # ✅ FEBI
+        elif menu == "FEBI":
+            df = parse_febi_excel(file)
 
-elif menu == "CASTROL" and source_type == "Excel":
-    df = parse_castrol_excel(file)
+        # ✅ CASTROL Excel
+        elif menu == "CASTROL" and source_type == "Excel":
+            df = parse_castrol_excel(file)
 
-
+        # ✅ PDF (MOTUL / CASTROL)
         elif source_type == "PDF":
             reader = PdfReader(file)
             text = ""
@@ -851,13 +855,16 @@ elif menu == "CASTROL" and source_type == "Excel":
             else:
                 df = parse_motul(text)
 
+        # ✅ fallback Excel
         else:
             df = pd.read_excel(file)
             df.columns = df.columns.str.strip()
 
+        # ✅ append result
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
+    # ✅ няма данни
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -870,15 +877,17 @@ elif menu == "CASTROL" and source_type == "Excel":
         st.write("DEBUG DF:")
         st.dataframe(final_df.head(20))
 
-    # ✅ ✅ ВАЖНО – вътре в блока
+    # ✅ check
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
+    # ✅ филтър по тегло
     final_df = final_df[final_df["тегло"] > 0]
 
+    # ✅ final report
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
