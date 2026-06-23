@@ -507,53 +507,57 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (EXCEL ✅ FINAL CLEAN)
+# ✅ FEBI (PDF ✅)
 # ======================================================
-def parse_febi_excel(file):
+def parse_febi_pdf(text):
 
-    df = pd.read_excel(file, engine="xlrd")
+    rows = []
+    lines = text.split("\n")
 
-    df.columns = df.columns.str.strip()
+    current_qty = 0
+    current_weight = 0
+    current_wid = 1
 
-    required_cols = ["HS-Code", "Quantity", "Net weight", "Description"]
-    for col in required_cols:
-        if col not in df.columns:
-            st.error(f"❌ Липсва колона: {col}")
-            st.write("Колони:", list(df.columns))
-            return pd.DataFrame()
+    for line in lines:
 
-    result = pd.DataFrame()
+        # ✅ Quantity (пример: 36 PCE)
+        qty_match = re.search(r"(\d+)\s+PCE", line)
+        if qty_match:
+            try:
+                current_qty = int(qty_match.group(1))
+            except:
+                pass
 
-    result["Тарифен код"] = df["HS-Code"]
-    result["Количество"] = pd.to_numeric(df["Quantity"], errors="coerce")
-    result["тегло"] = pd.to_numeric(df["Net weight"], errors="coerce")
+        # ✅ wid (пример: = 1PC = 5L или 1L)
+        wid_match = re.search(r"=\s*1PC\s*=\s*(\d+)L", line)
+        if wid_match:
+            current_wid = float(wid_match.group(1))
+        else:
+            single_wid = re.search(r"=\s*(\d+)L", line)
+            if single_wid:
+                current_wid = float(single_wid.group(1))
 
-    def extract_wid(text):
-        if pd.isna(text):
-            return 1
+        # ✅ HS CODE
+        if "HS Code" in line:
+            code_match = re.search(r"HS Code No\.\:\s*(\d+)", line)
 
-        match = re.search(r"=\s*(\d+)\s*L", str(text))
-        if match:
-            return float(match.group(1))
+            if code_match:
 
-        return 1
+                code = code_match.group(1)
 
-    result["wid"] = df["Description"].apply(extract_wid)
+                rows.append({
+                    "Тарифен код": code,
+                    "Количество": current_qty,
+                    "wid": current_wid,
+                    "kolichestvo": current_qty * current_wid,
+                    "тегло": 0   # ✅ тук ще сложим тегло по-долу
+                })
 
-    result["kolichestvo"] = result["Количество"] * result["wid"]
+                # reset
+                current_qty = 0
+                current_wid = 1
 
-    result = result.dropna(subset=["Тарифен код", "Количество", "тегло"])
-
-    result = result.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return result
+    return pd.DataFrame(rows)
 
 # ======================================================
 # ✅ CASTROL (EXCEL ✅)
@@ -848,16 +852,18 @@ if uploaded_files:
 
         # ✅ PDF (MOTUL / CASTROL)
         elif source_type == "PDF":
-            reader = PdfReader(file)
-            text = ""
+    reader = PdfReader(file)
+    text = ""
 
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
+    for page in reader.pages:
+        text += page.extract_text() + "\n"
 
-            if menu == "CASTROL":
-                df = parse_castrol(text)
-            else:
-                df = parse_motul(text)
+    if menu == "CASTROL":
+        df = parse_castrol(text)
+    elif menu == "FEBI":
+        df = parse_febi_pdf(text)
+    else:
+        df = parse_motul(text)
 
         # ✅ fallback Excel
         else:
