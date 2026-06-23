@@ -565,7 +565,12 @@ def parse_febi_excel(file):
         ["Тарифен код", "wid"],
         as_index=False
     ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
 
+    return result
 
 # ======================================================
 # ✅ CASTROL (EXCEL ✅)
