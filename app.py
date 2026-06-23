@@ -478,7 +478,55 @@ def parse_neste_excel(file):
     })
 
     return df
+# ======================================================
+# ✅ CASTROL (EXCEL ✅)
+# ======================================================
+def parse_castrol_excel(file):
 
+    df = pd.read_excel(file)
+    df.columns = df.columns.str.strip()
+
+    rename_map = {}
+
+    for col in df.columns:
+        c = col.lower()
+
+        if "commodity" in c:
+            rename_map[col] = "Тарифен код"
+
+        elif "delivery quantity" in c or "quantity" in c:
+            rename_map[col] = "Количество"
+
+        elif "volume" in c:
+            rename_map[col] = "kolichestvo"
+
+        elif "net weight" in c:
+            rename_map[col] = "тегло"
+
+        elif "type of packaging" in c or "packaging" in c:
+            rename_map[col] = "wid"
+
+    df = df.rename(columns=rename_map)
+
+    if "Тарифен код" not in df.columns:
+        return pd.DataFrame()
+
+    df = df.dropna(subset=["Тарифен код"])
+
+    # fallback wid
+    if "wid" not in df.columns and "kolichestvo" in df.columns:
+        df["wid"] = df["kolichestvo"] / df["Количество"]
+
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
 # ======================================================
 # ✅ FLUKAR (EXCEL ONLY ✅)
 # ======================================================
