@@ -507,23 +507,15 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (EXCEL ✅ FIXED)
+# ✅ FEBI (EXCEL ✅ FINAL FIX)
 # ======================================================
 def parse_febi_excel(file):
 
-    # ✅ универсално четене (работи за .xls)
-    try:
-        df = pd.read_excel(file)
-    except:
-        try:
-            df = pd.read_excel(file, engine="xlrd")
-        except:
-            file.seek(0)
-            df = pd.read_excel(file, engine="openpyxl")
+    # ✅ правилен engine за .xls
+    df = pd.read_excel(file, engine="xlrd")
 
     df.columns = df.columns.str.strip()
 
-    # ✅ защита ако колоните не са като очакваните
     required_cols = ["HS-Code", "Quantity", "Net weight", "Description"]
     for col in required_cols:
         if col not in df.columns:
@@ -533,12 +525,11 @@ def parse_febi_excel(file):
 
     result = pd.DataFrame()
 
-    # ✅ mapping
     result["Тарифен код"] = df["HS-Code"]
     result["Количество"] = pd.to_numeric(df["Quantity"], errors="coerce")
     result["тегло"] = pd.to_numeric(df["Net weight"], errors="coerce")
 
-    # ✅ wid от Description (пример: = 5L)
+    # ✅ wid extraction
     def extract_wid(text):
         if pd.isna(text):
             return 1
@@ -551,13 +542,10 @@ def parse_febi_excel(file):
 
     result["wid"] = df["Description"].apply(extract_wid)
 
-    # ✅ kolichestvo
     result["kolichestvo"] = result["Количество"] * result["wid"]
 
-    # ✅ clean
     result = result.dropna(subset=["Тарифен код", "Количество", "тегло"])
 
-    # ✅ group
     result = result.groupby(
         ["Тарифен код", "wid"],
         as_index=False
