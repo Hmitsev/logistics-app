@@ -507,59 +507,52 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (PDF ✅ FINAL + FILTER)
+# ✅ FEBI (PDF ✅ BLOCK PARSER FINAL)
 # ======================================================
 def parse_febi_pdf(text):
 
     rows = []
-    lines = text.split("\n")
 
-    current_qty = None
-    current_wid = 1
+    # ✅ разделяме по "HS Code"
+    blocks = re.split(r"HS Code No\.\:", text)
 
-    for line in lines:
+    for block in blocks[1:]:  # първият е преди първия код
 
-        # ✅ QUANTITY
-        qty_match = re.search(r"([\d\.,]+)\s+PCE", line)
-        if qty_match:
-            try:
-                current_qty = int(
-                    qty_match.group(1)
-                    .replace(".", "")
-                    .replace(",", "")
-                )
-            except:
-                pass
-
-        # ✅ WID
-        wid_match = re.search(r"=\s*1PC\s*=\s*([\d\.]+)L", line)
-        if wid_match:
-            current_wid = float(wid_match.group(1))
-        else:
-            single_wid = re.search(r"=\s*([\d\.]+)L", line)
-            if single_wid:
-                current_wid = float(single_wid.group(1))
-
-        # ✅ HS CODE
-        code_match = re.search(r"HS Code No\.\:\s*(\d+)", line)
-        if code_match and current_qty:
-
+        try:
+            # ✅ CODE
+            code_match = re.search(r"(\d{8})", block)
+            if not code_match:
+                continue
             code = code_match.group(1)
 
-            # ✅ ✅ ФИЛТЪР ПО ALLOWED_CODES
+            # ✅ FILTER
             if code not in ALLOWED_CODES:
-                current_qty = None
                 continue
+
+            # ✅ QUANTITY
+            qty_match = re.search(r"([\d\.,]+)\s+PCE", block)
+            if qty_match:
+                qty = int(qty_match.group(1).replace(".", "").replace(",", ""))
+            else:
+                continue
+
+            # ✅ WID
+            wid_match = re.search(r"=\s*1PC\s*=\s*([\d\.]+)L", block)
+            if wid_match:
+                wid = float(wid_match.group(1))
+            else:
+                wid = 1
 
             rows.append({
                 "Тарифен код": code,
-                "Количество": current_qty,
-                "wid": current_wid,
-                "kolichestvo": round(current_qty * current_wid, 3),
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": round(qty * wid, 3),
                 "тегло": 1
             })
 
-            current_qty = None
+        except:
+            continue
 
     return pd.DataFrame(rows)
 # ======================================================
