@@ -507,58 +507,47 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (PDF ✅)
+# ✅ FEBI (PDF ✅ FIXED REAL)
 # ======================================================
 def parse_febi_pdf(text):
 
     rows = []
     lines = text.split("\n")
 
-    current_qty = 0
-    current_weight = 0
+    current_qty = None
     current_wid = 1
 
     for line in lines:
 
-        # ✅ Quantity (пример: 36 PCE)
+        # ✅ quantity
         qty_match = re.search(r"(\d+)\s+PCE", line)
         if qty_match:
-            try:
-                current_qty = int(qty_match.group(1))
-            except:
-                pass
+            current_qty = int(qty_match.group(1))
 
-        # ✅ wid (пример: = 1PC = 5L или 1L)
-        wid_match = re.search(r"=\s*1PC\s*=\s*(\d+)L", line)
+        # ✅ wid (литри)
+        wid_match = re.search(r"=\s*(\d+)L", line)
         if wid_match:
             current_wid = float(wid_match.group(1))
-        else:
-            single_wid = re.search(r"=\s*(\d+)L", line)
-            if single_wid:
-                current_wid = float(single_wid.group(1))
 
-        # ✅ HS CODE
-        if "HS Code" in line:
-            code_match = re.search(r"HS Code No\.\:\s*(\d+)", line)
+        # ✅ HS code
+        code_match = re.search(r"HS Code No\.\:\s*(\d+)", line)
+        if code_match and current_qty:
 
-            if code_match:
+            code = code_match.group(1)
 
-                code = code_match.group(1)
+            rows.append({
+                "Тарифен код": code,
+                "Количество": current_qty,
+                "wid": current_wid,
+                "kolichestvo": current_qty * current_wid,
+                "тегло": 1   # ✅ TEMP (иначе filter ти маха редовете)
+            })
 
-                rows.append({
-                    "Тарифен код": code,
-                    "Количество": current_qty,
-                    "wid": current_wid,
-                    "kolichestvo": current_qty * current_wid,
-                    "тегло": 0   # ✅ тук ще сложим тегло по-долу
-                })
-
-                # reset
-                current_qty = 0
-                current_wid = 1
+            # reset след запис
+            current_qty = None
+            current_wid = 1
 
     return pd.DataFrame(rows)
-
 # ======================================================
 # ✅ CASTROL (EXCEL ✅)
 # ======================================================
