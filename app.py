@@ -818,105 +818,57 @@ def build_final_report(df, supplier):
 
 
 # ======================================================
-# ✅ PROCESS (PDF + EXCEL HYBRID ✅)
+# ✅ PROCESS (FIXED HYBRID FEBI)
 # ======================================================
 if uploaded_files:
 
-    all_data = []
+    pdf_file = None
+    excel_file = None
 
-    for file_group in [uploaded_files]:  # 👈 allowing multi files
+    # ✅ разделяне на файловете
+    for f in uploaded_files:
+        if f.name.lower().endswith(".pdf"):
+            pdf_file = f
+        elif f.name.lower().endswith((".xls", ".xlsx")):
+            excel_file = f
 
-        pdf_file = None
-        excel_file = None
+    df = None
 
-        # 👉 разделяме файловете
-        for f in file_group:
-            if f.name.lower().endswith(".pdf"):
-                pdf_file = f
-            elif f.name.lower().endswith((".xls", ".xlsx")):
-                excel_file = f
+    # ======================================================
+    # ✅ FEBI HYBRID
+    # ======================================================
+    if menu == "FEBI":
 
-        df = None
-
-        # ======================================================
-        # ✅ FEBI HYBRID (PDF + EXCEL)
-        # ======================================================
-        if menu == "FEBI":
-
-            if not pdf_file or not excel_file:
-                st.warning("⚠️ За FEBI качи и PDF и Excel")
-                st.stop()
-
-            # ✅ PDF parsing
-            reader = PdfReader(pdf_file)
-            text = ""
-
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
-
-            df_pdf = parse_febi_pdf(text)
-
-            # ✅ Excel parsing
-            df_excel = parse_neste_excel(excel_file)  # 👈 използваме neste логика (работи)
-
-            # ✅ MERGE
-            df = merge_febi(df_pdf, df_excel)
-
-        # ======================================================
-        # ✅ NESTE
-        # ======================================================
-        elif menu == "NESTE":
-            df = parse_neste_excel(uploaded_files[0])
-
-        # ======================================================
-        # ✅ FLUKAR
-        # ======================================================
-        elif menu == "FLUKAR":
-            df = parse_flukar_excel(uploaded_files[0])
-
-        # ======================================================
-        # ✅ CASTROL Excel
-        # ======================================================
-        elif menu == "CASTROL" and source_type == "Excel":
-            df = parse_castrol_excel(uploaded_files[0])
-
-        # ======================================================
-        # ✅ PDF (others)
-        # ======================================================
-        elif source_type == "PDF":
-
-            reader = PdfReader(uploaded_files[0])
-            text = ""
-
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
-
-            if menu == "CASTROL":
-                df = parse_castrol(text)
-            else:
-                df = parse_motul(text)
-
-        else:
-            st.warning("⚠️ Липсва parser за този доставчик")
+        if not pdf_file or not excel_file:
+            st.warning("⚠️ За FEBI качи PDF и Excel")
             st.stop()
 
-        # ✅ append
-        if isinstance(df, pd.DataFrame) and not df.empty:
-            all_data.append(df)
+        # ✅ PDF
+        reader = PdfReader(pdf_file)
+        text = ""
+
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+
+        df_pdf = parse_febi_pdf(text)
+
+        # ✅ Excel
+        df_excel = parse_neste_excel(excel_file)
+
+        # ✅ MERGE
+        df = merge_febi(df_pdf, df_excel)
 
     # ======================================================
     # ✅ RESULT
     # ======================================================
-    if not all_data:
+    if df is None or df.empty:
         st.warning("⚠️ Няма данни")
         st.stop()
 
-    final_df = pd.concat(all_data, ignore_index=True)
+    final_df = df.copy()
 
-    # ✅ filter
     final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ final report
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
@@ -944,6 +896,3 @@ if uploaded_files:
         file_name="final_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-else:
-    st.markdown("**⬆️ Качи PDF + Excel за FEBI**")
