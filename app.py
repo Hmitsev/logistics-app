@@ -836,7 +836,7 @@ def build_final_report(df, supplier):
 
 
 # ======================================================
-# ✅ PROCESS
+# ✅ PROCESS (FINAL WITH AMTRA ✅)
 # ======================================================
 if uploaded_files:
 
@@ -846,15 +846,23 @@ if uploaded_files:
 
         df = None
 
+        # ✅ NESTE
         if menu == "NESTE":
             df = parse_neste_excel(file)
 
+        # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
 
+        # ✅ ✅ AMTRA (FIXED)
+        elif menu == "AMTRA":
+            df = parse_amtra_excel(file)
+
+        # ✅ CASTROL Excel
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
+        # ✅ PDF (CASTROL / MOTUL)
         elif source_type == "PDF":
             reader = PdfReader(file)
             text = ""
@@ -867,34 +875,42 @@ if uploaded_files:
             else:
                 df = parse_motul(text)
 
+        # ✅ fallback (само ако имаш други Excel-и)
         else:
-            df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
+            try:
+                df = pd.read_excel(file)
+                df.columns = df.columns.str.strip()
+            except:
+                df = pd.DataFrame()
 
+        # ✅ append само ако има данни
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
+    # ✅ ако няма данни
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ DEBUG (скрит)
+    # ✅ DEBUG (ако трябва)
     DEBUG = False
     if DEBUG:
         st.write("DEBUG DF:")
         st.dataframe(final_df.head(20))
 
-    # ✅ ✅ ВАЖНО – вътре в блока
+    # ✅ проверка
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
+    # ✅ филтър по тегло
     final_df = final_df[final_df["тегло"] > 0]
 
+    # ✅ финален отчет
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
