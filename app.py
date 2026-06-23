@@ -794,47 +794,48 @@ if uploaded_files:
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ DEBUG (скрит)
+# ✅ DEBUG (скрит)
 DEBUG = False
 
 if DEBUG:
     st.write("DEBUG DF:")
     st.dataframe(final_df.head(20))
 
-    if "Тарифен код" not in final_df.columns:
-        st.warning("⚠️ Данните не съдържат тарифен код")
-        st.stop()
+# ✅ ❗ ВАЖНО – ТОВА Е ИЗВЪН DEBUG
+if "Тарифен код" not in final_df.columns:
+    st.warning("⚠️ Данните не съдържат тарифен код")
+    st.stop()
 
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
-    # ✅ филтър по тегло
-    final_df = final_df[final_df["тегло"] > 0]
+# ✅ филтър
+final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ FINAL REPORT
-    report = build_final_report(final_df, menu)
+# ✅ REPORT
+report = build_final_report(final_df, menu)
 
-    report = report.rename(columns={
-        "Тарифен код": "Code",
-        "wid": "wid",
-        "тегло": "teglo",
-        "kolichestvo": "colic-v L",
-        "Количество": "Broj"
-    })
+report = report.rename(columns={
+    "Тарифен код": "Code",
+    "wid": "wid",
+    "тегло": "teglo",
+    "kolichestvo": "colic-v L",
+    "Количество": "Broj"
+})
 
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
+st.subheader("📊 Финален отчет")
+st.dataframe(report)
 
-    # ✅ EXPORT
-    output = io.BytesIO()
+# ✅ EXPORT
+output = io.BytesIO()
 
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
+with pd.ExcelWriter(output, engine='openpyxl') as writer:
+    report.to_excel(writer, index=False)
 
-    output.seek(0)
+output.seek(0)
 
-    st.download_button(
-        label="📥 Изтегли Excel",
-        data=output,
-        file_name="final_report.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+st.download_button(
+    label="📥 Изтегли Excel",
+    data=output,
+    file_name="final_report.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
