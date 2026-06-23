@@ -507,48 +507,52 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (PDF ✅ BLOCK PARSER FINAL)
+# ✅ FEBI (PDF ✅ EXACT PARSER)
 # ======================================================
 def parse_febi_pdf(text):
 
     rows = []
 
-    # ✅ разделяме по "HS Code"
-    blocks = re.split(r"HS Code No\.\:", text)
+    # ✅ намираме всички item блокове
+    items = re.findall(
+        r"\d+/\d+\*\*\s*(\d+)\*\*.*?PCE.*?HS Code No\.\:\s*(\d+)",
+        text,
+        re.DOTALL
+    )
 
-    for block in blocks[1:]:  # първият е преди първия код
+    # ✅ quantity + HS
+    qty_blocks = re.findall(
+        r"(\d+)\s+PCE.*?HS Code No\.\:\s*(\d+)",
+        text,
+        re.DOTALL
+    )
+
+    # ✅ wid
+    wid_blocks = re.findall(
+        r"=\s*1PC\s*=\s*(\d+)L",
+        text
+    )
+
+    for i, item in enumerate(qty_blocks):
 
         try:
-            # ✅ CODE
-            code_match = re.search(r"(\d{8})", block)
-            if not code_match:
-                continue
-            code = code_match.group(1)
+            qty = int(item[0])
+            code = item[1]
 
-            # ✅ FILTER
             if code not in ALLOWED_CODES:
                 continue
 
-            # ✅ QUANTITY
-            qty_match = re.search(r"([\d\.,]+)\s+PCE", block)
-            if qty_match:
-                qty = int(qty_match.group(1).replace(".", "").replace(",", ""))
-            else:
-                continue
-
-            # ✅ WID
-            wid_match = re.search(r"=\s*1PC\s*=\s*([\d\.]+)L", block)
-            if wid_match:
-                wid = float(wid_match.group(1))
-            else:
-                wid = 1
+            # ✅ wid ако има
+            wid = 1
+            if i < len(wid_blocks):
+                wid = float(wid_blocks[i])
 
             rows.append({
                 "Тарифен код": code,
                 "Количество": qty,
                 "wid": wid,
-                "kolichestvo": round(qty * wid, 3),
-                "тегло": 1
+                "kolichestvo": qty * wid,
+                "тегло": 0  # ще го сметнем после
             })
 
         except:
