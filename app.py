@@ -795,9 +795,7 @@ if uploaded_files:
     final_df = pd.concat(all_data, ignore_index=True)
 
     # ✅ DEBUG
-    DEBUG = False
-
-if DEBUG:
+   
     st.write("DEBUG DF:", final_df.head(20))
 
     if "Тарифен код" not in final_df.columns:
