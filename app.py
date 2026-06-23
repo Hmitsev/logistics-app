@@ -824,7 +824,7 @@ def build_final_report(df, supplier):
 
 
 # ======================================================
-# ✅ PROCESS
+# ✅ PROCESS (FIXED)
 # ======================================================
 if uploaded_files:
 
@@ -846,8 +846,9 @@ if uploaded_files:
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
-        # ✅ PDF (CASTROL / MOTUL)
+        # ✅ PDF (ВСИЧКИ)
         elif source_type == "PDF":
+
             reader = PdfReader(file)
             text = ""
 
@@ -856,42 +857,44 @@ if uploaded_files:
 
             if menu == "CASTROL":
                 df = parse_castrol(text)
+
+            elif menu == "FEBI":
+                df = parse_febi_pdf(text)   # ✅ ТОВА ЛИПСВАШЕ
+
             else:
                 df = parse_motul(text)
 
-        # ✅ fallback Excel
+        # ✅ БЕЗ fallback Excel (важно)
         else:
-            df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
+            st.warning("⚠️ Този доставчик още няма Excel parser")
+            continue
 
-        # ✅ добавяме валидните данни
+        # ✅ append
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
-    # ✅ ако няма данни
+    # ✅ няма данни
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ DEBUG (скрит)
+    # ✅ debug
     DEBUG = False
     if DEBUG:
         st.write("DEBUG DF:")
         st.dataframe(final_df.head(20))
 
-    # ✅ проверка
+    # ✅ check
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
-    # ✅ филтър по тегло
     final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ финален отчет
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
@@ -905,7 +908,7 @@ if uploaded_files:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ✅ export
+    # ✅ EXPORT
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
