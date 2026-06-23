@@ -507,35 +507,19 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (EXCEL ✅ FINAL REAL FIX)
+# ✅ FEBI (EXCEL ✅ FINAL CLEAN)
 # ======================================================
 def parse_febi_excel(file):
 
-    import pandas as pd
-    import io
-
-    # ✅ first try → excel
-    try:
-        df = pd.read_excel(file)
-    except:
-        file.seek(0)
-
-        try:
-            # ✅ fallback → CSV (често това е всъщност форматът)
-            df = pd.read_csv(file, sep=None, engine="python")
-        except Exception as e:
-            st.error("❌ Файлът не може да бъде прочетен (Excel/CSV)")
-            st.write(e)
-            return pd.DataFrame()
+    df = pd.read_excel(file, engine="xlrd")
 
     df.columns = df.columns.str.strip()
 
-    # ✅ DEBUG ако не намери колоните
     required_cols = ["HS-Code", "Quantity", "Net weight", "Description"]
     for col in required_cols:
         if col not in df.columns:
             st.error(f"❌ Липсва колона: {col}")
-            st.write("Налични колони:", list(df.columns))
+            st.write("Колони:", list(df.columns))
             return pd.DataFrame()
 
     result = pd.DataFrame()
@@ -544,7 +528,6 @@ def parse_febi_excel(file):
     result["Количество"] = pd.to_numeric(df["Quantity"], errors="coerce")
     result["тегло"] = pd.to_numeric(df["Net weight"], errors="coerce")
 
-    # ✅ wid extraction
     def extract_wid(text):
         if pd.isna(text):
             return 1
