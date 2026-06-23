@@ -507,56 +507,63 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (PDF ✅ EXACT PARSER)
+# ✅ FEBI (PDF ✅ WORKING STABLE)
 # ======================================================
 def parse_febi_pdf(text):
 
     rows = []
 
-    # ✅ намираме всички item блокове
-    items = re.findall(
-        r"\d+/\d+\*\*\s*(\d+)\*\*.*?PCE.*?HS Code No\.\:\s*(\d+)",
-        text,
-        re.DOTALL
-    )
+    lines = text.split("\n")
 
-    # ✅ quantity + HS
-    qty_blocks = re.findall(
-        r"(\d+)\s+PCE.*?HS Code No\.\:\s*(\d+)",
-        text,
-        re.DOTALL
-    )
+    current_qty = None
+    current_wid = 1
 
-    # ✅ wid
-    wid_blocks = re.findall(
-        r"=\s*1PC\s*=\s*(\d+)L",
-        text
-    )
+    for i, line in enumerate(lines):
 
-    for i, item in enumerate(qty_blocks):
+        # ✅ QUANTITY (чете и 1.152)
+        qty_match = re.search(r"([\d\.,]+)\s+PCE", line)
+        if qty_match:
+            try:
+                current_qty = int(
+                    qty_match.group(1)
+                    .replace(".", "")
+                    .replace(",", "")
+                )
+            except:
+                pass
 
-        try:
-            qty = int(item[0])
-            code = item[1]
+        # ✅ WID
+        wid_match = re.search(r"=\s*1PC\s*=\s*([\d\.]+)L", line)
+        if wid_match:
+            current_wid = float(wid_match.group(1))
 
-            if code not in ALLOWED_CODES:
+        # ✅ HS CODE
+        if "HS Code No." in line:
+
+            code_match = re.search(r"(\d{8})", line)
+            if not code_match:
                 continue
 
-            # ✅ wid ако има
-            wid = 1
-            if i < len(wid_blocks):
-                wid = float(wid_blocks[i])
+            code = code_match.group(1)
+
+            # ✅ FILTER
+            if code not in ALLOWED_CODES:
+                current_qty = None
+                continue
+
+            if current_qty is None:
+                continue
 
             rows.append({
                 "Тарифен код": code,
-                "Количество": qty,
-                "wid": wid,
-                "kolichestvo": qty * wid,
-                "тегло": 0  # ще го сметнем после
+                "Количество": current_qty,
+                "wid": current_wid,
+                "kolichestvo": current_qty * current_wid,
+                "тегло": 1
             })
 
-        except:
-            continue
+            # ✅ reset само qty
+            current_qty = None
 
     return pd.DataFrame(rows)
 # ======================================================
