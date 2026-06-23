@@ -818,32 +818,74 @@ def build_final_report(df, supplier):
 
 
 # ======================================================
-# ✅ PROCESS (FIXED)
+# ✅ PROCESS (PDF + EXCEL HYBRID ✅)
 # ======================================================
 if uploaded_files:
 
     all_data = []
 
-    for file in uploaded_files:
+    for file_group in [uploaded_files]:  # 👈 allowing multi files
+
+        pdf_file = None
+        excel_file = None
+
+        # 👉 разделяме файловете
+        for f in file_group:
+            if f.name.lower().endswith(".pdf"):
+                pdf_file = f
+            elif f.name.lower().endswith((".xls", ".xlsx")):
+                excel_file = f
 
         df = None
 
+        # ======================================================
+        # ✅ FEBI HYBRID (PDF + EXCEL)
+        # ======================================================
+        if menu == "FEBI":
+
+            if not pdf_file or not excel_file:
+                st.warning("⚠️ За FEBI качи и PDF и Excel")
+                st.stop()
+
+            # ✅ PDF parsing
+            reader = PdfReader(pdf_file)
+            text = ""
+
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+
+            df_pdf = parse_febi_pdf(text)
+
+            # ✅ Excel parsing
+            df_excel = parse_neste_excel(excel_file)  # 👈 използваме neste логика (работи)
+
+            # ✅ MERGE
+            df = merge_febi(df_pdf, df_excel)
+
+        # ======================================================
         # ✅ NESTE
-        if menu == "NESTE":
-            df = parse_neste_excel(file)
+        # ======================================================
+        elif menu == "NESTE":
+            df = parse_neste_excel(uploaded_files[0])
 
+        # ======================================================
         # ✅ FLUKAR
+        # ======================================================
         elif menu == "FLUKAR":
-            df = parse_flukar_excel(file)
+            df = parse_flukar_excel(uploaded_files[0])
 
+        # ======================================================
         # ✅ CASTROL Excel
+        # ======================================================
         elif menu == "CASTROL" and source_type == "Excel":
-            df = parse_castrol_excel(file)
+            df = parse_castrol_excel(uploaded_files[0])
 
-        # ✅ PDF (ВСИЧКИ)
+        # ======================================================
+        # ✅ PDF (others)
+        # ======================================================
         elif source_type == "PDF":
 
-            reader = PdfReader(file)
+            reader = PdfReader(uploaded_files[0])
             text = ""
 
             for page in reader.pages:
@@ -851,44 +893,30 @@ if uploaded_files:
 
             if menu == "CASTROL":
                 df = parse_castrol(text)
-
-            elif menu == "FEBI":
-                df = parse_febi_pdf(text)   # ✅ ТОВА ЛИПСВАШЕ
-
             else:
                 df = parse_motul(text)
 
-        # ✅ БЕЗ fallback Excel (важно)
         else:
-            st.warning("⚠️ Този доставчик още няма Excel parser")
-            continue
+            st.warning("⚠️ Липсва parser за този доставчик")
+            st.stop()
 
         # ✅ append
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
-    # ✅ няма данни
+    # ======================================================
+    # ✅ RESULT
+    # ======================================================
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ debug
-    DEBUG = False
-    if DEBUG:
-        st.write("DEBUG DF:")
-        st.dataframe(final_df.head(20))
-
-    # ✅ check
-    if "Тарифен код" not in final_df.columns:
-        st.warning("⚠️ Данните не съдържат тарифен код")
-        st.stop()
-
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-
+    # ✅ filter
     final_df = final_df[final_df["тегло"] > 0]
 
+    # ✅ final report
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
@@ -918,4 +946,4 @@ if uploaded_files:
     )
 
 else:
-    st.markdown("**⬆️ Качи файл, за да генерираш отчет**")
+    st.markdown("**⬆️ Качи PDF + Excel за FEBI**")
