@@ -477,85 +477,6 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
-# # ======================================================
-# ✅ AMTRA (EXCEL ✅ BULLETPROOF)
-# ======================================================
-def parse_amtra_excel(file):
-
-    df_raw = pd.read_excel(file, header=None)
-
-    header_row = None
-
-    # ✅ намираме header ред
-    for i in range(len(df_raw)):
-        row = df_raw.iloc[i]
-
-        if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
-            header_row = i
-            break
-
-    if header_row is None:
-        st.error("❌ Не е намерен header ред")
-        return pd.DataFrame()
-
-    df = pd.read_excel(file, header=header_row)
-    df.columns = df.columns.astype(str).str.strip()
-
-    result = pd.DataFrame()
-
-    # ✅ SAFE DETECTION
-    for col in df.columns:
-        c = col.lower()
-
-        # ✅ тарифен код (по cn)
-        if "cn" in c:
-            result["Тарифен код"] = df[col]
-
-        # ✅ количество
-        elif "quantity" in c:
-            result["Количество"] = pd.to_numeric(df[col], errors="coerce")
-
-        # ✅ тегло
-        elif "net" in c and "weight" in c:
-            result["тегло"] = pd.to_numeric(df[col], errors="coerce")
-
-        # ✅ packing (optional)
-        elif "pack" in c:
-            result["wid"] = pd.to_numeric(df[col], errors="coerce")
-
-    # ✅ защита: ако липсват колони → няма crash
-    required = ["Тарифен код", "Количество", "тегло"]
-
-    for col in required:
-        if col not in result.columns:
-            st.error(f"❌ Липсва колона: {col}")
-            return pd.DataFrame()
-
-    # ✅ clean
-    result = result.dropna(subset=["Тарифен код"])
-    result["Количество"] = pd.to_numeric(result["Количество"], errors="coerce")
-    result["тегло"] = pd.to_numeric(result["тегло"], errors="coerce")
-
-    result = result.dropna(subset=["Количество", "тегло"])
-
-    # ✅ wid default
-    if "wid" not in result.columns:
-        result["wid"] = 1
-
-    # ✅ количество
-    result["kolichestvo"] = result["Количество"]
-
-    # ✅ group
-    result = result.groupby(
-        ["Тарифен код"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return result
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
@@ -850,7 +771,7 @@ def build_final_report(df, supplier):
 
 
 # ======================================================
-# ✅ PROCESS (FINAL WITH AMTRA ✅)
+# ✅ PROCESS
 # ======================================================
 if uploaded_files:
 
@@ -860,23 +781,15 @@ if uploaded_files:
 
         df = None
 
-        # ✅ NESTE
         if menu == "NESTE":
             df = parse_neste_excel(file)
 
-        # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
 
-        # ✅ ✅ AMTRA (FIXED)
-        elif menu == "AMTRA":
-            df = parse_amtra_excel(file)
-
-        # ✅ CASTROL Excel
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
-        # ✅ PDF (CASTROL / MOTUL)
         elif source_type == "PDF":
             reader = PdfReader(file)
             text = ""
@@ -889,42 +802,34 @@ if uploaded_files:
             else:
                 df = parse_motul(text)
 
-        # ✅ fallback (само ако имаш други Excel-и)
         else:
-            try:
-                df = pd.read_excel(file)
-                df.columns = df.columns.str.strip()
-            except:
-                df = pd.DataFrame()
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
-        # ✅ append само ако има данни
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
-    # ✅ ако няма данни
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ DEBUG (ако трябва)
+    # ✅ DEBUG (скрит)
     DEBUG = False
     if DEBUG:
         st.write("DEBUG DF:")
         st.dataframe(final_df.head(20))
 
-    # ✅ проверка
+    # ✅ ✅ ВАЖНО – вътре в блока
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
-    # ✅ филтър по тегло
     final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ финален отчет
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
