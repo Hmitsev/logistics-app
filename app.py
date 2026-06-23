@@ -753,19 +753,15 @@ if uploaded_files:
 
         df = None
 
-        # ✅ NESTE
         if menu == "NESTE":
             df = parse_neste_excel(file)
 
-        # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
 
-        # ✅ ✅ CASTROL EXCEL (ВАЖНО!)
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
-        # ✅ PDF
         elif source_type == "PDF":
             reader = PdfReader(file)
             text = ""
@@ -778,64 +774,61 @@ if uploaded_files:
             else:
                 df = parse_motul(text)
 
-        # ✅ fallback Excel (други случаи)
         else:
             df = pd.read_excel(file)
             df.columns = df.columns.str.strip()
 
-        # ✅ добавяме резултата
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
-    # ✅ няма данни
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-# ✅ DEBUG (скрит)
-DEBUG = False
+    # ✅ DEBUG (скрит)
+    DEBUG = False
+    if DEBUG:
+        st.write("DEBUG DF:")
+        st.dataframe(final_df.head(20))
 
-if DEBUG:
-    st.write("DEBUG DF:")
-    st.dataframe(final_df.head(20))
+    # ✅ ✅ ВАЖНО – вътре в блока
+    if "Тарифен код" not in final_df.columns:
+        st.warning("⚠️ Данните не съдържат тарифен код")
+        st.stop()
 
-# ✅ ❗ ВАЖНО – ТОВА Е ИЗВЪН DEBUG
-if "Тарифен код" not in final_df.columns:
-    st.warning("⚠️ Данните не съдържат тарифен код")
-    st.stop()
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
-final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    final_df = final_df[final_df["тегло"] > 0]
 
-# ✅ филтър
-final_df = final_df[final_df["тегло"] > 0]
+    report = build_final_report(final_df, menu)
 
-# ✅ REPORT
-report = build_final_report(final_df, menu)
+    report = report.rename(columns={
+        "Тарифен код": "Code",
+        "wid": "wid",
+        "тегло": "teglo",
+        "kolichestvo": "colic-v L",
+        "Количество": "Broj"
+    })
 
-report = report.rename(columns={
-    "Тарифен код": "Code",
-    "wid": "wid",
-    "тегло": "teglo",
-    "kolichestvo": "colic-v L",
-    "Количество": "Broj"
-})
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
 
-st.subheader("📊 Финален отчет")
-st.dataframe(report)
+    # ✅ EXPORT
+    output = io.BytesIO()
 
-# ✅ EXPORT
-output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        report.to_excel(writer, index=False)
 
-with pd.ExcelWriter(output, engine='openpyxl') as writer:
-    report.to_excel(writer, index=False)
+    output.seek(0)
 
-output.seek(0)
+    st.download_button(
+        label="📥 Изтегли Excel",
+        data=output,
+        file_name="final_report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
-st.download_button(
-    label="📥 Изтегли Excel",
-    data=output,
-    file_name="final_report.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+else:
+    st.info("⬆️ Качи файл, за да генерираш отчет")
