@@ -568,86 +568,130 @@ from decimal import Decimal, ROUND_HALF_UP
 # ======================================================
 from decimal import Decimal, ROUND_HALF_UP
 
-def build_final_report(df):
+def build_final_report(df, supplier):
 
-    grouped = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": list   # ✅ ключът!
-    })
+    # ✅ FLUKAR логика
+    if supplier == "FLUKAR":
 
-    rows = []
+        grouped = df.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        ).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": list
+        })
 
-    for code, group in grouped.groupby("Тарифен код"):
+        rows = []
 
-        for _, r in group.iterrows():
+        for code, group in grouped.groupby("Тарифен код"):
 
-            # ✅ сумираме list от тегла с точност
-            precise_sum = sum(Decimal(str(x)) for x in r["тегло"])
+            for _, r in group.iterrows():
 
-            rounded = float(
-                precise_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                precise_sum = sum(Decimal(str(x)) for x in r["тегло"])
+
+                rounded = float(
+                    precise_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                )
+
+                rows.append({
+                    "Тарифен код": r["Тарифен код"],
+                    "wid": r["wid"],
+                    "Количество": r["Количество"],
+                    "kolichestvo": r["kolichestvo"],
+                    "тегло": rounded
+                })
+
+            code_sum = sum(
+                Decimal(str(x))
+                for sublist in group["тегло"]
+                for x in sublist
+            )
+
+            code_rounded = float(
+                code_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
             )
 
             rows.append({
-                "Тарифен код": r["Тарифен код"],
-                "wid": r["wid"],
-                "Количество": r["Количество"],
-                "kolichestvo": r["kolichestvo"],
-                "тегло": rounded
+                "Тарифен код": str(code) + " -",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": sum(group["kolichestvo"]),
+                "тегло": code_rounded
             })
 
-        # ✅ subtotal per code
-        code_sum = sum(
+            rows.append({
+                "Тарифен код": "",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": "",
+                "тегло": ""
+            })
+
+        total_sum = sum(
             Decimal(str(x))
-            for sublist in group["тегло"]
+            for sublist in grouped["тегло"]
             for x in sublist
         )
 
-        code_rounded = float(
-            code_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        total_rounded = float(
+            total_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         )
 
         rows.append({
-            "Тарифен код": str(code) + " -",
+            "Тарифен код": "GRAND TOTAL",
             "wid": "",
             "Количество": "",
-            "kolichestvo": sum(group["kolichestvo"]),
-            "тегло": code_rounded
+            "kolichestvo": grouped["kolichestvo"].sum(),
+            "тегло": total_rounded
         })
+
+        return pd.DataFrame(rows)
+
+    # ✅ ✅ ВСИЧКИ ДРУГИ (MOTUL, NESTE, CASTROL)
+    else:
+
+        grouped = df.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        ).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": "sum"
+        })
+
+        rows = []
+
+        for code, group in grouped.groupby("Тарифен код"):
+
+            for _, r in group.iterrows():
+                rows.append(r.to_dict())
+
+            rows.append({
+                "Тарифен код": str(code) + " -",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": group["kolichestvo"].sum(),
+                "тегло": group["тегло"].sum()
+            })
+
+            rows.append({
+                "Тарифен код": "",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": "",
+                "тегло": ""
+            })
 
         rows.append({
-            "Тарифен код": "",
+            "Тарифен код": "GRAND TOTAL",
             "wid": "",
             "Количество": "",
-            "kolichestvo": "",
-            "тегло": ""
+            "kolichestvo": grouped["kolichestvo"].sum(),
+            "тегло": grouped["тегло"].sum()
         })
 
-    # ✅ GRAND TOTAL
-    total_sum = sum(
-        Decimal(str(x))
-        for sublist in grouped["тегло"]
-        for x in sublist
-    )
-
-    total_rounded = float(
-        total_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-    )
-
-    rows.append({
-        "Тарифен код": "GRAND TOTAL",
-        "wid": "",
-        "Количество": "",
-        "kolichestvo": grouped["kolichestvo"].sum(),
-        "тегло": total_rounded
-    })
-
-    return pd.DataFrame(rows)
-
+        return pd.DataFrame(rows)
 
 
 # ======================================================
