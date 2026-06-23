@@ -477,18 +477,35 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
-# ======================================================
-# ✅ AMTRA (EXCEL ✅ CLEAN)
+# # ======================================================
+# ✅ AMTRA (EXCEL ✅ FIXED HEADER DETECTION)
 # ======================================================
 def parse_amtra_excel(file):
 
-    df = pd.read_excel(file, engine="openpyxl")
+    # ✅ първо четем без header
+    df_raw = pd.read_excel(file, header=None)
+
+    header_row = None
+
+    # ✅ намираме реда с Code CN
+    for i in range(len(df_raw)):
+        row = df_raw.iloc[i]
+
+        if any("code cn" in str(cell).lower() for cell in row if pd.notna(cell)):
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ Не е намерен header ред (Code CN)")
+        return pd.DataFrame()
+
+    # ✅ четем от правилния ред
+    df = pd.read_excel(file, header=header_row)
 
     df.columns = df.columns.astype(str).str.strip()
 
     result = pd.DataFrame()
 
-    # ✅ mapping
     for col in df.columns:
         c = col.lower()
 
@@ -504,14 +521,14 @@ def parse_amtra_excel(file):
         elif "packing" in c:
             result["wid"] = pd.to_numeric(df[col], errors="coerce")
 
-    # ✅ cleaning
+    # ✅ clean
     result = result.dropna(subset=["Тарифен код", "Количество", "тегло"])
 
-    # ✅ ако wid липсва → 1
+    # ✅ wid default
     if "wid" not in result.columns:
         result["wid"] = 1
 
-    # ✅ кол литри (или бройки)
+    # ✅ кол-во
     result["kolichestvo"] = result["Количество"]
 
     # ✅ group
@@ -525,6 +542,7 @@ def parse_amtra_excel(file):
     })
 
     return result
+
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
