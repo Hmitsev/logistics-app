@@ -511,7 +511,7 @@ def parse_neste_excel(file):
 # ======================================================
 def parse_febi_excel(file):
 
-    df = pd.read_excel(file, engine="xlrd")  # ✅ FIX
+    df = pd.read_excel(file)  # ✅ FIX
     df.columns = df.columns.str.strip()
 
     result = pd.DataFrame()
