@@ -507,12 +507,23 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (EXCEL ✅ FINAL FIX)
+# ✅ FEBI (EXCEL ✅ NO-ENGINE FIX)
 # ======================================================
 def parse_febi_excel(file):
 
-    # ✅ правилен engine за .xls
-    df = pd.read_excel(file, engine="xlrd")
+    import pandas as pd
+    import io
+
+    # ✅ четем файла като байтове (ключов FIX)
+    file_bytes = file.read()
+
+    # ✅ опитваме да го отворим като Excel (auto)
+    try:
+        df = pd.read_excel(io.BytesIO(file_bytes))
+    except Exception as e:
+        st.error("❌ Файлът не може да бъде прочетен като Excel (.xls)")
+        st.write(e)
+        return pd.DataFrame()
 
     df.columns = df.columns.str.strip()
 
@@ -529,7 +540,6 @@ def parse_febi_excel(file):
     result["Количество"] = pd.to_numeric(df["Quantity"], errors="coerce")
     result["тегло"] = pd.to_numeric(df["Net weight"], errors="coerce")
 
-    # ✅ wid extraction
     def extract_wid(text):
         if pd.isna(text):
             return 1
