@@ -507,53 +507,6 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI MERGE (PDF + EXCEL ✅ FINAL)
-# ======================================================
-def merge_febi(df_pdf, df_excel):
-
-    import pandas as pd
-
-    # ✅ защитен copy
-    pdf = df_pdf.copy()
-    excel = df_excel.copy()
-
-    # ✅ clean кодове
-    pdf["Тарифен код"] = pdf["Тарифен код"].astype(str).str.strip()
-    excel["Тарифен код"] = excel["Тарифен код"].astype(str).str.strip()
-
-    # ✅ агрегираме Excel тегло по код
-    excel_grouped = excel.groupby("Тарифен код", as_index=False).agg({
-        "тегло": "sum"
-    })
-
-    # ✅ merge
-    merged = pd.merge(
-        pdf,
-        excel_grouped,
-        on="Тарифен код",
-        how="left",
-        suffixes=("", "_excel")
-    )
-
-    # ✅ ако няма тегло → махаме реда
-    merged = merged.dropna(subset=["тегло_excel"])
-
-    # ✅ total литри по код (за разпределение)
-    merged["total_liters_code"] = merged.groupby("Тарифен код")["kolichestvo"].transform("sum")
-
-    # ✅ разпределяме тегло пропорционално
-    merged["тегло"] = (
-        merged["kolichestvo"] / merged["total_liters_code"]
-    ) * merged["тегло_excel"]
-
-    # ✅ clean helper column
-    merged = merged.drop(columns=["total_liters_code", "тегло_excel"])
-
-    # ✅ rounding (като митница)
-    merged["тегло"] = merged["тегло"].round(3)
-
-    return merged
-# ======================================================
 # ✅ CASTROL (EXCEL ✅)
 # ======================================================
 def parse_castrol_excel(file):
@@ -818,54 +771,62 @@ def build_final_report(df, supplier):
 
 
 # ======================================================
-# ✅ PROCESS (FIXED HYBRID FEBI)
+# ✅ PROCESS
 # ======================================================
 if uploaded_files:
 
-    pdf_file = None
-    excel_file = None
+    all_data = []
 
-    # ✅ разделяне на файловете
-    for f in uploaded_files:
-        if f.name.lower().endswith(".pdf"):
-            pdf_file = f
-        elif f.name.lower().endswith((".xls", ".xlsx")):
-            excel_file = f
+    for file in uploaded_files:
 
-    df = None
+        df = None
 
-    # ======================================================
-    # ✅ FEBI HYBRID
-    # ======================================================
-    if menu == "FEBI":
+        if menu == "NESTE":
+            df = parse_neste_excel(file)
 
-        if not pdf_file or not excel_file:
-            st.warning("⚠️ За FEBI качи PDF и Excel")
-            st.stop()
+        elif menu == "FLUKAR":
+            df = parse_flukar_excel(file)
 
-        # ✅ PDF
-        reader = PdfReader(pdf_file)
-        text = ""
+        elif menu == "CASTROL" and source_type == "Excel":
+            df = parse_castrol_excel(file)
 
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
+        elif source_type == "PDF":
+            reader = PdfReader(file)
+            text = ""
 
-        df_pdf = parse_febi_pdf(text)
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
 
-        # ✅ Excel
-        df_excel = parse_neste_excel(excel_file)
+            if menu == "CASTROL":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
 
-        # ✅ MERGE
-        df = merge_febi(df_pdf, df_excel)
+        else:
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
-    # ======================================================
-    # ✅ RESULT
-    # ======================================================
-    if df is None or df.empty:
+        if isinstance(df, pd.DataFrame) and not df.empty:
+            all_data.append(df)
+
+    if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
-    final_df = df.copy()
+    final_df = pd.concat(all_data, ignore_index=True)
+
+    # ✅ DEBUG (скрит)
+    DEBUG = False
+    if DEBUG:
+        st.write("DEBUG DF:")
+        st.dataframe(final_df.head(20))
+
+    # ✅ ✅ ВАЖНО – вътре в блока
+    if "Тарифен код" not in final_df.columns:
+        st.warning("⚠️ Данните не съдържат тарифен код")
+        st.stop()
+
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
     final_df = final_df[final_df["тегло"] > 0]
 
@@ -896,3 +857,6 @@ if uploaded_files:
         file_name="final_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+else:
+    st.markdown("**⬆️ Качи файл, за да генерираш отчет**")
