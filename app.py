@@ -507,6 +507,51 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
+# ✅ FEBI (EXCEL ✅)
+# ======================================================
+def parse_febi_excel(file):
+
+    df = pd.read_excel(file)
+    df.columns = df.columns.str.strip()
+
+    result = pd.DataFrame()
+
+    # ✅ mapping
+    result["Тарифен код"] = df["HS-Code"]
+    result["Количество"] = pd.to_numeric(df["Quantity"], errors="coerce")
+    result["тегло"] = pd.to_numeric(df["Net weight"], errors="coerce")
+
+    # ✅ ✅ извличане на wid от текст (например = 5L)
+    def extract_wid(text):
+        import re
+        if pd.isna(text):
+            return 1
+
+        match = re.search(r"=\s*(\d+)\s*L", str(text))
+        if match:
+            return float(match.group(1))
+        return 1
+
+    result["wid"] = df["Description"].apply(extract_wid)
+
+    # ✅ kolichestvo
+    result["kolichestvo"] = result["Количество"] * result["wid"]
+
+    # ✅ clean
+    result = result.dropna(subset=["Тарифен код", "Количество", "тегло"])
+
+    # ✅ group
+    result = result.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return result   
+# ======================================================
 # ✅ CASTROL (EXCEL ✅)
 # ======================================================
 def parse_castrol_excel(file):
@@ -782,13 +827,17 @@ if uploaded_files:
         df = None
 
         if menu == "NESTE":
-            df = parse_neste_excel(file)
+    df = parse_neste_excel(file)
 
-        elif menu == "FLUKAR":
-            df = parse_flukar_excel(file)
+elif menu == "FLUKAR":
+    df = parse_flukar_excel(file)
 
-        elif menu == "CASTROL" and source_type == "Excel":
-            df = parse_castrol_excel(file)
+elif menu == "FEBI":
+    df = parse_febi_excel(file)
+
+elif menu == "CASTROL" and source_type == "Excel":
+    df = parse_castrol_excel(file)
+
 
         elif source_type == "PDF":
             reader = PdfReader(file)
