@@ -507,65 +507,52 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (PDF ✅ WORKING STABLE)
+# ✅ FEBI MERGE (PDF + EXCEL ✅ FINAL)
 # ======================================================
-def parse_febi_pdf(text):
+def merge_febi(df_pdf, df_excel):
 
-    rows = []
+    import pandas as pd
 
-    lines = text.split("\n")
+    # ✅ защитен copy
+    pdf = df_pdf.copy()
+    excel = df_excel.copy()
 
-    current_qty = None
-    current_wid = 1
+    # ✅ clean кодове
+    pdf["Тарифен код"] = pdf["Тарифен код"].astype(str).str.strip()
+    excel["Тарифен код"] = excel["Тарифен код"].astype(str).str.strip()
 
-    for i, line in enumerate(lines):
+    # ✅ агрегираме Excel тегло по код
+    excel_grouped = excel.groupby("Тарифен код", as_index=False).agg({
+        "тегло": "sum"
+    })
 
-        # ✅ QUANTITY (чете и 1.152)
-        qty_match = re.search(r"([\d\.,]+)\s+PCE", line)
-        if qty_match:
-            try:
-                current_qty = int(
-                    qty_match.group(1)
-                    .replace(".", "")
-                    .replace(",", "")
-                )
-            except:
-                pass
+    # ✅ merge
+    merged = pd.merge(
+        pdf,
+        excel_grouped,
+        on="Тарифен код",
+        how="left",
+        suffixes=("", "_excel")
+    )
 
-        # ✅ WID
-        wid_match = re.search(r"=\s*1PC\s*=\s*([\d\.]+)L", line)
-        if wid_match:
-            current_wid = float(wid_match.group(1))
+    # ✅ ако няма тегло → махаме реда
+    merged = merged.dropna(subset=["тегло_excel"])
 
-        # ✅ HS CODE
-        if "HS Code No." in line:
+    # ✅ total литри по код (за разпределение)
+    merged["total_liters_code"] = merged.groupby("Тарифен код")["kolichestvo"].transform("sum")
 
-            code_match = re.search(r"(\d{8})", line)
-            if not code_match:
-                continue
+    # ✅ разпределяме тегло пропорционално
+    merged["тегло"] = (
+        merged["kolichestvo"] / merged["total_liters_code"]
+    ) * merged["тегло_excel"]
 
-            code = code_match.group(1)
+    # ✅ clean helper column
+    merged = merged.drop(columns=["total_liters_code", "тегло_excel"])
 
-            # ✅ FILTER
-            if code not in ALLOWED_CODES:
-                current_qty = None
-                continue
+    # ✅ rounding (като митница)
+    merged["тегло"] = merged["тегло"].round(3)
 
-            if current_qty is None:
-                continue
-
-            rows.append({
-                "Тарифен код": code,
-                "Количество": current_qty,
-                "wid": current_wid,
-                "kolichestvo": current_qty * current_wid,
-                "тегло": 1
-            })
-
-            # ✅ reset само qty
-            current_qty = None
-
-    return pd.DataFrame(rows)
+    return merged
 # ======================================================
 # ✅ CASTROL (EXCEL ✅)
 # ======================================================
