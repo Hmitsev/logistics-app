@@ -842,38 +842,33 @@ if uploaded_files:
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
 
-        # ✅ FEBI
-        elif menu == "FEBI":
-            df = parse_febi_excel(file)
-
         # ✅ CASTROL Excel
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
-        # ✅ PDF (MOTUL / CASTROL)
+        # ✅ PDF (CASTROL / MOTUL)
         elif source_type == "PDF":
-    reader = PdfReader(file)
-    text = ""
+            reader = PdfReader(file)
+            text = ""
 
-    for page in reader.pages:
-        text += page.extract_text() + "\n"
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
 
-    if menu == "CASTROL":
-        df = parse_castrol(text)
-    else:
-        df = parse_motul(text)
-
+            if menu == "CASTROL":
+                df = parse_castrol(text)
+            else:
+                df = parse_motul(text)
 
         # ✅ fallback Excel
         else:
             df = pd.read_excel(file)
             df.columns = df.columns.str.strip()
 
-        # ✅ append result
+        # ✅ добавяме валидните данни
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
-    # ✅ няма данни
+    # ✅ ако няма данни
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -886,7 +881,7 @@ if uploaded_files:
         st.write("DEBUG DF:")
         st.dataframe(final_df.head(20))
 
-    # ✅ check
+    # ✅ проверка
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
@@ -896,7 +891,7 @@ if uploaded_files:
     # ✅ филтър по тегло
     final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ final report
+    # ✅ финален отчет
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
@@ -910,7 +905,7 @@ if uploaded_files:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ✅ EXPORT
+    # ✅ export
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
