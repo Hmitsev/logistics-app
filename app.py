@@ -511,22 +511,18 @@ def parse_neste_excel(file):
 # ======================================================
 def parse_febi_excel(file):
 
-    df = pd.read_excel(file)
+    df = pd.read_excel(file, engine="xlrd")  # ✅ FIX
     df.columns = df.columns.str.strip()
 
     result = pd.DataFrame()
 
-    # ✅ mapping
     result["Тарифен код"] = df["HS-Code"]
     result["Количество"] = pd.to_numeric(df["Quantity"], errors="coerce")
     result["тегло"] = pd.to_numeric(df["Net weight"], errors="coerce")
 
-    # ✅ ✅ извличане на wid от текст (например = 5L)
     def extract_wid(text):
-        import re
         if pd.isna(text):
             return 1
-
         match = re.search(r"=\s*(\d+)\s*L", str(text))
         if match:
             return float(match.group(1))
@@ -534,13 +530,10 @@ def parse_febi_excel(file):
 
     result["wid"] = df["Description"].apply(extract_wid)
 
-    # ✅ kolichestvo
     result["kolichestvo"] = result["Количество"] * result["wid"]
 
-    # ✅ clean
     result = result.dropna(subset=["Тарифен код", "Количество", "тегло"])
 
-    # ✅ group
     result = result.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -550,7 +543,7 @@ def parse_febi_excel(file):
         "тегло": "sum"
     })
 
-    return result   
+    return result
 # ======================================================
 # ✅ CASTROL (EXCEL ✅)
 # ======================================================
