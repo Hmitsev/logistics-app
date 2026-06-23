@@ -754,12 +754,15 @@ if uploaded_files:
         df = None
 
         if menu == "NESTE":
-            df = parse_neste_excel(file)
+    df = parse_neste_excel(file)
 
-        elif menu == "FLUKAR":
-            df = parse_flukar_excel(file)
+elif menu == "FLUKAR":
+    df = parse_flukar_excel(file)
 
-        elif source_type == "PDF":
+elif menu == "CASTROL" and source_type == "Excel":
+    df = parse_castrol_excel(file)   # ✅ ТОВА ЛИПСВА
+
+elif source_type == "PDF":
             reader = PdfReader(file)
             text = ""
 
