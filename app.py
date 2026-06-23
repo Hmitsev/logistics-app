@@ -507,7 +507,7 @@ def parse_neste_excel(file):
 
     return df
 # ======================================================
-# ✅ FEBI (PDF ✅ FINAL FIXED)
+# ✅ FEBI (PDF ✅ FINAL + FILTER)
 # ======================================================
 def parse_febi_pdf(text):
 
@@ -519,7 +519,7 @@ def parse_febi_pdf(text):
 
     for line in lines:
 
-        # ✅ QUANTITY (поддържа 1.152 PCE)
+        # ✅ QUANTITY
         qty_match = re.search(r"([\d\.,]+)\s+PCE", line)
         if qty_match:
             try:
@@ -531,7 +531,7 @@ def parse_febi_pdf(text):
             except:
                 pass
 
-        # ✅ WID (например: = 1PC = 5L ИЛИ = 5L)
+        # ✅ WID
         wid_match = re.search(r"=\s*1PC\s*=\s*([\d\.]+)L", line)
         if wid_match:
             current_wid = float(wid_match.group(1))
@@ -546,15 +546,19 @@ def parse_febi_pdf(text):
 
             code = code_match.group(1)
 
+            # ✅ ✅ ФИЛТЪР ПО ALLOWED_CODES
+            if code not in ALLOWED_CODES:
+                current_qty = None
+                continue
+
             rows.append({
                 "Тарифен код": code,
                 "Количество": current_qty,
                 "wid": current_wid,
                 "kolichestvo": round(current_qty * current_wid, 3),
-                "тегло": 1   # ✅ временно - да не се филтрира
+                "тегло": 1
             })
 
-            # ✅ reset само quantity (НЕ wid!)
             current_qty = None
 
     return pd.DataFrame(rows)
