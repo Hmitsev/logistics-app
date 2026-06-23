@@ -860,10 +860,9 @@ if uploaded_files:
 
     if menu == "CASTROL":
         df = parse_castrol(text)
-    elif menu == "FEBI":
-        df = parse_febi_pdf(text)
     else:
         df = parse_motul(text)
+
 
         # ✅ fallback Excel
         else:
