@@ -2,3 +2,4 @@ streamlit
 pandas
 PyPDF2
 openpyxl
+xlrd==2.0.1
