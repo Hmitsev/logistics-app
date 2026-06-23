@@ -478,57 +478,71 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # # ======================================================
-# ✅ AMTRA (EXCEL ✅ FIXED HEADER DETECTION)
+# ✅ AMTRA (EXCEL ✅ BULLETPROOF)
 # ======================================================
 def parse_amtra_excel(file):
 
-    # ✅ първо четем без header
     df_raw = pd.read_excel(file, header=None)
 
     header_row = None
 
-    # ✅ намираме реда с Code CN
+    # ✅ намираме header ред
     for i in range(len(df_raw)):
         row = df_raw.iloc[i]
 
-        if any("code cn" in str(cell).lower() for cell in row if pd.notna(cell)):
+        if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
             header_row = i
             break
 
     if header_row is None:
-        st.error("❌ Не е намерен header ред (Code CN)")
+        st.error("❌ Не е намерен header ред")
         return pd.DataFrame()
 
-    # ✅ четем от правилния ред
     df = pd.read_excel(file, header=header_row)
-
     df.columns = df.columns.astype(str).str.strip()
 
     result = pd.DataFrame()
 
+    # ✅ SAFE DETECTION
     for col in df.columns:
         c = col.lower()
 
-        if "code cn" in c:
+        # ✅ тарифен код (по cn)
+        if "cn" in c:
             result["Тарифен код"] = df[col]
 
-        elif "ordered quantity" in c:
+        # ✅ количество
+        elif "quantity" in c:
             result["Количество"] = pd.to_numeric(df[col], errors="coerce")
 
-        elif "net weight total" in c:
+        # ✅ тегло
+        elif "net" in c and "weight" in c:
             result["тегло"] = pd.to_numeric(df[col], errors="coerce")
 
-        elif "packing" in c:
+        # ✅ packing (optional)
+        elif "pack" in c:
             result["wid"] = pd.to_numeric(df[col], errors="coerce")
 
+    # ✅ защита: ако липсват колони → няма crash
+    required = ["Тарифен код", "Количество", "тегло"]
+
+    for col in required:
+        if col not in result.columns:
+            st.error(f"❌ Липсва колона: {col}")
+            return pd.DataFrame()
+
     # ✅ clean
-    result = result.dropna(subset=["Тарифен код", "Количество", "тегло"])
+    result = result.dropna(subset=["Тарифен код"])
+    result["Количество"] = pd.to_numeric(result["Количество"], errors="coerce")
+    result["тегло"] = pd.to_numeric(result["тегло"], errors="coerce")
+
+    result = result.dropna(subset=["Количество", "тегло"])
 
     # ✅ wid default
     if "wid" not in result.columns:
         result["wid"] = 1
 
-    # ✅ кол-во
+    # ✅ количество
     result["kolichestvo"] = result["Количество"]
 
     # ✅ group
