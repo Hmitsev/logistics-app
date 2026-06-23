@@ -147,7 +147,35 @@ button[data-testid="baseButton-secondary"] p {
 
 # ✅ SIDEBAR
 menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL", "NESTE", "FLUKAR", "GASOLIN", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "ELROMI RONAX","NISTA", "AMTRA" , "AUTO MEGA" ,"EMINIA" ,"Brehman"])
+# ✅ статичен списък (като таблица в sidebar)
+st.sidebar.markdown("### 📋 Suppliers & File type")
 
+suppliers_table = [
+    ("FLUKAR", "Excel"),
+    ("ELROMI RONAX", "Excel"),
+    ("VALVOLINE", "Excel"),
+    ("ORLEN", "Excel"),
+    ("Chempioil (FANFARO)", "Excel"),
+    ("AMTRA", "Excel"),
+    ("FUCHS", "PDF"),
+    ("CASTROL", "Excel"),
+    ("MOTUL", "PDF"),
+    ("NESTE", "Excel"),
+    ("Gasoline", "PDF"),
+    ("FEBI", "PDF"),
+    ("NISTA", "Excel"),
+    ("AUTO MEGA", "Excel"),
+    ("EMINIA", "Excel"),
+    ("Brehman", "Excel"),
+]
+
+# ✅ обръщаме реда (както искаш)
+suppliers_table = suppliers_table[::-1]
+
+# ✅ правим DataFrame за визуализация
+df_suppliers = pd.DataFrame(suppliers_table, columns=["Supplier", "File"])
+
+st.sidebar.dataframe(df_suppliers, use_container_width=True, height=350)
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
     st.session_state["prev_supplier"] = menu
