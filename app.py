@@ -750,7 +750,7 @@ if uploaded_files:
 
     final_df = final_df[final_df["тегло"] > 0]
 
-    report = build_final_report(final_df)
+   report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
         "Тарифен код": "Code",
