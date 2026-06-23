@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL", "NESTE", "FLUKAR", "RAVENOL", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "Gasoline","NISTA", "АВИАТРАНС MA-FRA", "AMTRA" , "AUTO MEGA"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL", "NESTE", "FLUKAR", "RAVENOL", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "Gasoline","NISTA", "АВИАТРАНС MA-FRA", "AMTRA" , "AUTO MEGA" ,"EMINIA"])
 
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
