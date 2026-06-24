@@ -640,7 +640,7 @@ def parse_flukar_excel(file):
 from decimal import Decimal, ROUND_HALF_UP
 
 # ======================================================
-# ✅ NISTA (EXCEL ONLY ✅ FINAL VERSION)
+# ✅ NISTA (EXCEL ONLY ✅ FINAL STABLE VERSION)
 # ======================================================
 def parse_nista_excel(file):
 
@@ -648,44 +648,72 @@ def parse_nista_excel(file):
 
     rows = []
 
+    VALID_WID = [1, 4, 5, 20, 60, 200]
+
     for i in range(len(df)):
 
         try:
-            # ✅ Menge (колона A)
-            menge_cell = str(df.iloc[i, 0]).lower()
+            # ✅ Четем целия ред
+            row = df.iloc[i]
 
-            if "liter" not in menge_cell:
+            # ✅ Menge (литри)
+            menge = None
+            for cell in row:
+                if pd.notna(cell):
+                    cell_str = str(cell).lower()
+                    if "liter" in cell_str:
+                        menge = float(re.search(r"(\d+)", cell_str).group(1))
+                        break
+
+            if not menge:
                 continue
 
-            menge = float(re.search(r"(\d+)", menge_cell).group(1))
+            # ✅ Търсим код, wid, тегло в същия ред
+            code = None
+            wid = None
+            weight = None
 
-            # ✅ тарифен код (колона E)
-            code_cell = str(df.iloc[i, 4])
-            code = re.sub(r"\D", "", code_cell)
+            for cell in row:
+                if pd.isna(cell):
+                    continue
 
-            if len(code) &lt; 8:
+                c = str(cell).lower()
+
+                # ✅ CODE
+                if not code:
+                    match = re.search(r"\b27\d{6}\b", c)
+                    if match:
+                        code = match.group(0)
+
+                # ✅ WID
+                if not wid:
+                    multi = re.search(r"\d+x(\d+)", c)
+                    single = re.search(r"(\d+)l", c)
+
+                    if multi:
+                        w = int(multi.group(1))
+                        if w in VALID_WID:
+                            wid = float(w)
+
+                    elif single:
+                        w = int(single.group(1))
+                        if w in VALID_WID:
+                            wid = float(w)
+
+                # ✅ ТЕГЛО
+                if not weight:
+                    try:
+                        val = float(str(cell).replace(",", "."))
+                        if 20 < val < 5000:
+                            weight = val
+                    except:
+                        pass
+
+            # ✅ ако не сме намерили всичко → пропускаме
+            if not code or not wid or not weight:
                 continue
 
-            code = code[:8]
-
-            # ✅ wid (колона F)
-            geb_cell = str(df.iloc[i, 5]).lower().replace(" ", "")
-
-            multi = re.search(r"\d+x(\d+)", geb_cell)
-            single = re.search(r"(\d+)l", geb_cell)
-
-            if multi:
-                wid = float(multi.group(1))
-            elif single:
-                wid = float(single.group(1))
-            else:
-                continue
-
-            # ✅ тегло (колона G)
-            weight_cell = str(df.iloc[i, 6]).replace(",", ".")
-            weight = float(re.search(r"\d+[.]?\d*", weight_cell).group(0))
-
-            # ✅ Broj
+            # ✅ BROJ
             broj = menge / wid
 
             rows.append({
@@ -700,12 +728,11 @@ def parse_nista_excel(file):
             continue
 
     if not rows:
-        st.error("❌ NISTA parser не извлече данни (провери колоните A–G)")
+        st.error("❌ NISTA parser не извлече валидни данни")
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
 
-    # ✅ GROUP
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
