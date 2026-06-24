@@ -492,7 +492,7 @@ def parse_nista_excel(file):
         try:
             row = df.iloc[i]
 
-            # ✅ MENGE (liter)
+            # ✅ MENGE
             menge = None
             for cell in row:
                 if pd.notna(cell):
@@ -506,7 +506,7 @@ def parse_nista_excel(file):
             if not menge:
                 continue
 
-            # ✅ CODE (normalized → 27101981)
+            # ✅ CODE (нормализация)
             code = None
             for cell in row:
                 if pd.notna(cell):
@@ -514,7 +514,6 @@ def parse_nista_excel(file):
                     if m:
                         digits = re.sub(r"\D", "", m.group(0))
 
-                        # ✅ гаранция за 8 цифри
                         if len(digits) >= 8:
                             code = digits[:8]
                         else:
@@ -563,7 +562,6 @@ def parse_nista_excel(file):
             if not weight:
                 continue
 
-            # ✅ ДОБАВЯНЕ
             rows.append({
                 "Тарифен код": code,
                 "Количество": int(round(menge / wid)),
@@ -575,23 +573,23 @@ def parse_nista_excel(file):
         except:
             continue
 
-    # ✅ ако няма данни
     if not rows:
-        st.error("❌ NISTA parser не извлече валидни данни")
+        st.error("❌ NISTA parser не извлече данни")
         return pd.DataFrame()
 
-    # ✅ DataFrame
     df_out = pd.DataFrame(rows)
 
-    # ✅ ✅ МЕГА ВАЖНО — FINAL NORMALIZATION
+    # ✅ FINAL normalize (най-важното)
     df_out["Тарифен код"] = (
         df_out["Тарифен код"]
         .astype(str)
-        .str.replace(r"\D", "", regex=True)  # маха интервали/символи
-        .str[:8]                             # точно 8 цифри
+        .str.replace(r"\D", "", regex=True)
+        .str[:8]
     )
 
-    # ✅ GROUP
+    # ✅ махаме грешни кодове
+    df_out = df_out[df_out["Тарифен код"].isin(ALLOWED_CODES)]
+
     df_out = df_out.groupby(
         ["Тарифен код", "wid"],
         as_index=False
@@ -602,7 +600,6 @@ def parse_nista_excel(file):
     })
 
     return df_out
-
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
