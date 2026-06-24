@@ -639,88 +639,102 @@ def parse_flukar_excel(file):
 
 from decimal import Decimal, ROUND_HALF_UP
 
+# ======================================================
+# ✅ NISTA (EXCEL ONLY ✅ FINAL VERSION)
+# ======================================================
 def parse_nista_excel(file):
 
     df = pd.read_excel(file, header=None)
 
     rows = []
 
-    i = 0
-    while i < len(df):
+    # ✅ валидни разфасовки (МИТНИЧЕСКА ЛОГИКА)
+    VALID_WID = [1, 4, 5, 20, 60, 200]
 
-        row_text = " ".join(str(x) for x in df.iloc[i] if pd.notna(x)).lower()
+    for i in range(len(df)):
 
-        # ✅ намираме ред с "liter"
-        if "liter" in row_text:
+        try:
+            # ✅ ред като текст
+            row_text = " ".join(str(x) for x in df.iloc[i] if pd.notna(x)).lower()
 
-            try:
-                menge = float(re.search(r"(\d+)", row_text).group(1))
+            # ✅ търсим Menge (литри)
+            liter_match = re.search(r"(\d+)\s*liter", row_text)
 
-                # ✅ взимаме точните следващи редове
-                desc_row = df.iloc[i+2]
-                code_row = df.iloc[i+3]
-                geb_row = df.iloc[i+4]
-                weight_row = df.iloc[i+5]
-
-                code_text = " ".join(str(x) for x in code_row if pd.notna(x))
-                geb_text = " ".join(str(x) for x in geb_row if pd.notna(x)).lower()
-                weight_text = " ".join(str(x) for x in weight_row if pd.notna(x))
-
-                # ✅ ТАРИФЕН КОД (строго)
-                code_match = re.search(r"(\d{4}\s*\d{2}\s*\d{2})", code_text)
-                if not code_match:
-                    i += 1
-                    continue
-
-                code = re.sub(r"\D", "", code_match.group(1))[:8]
-
-                # ✅ WID (само от Geb ред!!)
-                multi = re.search(r"(\d+)x(\d+)", geb_text)
-                single = re.search(r"(\d+)\s*l", geb_text)
-
-                if multi:
-                    wid = float(multi.group(2))
-                elif single:
-                    wid = float(single.group(1))
-                else:
-                    i += 1
-                    continue
-
-                # ✅ ТЕГЛО (само от правилния ред)
-                weight_match = re.search(r"(\d+[.,]?\d+)", weight_text)
-                if not weight_match:
-                    i += 1
-                    continue
-
-                weight = float(weight_match.group(1).replace(",", "."))
-
-                # ✅ BROJ
-                broj = menge / wid
-
-                rows.append({
-                    "Тарифен код": code,
-                    "wid": wid,
-                    "Количество": round(broj),
-                    "kolichestvo": menge,
-                    "тегло": weight
-                })
-
-                # 🔥 jump напред (важно)
-                i += 6
+            if not liter_match:
                 continue
 
-            except:
-                pass
+            menge = float(liter_match.group(1))
 
-        i += 1
+            # ✅ събираме следващите редове (гъвкаво)
+            block = []
+            for j in range(1, 7):
+                if i + j < len(df):
+                    block.append(
+                        " ".join(str(x) for x in df.iloc[i+j] if pd.notna(x)).lower()
+                    )
+
+            block_text = " ".join(block)
+
+            # ✅ ТАРИФЕН КОД (само валиден)
+            code_match = re.search(r"\b27\d{6}\b", block_text)
+
+            if not code_match:
+                continue
+
+            code = code_match.group(0)
+
+            # ✅ WID (само валидни стойности)
+            possible_wid = re.findall(r"(\d+)\s*l", block_text)
+
+            wid = None
+            for w in possible_wid:
+                w_int = int(w)
+                if w_int in VALID_WID:
+                    wid = float(w_int)
+                    break
+
+            if not wid:
+                continue
+
+            # ✅ ТЕГЛО (най-голямото реално число)
+            numbers = re.findall(r"\d+[.,]?\d*", block_text)
+
+            numbers = [
+                float(n.replace(",", "."))
+                for n in numbers
+                if float(n.replace(",", ".")) > 10
+            ]
+
+            if not numbers:
+                continue
+
+            weight = max(numbers)
+
+            # ✅ ✅ КРИТИЧЕН ФИЛТЪР (няма грешни редове)
+            if menge % wid != 0:
+                continue
+
+            # ✅ Broj
+            broj = menge / wid
+
+            rows.append({
+                "Тарифен код": code,
+                "wid": wid,
+                "Количество": int(broj),
+                "kolichestvo": menge,
+                "тегло": weight
+            })
+
+        except:
+            continue
 
     if not rows:
-        st.error("❌ NISTA parser не извлече данни")
+        st.error("❌ NISTA parser не извлече валидни данни")
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
 
-    # ✅ GROUP
+    # ✅ GROUP (задължително)
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
