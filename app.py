@@ -648,16 +648,13 @@ def parse_nista_excel(file):
 
     rows = []
 
-    # ✅ валидни разфасовки (МИТНИЧЕСКА ЛОГИКА)
     VALID_WID = [1, 4, 5, 20, 60, 200]
 
     for i in range(len(df)):
 
         try:
-            # ✅ ред като текст
             row_text = " ".join(str(x) for x in df.iloc[i] if pd.notna(x)).lower()
 
-            # ✅ търсим Menge (литри)
             liter_match = re.search(r"(\d+)\s*liter", row_text)
 
             if not liter_match:
@@ -665,9 +662,9 @@ def parse_nista_excel(file):
 
             menge = float(liter_match.group(1))
 
-            # ✅ събираме следващите редове (гъвкаво)
+            # ✅ блок
             block = []
-            for j in range(1, 7):
+            for j in range(1, 8):
                 if i + j < len(df):
                     block.append(
                         " ".join(str(x) for x in df.iloc[i+j] if pd.notna(x)).lower()
@@ -675,15 +672,14 @@ def parse_nista_excel(file):
 
             block_text = " ".join(block)
 
-            # ✅ ТАРИФЕН КОД (само валиден)
+            # ✅ CODE
             code_match = re.search(r"\b27\d{6}\b", block_text)
-
             if not code_match:
                 continue
 
             code = code_match.group(0)
 
-            # ✅ WID (само валидни стойности)
+            # ✅ WID
             possible_wid = re.findall(r"(\d+)\s*l", block_text)
 
             wid = None
@@ -696,13 +692,13 @@ def parse_nista_excel(file):
             if not wid:
                 continue
 
-            # ✅ ТЕГЛО (най-голямото реално число)
+            # ✅ ТЕГЛО (вземаме най-голямото, но разумно)
             numbers = re.findall(r"\d+[.,]?\d*", block_text)
 
             numbers = [
                 float(n.replace(",", "."))
                 for n in numbers
-                if float(n.replace(",", ".")) > 10
+                if float(n.replace(",", ".")) > 20 and float(n) < 5000
             ]
 
             if not numbers:
@@ -710,17 +706,17 @@ def parse_nista_excel(file):
 
             weight = max(numbers)
 
-            # ✅ ✅ КРИТИЧЕН ФИЛТЪР (няма грешни редове)
-            if menge % wid != 0:
-                continue
-
-            # ✅ Broj
+            # ✅ ✅ BROJ с толеранс
             broj = menge / wid
+
+            # ако се получи нещо извън нормата → skip
+            if broj < 1 or broj > 10000:
+                continue
 
             rows.append({
                 "Тарифен код": code,
                 "wid": wid,
-                "Количество": int(broj),
+                "Количество": int(round(broj)),
                 "kolichestvo": menge,
                 "тегло": weight
             })
@@ -734,7 +730,6 @@ def parse_nista_excel(file):
 
     df = pd.DataFrame(rows)
 
-    # ✅ GROUP (задължително)
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
