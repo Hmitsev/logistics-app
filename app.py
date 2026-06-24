@@ -640,106 +640,40 @@ def parse_flukar_excel(file):
 from decimal import Decimal, ROUND_HALF_UP
 
 # ======================================================
-# ✅ NISTA (EXCEL ONLY ✅ FINAL STABLE VERSION)
+# ✅ NISTA (DEBUG VERSION ✅)
 # ======================================================
 def parse_nista_excel(file):
 
     df = pd.read_excel(file, header=None)
 
-    rows = []
-    VALID_WID = [1, 4, 5, 20, 60, 200]
+    # ✅ ✅ DEBUG – показва реалната структура
+    st.error("🛠 DEBUG NISTA – виж структурата по-долу")
 
-    # ✅ flatten всички клетки в списък
-    flat = []
+    st.write("➡️ Първите 40 реда от файла:")
+    st.dataframe(df.head(40))
+
+    st.write("➡️ Размер на таблицата:")
+    st.write(df.shape)
+
+    st.write("➡️ Типове на колоните:")
+    st.write(df.dtypes)
+
+    # ✅ ✅ СПИРАМЕ ТУК (важно!)
+    st.stop()
+
+    # ======================================================
+    # ⛔ НИЩО НАДОЛУ НЕ СЕ ИЗПЪЛНЯВА В DEBUG MODE
+    # ======================================================
+
+    rows = []
 
     for i in range(len(df)):
-        for j in range(len(df.columns)):
-            val = df.iloc[i, j]
-            if pd.notna(val):
-                flat.append(str(val).lower())
-
-    i = 0
-    while i < len(flat):
-
         try:
-            # ✅ намираме "liter"
-            if "liter" in flat[i]:
-
-                menge = float(re.search(r"(\d+)", flat[i]).group(1))
-
-                # ✅ гледаме следващите елементи
-                block = " ".join(flat[i:i+10])
-
-                # ✅ CODE
-                code_match = re.search(r"\b27\d{6}\b", block)
-                if not code_match:
-                    i += 1
-                    continue
-
-                code = code_match.group(0)
-
-                # ✅ WID
-                wid = None
-                for w in VALID_WID:
-                    if f"{w}l" in block:
-                        wid = float(w)
-                        break
-
-                if not wid:
-                    i += 1
-                    continue
-
-                # ✅ ТЕГЛО (взимаме последното реално число)
-                numbers = re.findall(r"\d+[.,]?\d*", block)
-
-                numbers = [
-                    float(n.replace(",", "."))
-                    for n in numbers
-                    if 50 < float(n.replace(",", ".")) < 5000
-                ]
-
-                if not numbers:
-                    i += 1
-                    continue
-
-                weight = numbers[-1]
-
-                # ✅ BROJ
-                broj = menge / wid
-
-                rows.append({
-                    "Тарифен код": code,
-                    "wid": wid,
-                    "Количество": int(round(broj)),
-                    "kolichestvo": menge,
-                    "тегло": weight
-                })
-
-                # ✅ скачаме напред
-                i += 8
-                continue
-
-        except:
             pass
+        except:
+            continue
 
-        i += 1
-
-    if not rows:
-        st.error("❌ NISTA parser не извлече валидни данни")
-        return pd.DataFrame()
-
-    df = pd.DataFrame(rows)
-
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
+    return pd.DataFrame()
 # ======================================================
 # ✅ FINAL REPORT (FIXED)
 # ======================================================
