@@ -645,6 +645,78 @@ from decimal import Decimal, ROUND_HALF_UP
 from decimal import Decimal, ROUND_HALF_UP
 
 def build_final_report(df, supplier):
+    # ✅ NISTA FORMAT
+    if supplier == "NISTA":
+
+        df["тегло"] = df["тегло"].round(3)
+        df["kolichestvo"] = df["kolichestvo"].round(2)
+
+        rows = []
+
+        grouped = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": "sum"
+        })
+
+        for code, group in grouped.groupby("Тарифен код"):
+
+            rows.append({
+                "code": code,
+                "mit_name": "???????? ?????",
+                "broj": "",
+                "wid": "",
+                "teglo": "",
+                "kolic": ""
+            })
+
+            total_k = 0
+            total_t = 0
+
+            group = group.sort_values("wid")
+
+            for _, r in group.iterrows():
+
+                rows.append({
+                    "code": code,
+                    "mit_name": "",
+                    "broj": int(r["Количество"]),
+                    "wid": f"{r['wid']:.2f}",
+                    "teglo": f"{r['тегло']:.3f}".replace(".", ","),
+                    "kolic": f"{r['kolichestvo']:.2f}"
+                })
+
+                total_k += r["kolichestvo"]
+                total_t += r["тегло"]
+
+            rows.append({
+                "code": f"{code} - Total",
+                "mit_name": "",
+                "broj": "",
+                "wid": "",
+                "teglo": f"{total_t:.3f}".replace(".", ","),
+                "kolic": f"{total_k:.2f}"
+            })
+
+            rows.append({
+                "code": "",
+                "mit_name": "",
+                "broj": "",
+                "wid": "",
+                "teglo": "",
+                "kolic": ""
+            })
+
+        rows.append({
+            "code": "Grand Total",
+            "mit_name": "",
+            "broj": "",
+            "wid": "",
+            "teglo": f"{grouped['тегло'].sum():.3f}".replace(".", ","),
+            "kolic": f"{grouped['kolichestvo'].sum():.2f}"
+        })
+
+        return pd.DataFrame(rows)
 
     # ✅ FLUKAR логика
     if supplier == "FLUKAR":
@@ -789,6 +861,8 @@ if uploaded_files:
 
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
+            elif menu == "NISTA":
+    df = parse_nista_excel(file)
 
         elif source_type == "PDF":
             reader = PdfReader(file)
@@ -831,13 +905,10 @@ if uploaded_files:
     final_df = final_df[final_df["тегло"] > 0]
 
     report = build_final_report(final_df, menu)
+    
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
 
-    report = report.rename(columns={
-        "Тарифен код": "Code",
-        "wid": "wid",
-        "тегло": "teglo",
-        "kolichestvo": "colic-v L",
-        "Количество": "Broj"
     })
 
     st.subheader("📊 Финален отчет")
