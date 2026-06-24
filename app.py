@@ -639,9 +639,6 @@ def parse_flukar_excel(file):
 
 from decimal import Decimal, ROUND_HALF_UP
 
-# ======================================================
-# ✅ NISTA (FINAL CORRECT VERSION ✅)
-# ======================================================
 def build_final_report(df, supplier):
 
     df["тегло"] = df["тегло"].round(3)
@@ -649,7 +646,6 @@ def build_final_report(df, supplier):
 
     rows = []
 
-    # ✅ групиране по тарифен код
     grouped = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
         "Количество": "sum",
         "kolichestvo": "sum",
@@ -658,20 +654,19 @@ def build_final_report(df, supplier):
 
     for code, group in grouped.groupby("Тарифен код"):
 
-        # ✅ HEADER ред (code + име)
+        # ✅ HEADER ред
         rows.append({
             "Code": code,
             "mit_name": "???????? ?????",
             "Broj": "",
             "wid": "",
             "teglo": "",
-            "colic-v L": ""
+            "colic": ""
         })
 
         total_kolic = 0
         total_teglo = 0
 
-        # ✅ детайлни редове
         for _, r in group.iterrows():
 
             rows.append({
@@ -680,20 +675,20 @@ def build_final_report(df, supplier):
                 "Broj": int(r["Количество"]),
                 "wid": f"{r['wid']:.2f}",
                 "teglo": f"{r['тегло']:.3f}".replace(".", ","),
-                "colic-v L": f"{r['kolichestvo']:.2f}"
+                "colic": f"{r['kolichestvo']:.2f}"
             })
 
             total_kolic += r["kolichestvo"]
             total_teglo += r["тегло"]
 
-        # ✅ TOTAL ред
+        # ✅ TOTAL
         rows.append({
             "Code": f"{code} - Total",
             "mit_name": "",
             "Broj": "",
             "wid": "",
             "teglo": f"{total_teglo:.3f}".replace(".", ","),
-            "colic-v L": f"{total_kolic:.2f}"
+            "colic": f"{total_kolic:.2f}"
         })
 
         # ✅ празен ред
@@ -703,20 +698,17 @@ def build_final_report(df, supplier):
             "Broj": "",
             "wid": "",
             "teglo": "",
-            "colic-v L": ""
+            "colic": ""
         })
 
     # ✅ GRAND TOTAL
-    grand_kolic = grouped["kolichestvo"].sum()
-    grand_teglo = grouped["тегло"].sum()
-
     rows.append({
         "Code": "Grand Total",
         "mit_name": "",
         "Broj": "",
         "wid": "",
-        "teglo": f"{grand_teglo:.3f}".replace(".", ","),
-        "colic-v L": f"{grand_kolic:.2f}"
+        "teglo": f"{grouped['тегло'].sum():.3f}".replace(".", ","),
+        "colic": f"{grouped['kolichestvo'].sum():.2f}"
     })
 
     return pd.DataFrame(rows)
