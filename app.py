@@ -647,71 +647,64 @@ def parse_nista_excel(file):
     df = pd.read_excel(file, header=None)
 
     rows = []
-
     VALID_WID = [1, 4, 5, 20, 60, 200]
 
-    for i in range(len(df)):
+    i = 0
+    while i < len(df):
 
         try:
-            # ✅ Четем целия ред
-            row = df.iloc[i]
+            row_text = " ".join(str(x) for x in df.iloc[i] if pd.notna(x)).lower()
 
-            # ✅ Menge (литри)
-            menge = None
-            for cell in row:
-                if pd.notna(cell):
-                    cell_str = str(cell).lower()
-                    if "liter" in cell_str:
-                        menge = float(re.search(r"(\d+)", cell_str).group(1))
-                        break
-
-            if not menge:
+            # ✅ намираме начало (Menge)
+            if "liter" not in row_text:
+                i += 1
                 continue
 
-            # ✅ Търсим код, wid, тегло в същия ред
-            code = None
+            menge = float(re.search(r"(\d+)", row_text).group(1))
+
+            # ✅ събираме следващите редове (block)
+            block = []
+            for j in range(1, 7):
+                if i + j < len(df):
+                    block.append(
+                        " ".join(str(x) for x in df.iloc[i+j] if pd.notna(x)).lower()
+                    )
+
+            block_text = " ".join(block)
+
+            # ✅ CODE
+            code_match = re.search(r"\b27\d{6}\b", block_text)
+            if not code_match:
+                i += 1
+                continue
+
+            code = code_match.group(0)
+
+            # ✅ WID
             wid = None
-            weight = None
+            for w in VALID_WID:
+                if f"{w}l" in block_text:
+                    wid = float(w)
+                    break
 
-            for cell in row:
-                if pd.isna(cell):
-                    continue
-
-                c = str(cell).lower()
-
-                # ✅ CODE
-                if not code:
-                    match = re.search(r"\b27\d{6}\b", c)
-                    if match:
-                        code = match.group(0)
-
-                # ✅ WID
-                if not wid:
-                    multi = re.search(r"\d+x(\d+)", c)
-                    single = re.search(r"(\d+)l", c)
-
-                    if multi:
-                        w = int(multi.group(1))
-                        if w in VALID_WID:
-                            wid = float(w)
-
-                    elif single:
-                        w = int(single.group(1))
-                        if w in VALID_WID:
-                            wid = float(w)
-
-                # ✅ ТЕГЛО
-                if not weight:
-                    try:
-                        val = float(str(cell).replace(",", "."))
-                        if 20 < val < 5000:
-                            weight = val
-                    except:
-                        pass
-
-            # ✅ ако не сме намерили всичко → пропускаме
-            if not code or not wid or not weight:
+            if not wid:
+                i += 1
                 continue
+
+            # ✅ ТЕГЛО (последното число в блока)
+            numbers = re.findall(r"\d+[.,]?\d*", block_text)
+
+            weights = [
+                float(n.replace(",", "."))
+                for n in numbers
+                if 50 < float(n.replace(",", ".")) < 5000
+            ]
+
+            if not weights:
+                i += 1
+                continue
+
+            weight = weights[-1]  # ✅ последното е най-точно
 
             # ✅ BROJ
             broj = menge / wid
@@ -724,8 +717,12 @@ def parse_nista_excel(file):
                 "тегло": weight
             })
 
-        except:
+            # ✅ скачаме напред (много важно)
+            i += 6
             continue
+
+        except:
+            i += 1
 
     if not rows:
         st.error("❌ NISTA parser не извлече валидни данни")
