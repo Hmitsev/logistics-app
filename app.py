@@ -853,69 +853,78 @@ if uploaded_files:
 
         df = None
 
+        # ✅ NESTE
         if menu == "NESTE":
             df = parse_neste_excel(file)
 
+        # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
 
+        # ✅ CASTROL Excel
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
-            elif menu == "NISTA":
-    df = parse_nista_excel(file)
 
+        # ✅ ✅ ✅ NISTA (FIXED)
+        elif menu == "NISTA":
+            df = parse_nista_excel(file)
+
+        # ✅ PDF
         elif source_type == "PDF":
+
             reader = PdfReader(file)
             text = ""
 
             for page in reader.pages:
-                text += page.extract_text() + "\n"
+                extracted = page.extract_text()
+                if extracted:
+                    text += extracted + "\n"
 
             if menu == "CASTROL":
                 df = parse_castrol(text)
             else:
                 df = parse_motul(text)
 
+        # ✅ fallback Excel
         else:
             df = pd.read_excel(file)
             df.columns = df.columns.str.strip()
 
+        # ✅ добавяме валидни df
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
+    # ✅ няма данни
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ DEBUG (скрит)
+    # ✅ DEBUG
     DEBUG = False
     if DEBUG:
-        st.write("DEBUG DF:")
-        st.dataframe(final_df.head(20))
+        st.write(final_df)
 
-    # ✅ ✅ ВАЖНО – вътре в блока
+    # ✅ проверка за код
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
+    # ✅ нормализация
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
+    # ✅ махаме 0 тегло
     final_df = final_df[final_df["тегло"] > 0]
 
+    # ✅ REPORT
     report = build_final_report(final_df, menu)
-    
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
-
 
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
     # ✅ EXPORT
     output = io.BytesIO()
-
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         report.to_excel(writer, index=False)
 
