@@ -647,95 +647,65 @@ def parse_nista_excel(file):
     df = pd.read_excel(file, header=None)
 
     rows = []
-    VALID_WID = [1, 4, 5, 20, 60, 200]
 
-    # ✅ обхождаме всяка клетка
     for i in range(len(df)):
-        for j in range(len(df.columns)):
 
-            try:
-                cell = str(df.iloc[i, j]).lower()
+        try:
+            # ✅ Menge (колона A)
+            menge_cell = str(df.iloc[i, 0]).lower()
 
-                # ✅ намираме Menge
-                if "liter" in cell:
-
-                    menge_match = re.search(r"(\d+)", cell)
-                    if not menge_match:
-                        continue
-
-                    menge = float(menge_match.group(1))
-
-                    # ✅ гледаме съседните клетки (дясно)
-                    block_cells = []
-
-                    for dj in range(1, 7):
-                        if j + dj < len(df.columns):
-                            val = df.iloc[i, j + dj]
-                            if pd.notna(val):
-                                block_cells.append(str(val).lower())
-
-                    # ✅ гледаме и следващи редове
-                    for di in range(1, 6):
-                        if i + di < len(df):
-                            for dj in range(0, 6):
-                                if j + dj < len(df.columns):
-                                    val = df.iloc[i + di, j + dj]
-                                    if pd.notna(val):
-                                        block_cells.append(str(val).lower())
-
-                    block_text = " ".join(block_cells)
-
-                    # ✅ CODE
-                    code_match = re.search(r"\b27\d{6}\b", block_text)
-                    if not code_match:
-                        continue
-
-                    code = code_match.group(0)
-
-                    # ✅ WID
-                    wid = None
-                    for w in VALID_WID:
-                        if f"{w}l" in block_text:
-                            wid = float(w)
-                            break
-
-                    if not wid:
-                        continue
-
-                    # ✅ ТЕГЛО
-                    numbers = re.findall(r"\d+[.,]?\d*", block_text)
-
-                    weights = [
-                        float(n.replace(",", "."))
-                        for n in numbers
-                        if 50 < float(n.replace(",", ".")) < 5000
-                    ]
-
-                    if not weights:
-                        continue
-
-                    weight = max(weights)
-
-                    # ✅ БРОЙ
-                    broj = menge / wid
-
-                    rows.append({
-                        "Тарифен код": code,
-                        "wid": wid,
-                        "Количество": int(round(broj)),
-                        "kolichestvo": menge,
-                        "тегло": weight
-                    })
-
-            except:
+            if "liter" not in menge_cell:
                 continue
 
+            menge = float(re.search(r"(\d+)", menge_cell).group(1))
+
+            # ✅ тарифен код (колона E)
+            code_cell = str(df.iloc[i, 4])
+            code = re.sub(r"\D", "", code_cell)
+
+            if len(code) &lt; 8:
+                continue
+
+            code = code[:8]
+
+            # ✅ wid (колона F)
+            geb_cell = str(df.iloc[i, 5]).lower().replace(" ", "")
+
+            multi = re.search(r"\d+x(\d+)", geb_cell)
+            single = re.search(r"(\d+)l", geb_cell)
+
+            if multi:
+                wid = float(multi.group(1))
+            elif single:
+                wid = float(single.group(1))
+            else:
+                continue
+
+            # ✅ тегло (колона G)
+            weight_cell = str(df.iloc[i, 6]).replace(",", ".")
+            weight = float(re.search(r"\d+[.]?\d*", weight_cell).group(0))
+
+            # ✅ Broj
+            broj = menge / wid
+
+            rows.append({
+                "Тарифен код": code,
+                "wid": wid,
+                "Количество": int(round(broj)),
+                "kolichestvo": menge,
+                "тегло": weight
+            })
+
+        except:
+            continue
+
     if not rows:
-        st.error("❌ NISTA parser не извлече валидни данни")
+        st.error("❌ NISTA parser не извлече данни (провери колоните A–G)")
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
 
+    # ✅ GROUP
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
