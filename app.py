@@ -640,6 +640,102 @@ def parse_flukar_excel(file):
 from decimal import Decimal, ROUND_HALF_UP
 
 # ======================================================
+# ✅ NISTA (EXCEL ONLY ✅)
+# ======================================================
+def parse_nista_excel(file):
+
+    df = pd.read_excel(file, header=None)
+
+    # ✅ намираме header ред
+    header_row = None
+    for i in range(len(df)):
+        row = df.iloc[i].astype(str)
+
+        if "menge" in " ".join(row).lower():
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ Не е намерен header (Menge)")
+        return pd.DataFrame()
+
+    df = pd.read_excel(file, header=header_row)
+    df.columns = df.columns.astype(str).str.strip()
+
+    # ✅ rename
+    rename_map = {}
+
+    for col in df.columns:
+        c = col.lower()
+
+        if "menge" in c:
+            rename_map[col] = "kolichestvo"
+
+        elif "zoll" in c:
+            rename_map[col] = "Тарифен код"
+
+        elif "geb" in c:
+            rename_map[col] = "wid_raw"
+
+        elif "gew" in c:
+            rename_map[col] = "тегло"
+
+    df = df.rename(columns=rename_map)
+
+    required = ["Тарифен код", "kolichestvo", "wid_raw", "тегло"]
+
+    for col in required:
+        if col not in df.columns:
+            st.error(f"❌ Липсва колона: {col}")
+            return pd.DataFrame()
+
+    df = df.dropna(subset=["Тарифен код"])
+
+    # ✅ парсване на wid (разфасовка)
+    def extract_wid(val):
+        val = str(val).lower().replace(" ", "")
+
+        multi = re.search(r"\d+x(\d+)", val)
+        single = re.search(r"(\d+)l", val)
+
+        if multi:
+            return float(multi.group(1))
+        elif single:
+            return float(single.group(1))
+        return None
+
+    df["wid"] = df["wid_raw"].apply(extract_wid)
+
+    # ✅ numeric cleaning
+    df["kolichestvo"] = pd.to_numeric(df["kolichestvo"], errors="coerce")
+    df["wid"] = pd.to_numeric(df["wid"], errors="coerce")
+    df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
+
+    df = df.dropna(subset=["kolichestvo", "wid", "тегло"])
+
+    # ✅ Broj (брой)
+    df["Количество"] = (df["kolichestvo"] / df["wid"]).round(0)
+
+    # ✅ чистим тарифен код
+    df["Тарифен код"] = (
+        df["Тарифен код"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str[:8]
+    )
+
+    # ✅ group
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
+# ======================================================
 # ✅ FINAL REPORT (FIXED)
 # ======================================================
 from decimal import Decimal, ROUND_HALF_UP
@@ -781,30 +877,47 @@ if uploaded_files:
 
         df = None
 
-        if menu == "NESTE":
-            df = parse_neste_excel(file)
+        try:
 
-        elif menu == "FLUKAR":
-            df = parse_flukar_excel(file)
+            # ✅ NESTE
+            if menu == "NESTE":
+                df = parse_neste_excel(file)
 
-        elif menu == "CASTROL" and source_type == "Excel":
-            df = parse_castrol_excel(file)
+            # ✅ FLUKAR
+            elif menu == "FLUKAR":
+                df = parse_flukar_excel(file)
 
-        elif source_type == "PDF":
-            reader = PdfReader(file)
-            text = ""
+            # ✅ ✅ NISTA (НОВО)
+            elif menu == "NISTA":
+                df = parse_nista_excel(file)
 
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
+            # ✅ CASTROL Excel
+            elif menu == "CASTROL" and source_type == "Excel":
+                df = parse_castrol_excel(file)
 
-            if menu == "CASTROL":
-                df = parse_castrol(text)
+            # ✅ PDF processing
+            elif source_type == "PDF":
+                reader = PdfReader(file)
+                text = ""
+
+                for page in reader.pages:
+                    extracted = page.extract_text()
+                    if extracted:
+                        text += extracted + "\n"
+
+                if menu == "CASTROL":
+                    df = parse_castrol(text)
+                else:
+                    df = parse_motul(text)
+
+            # ✅ fallback Excel
             else:
-                df = parse_motul(text)
+                df = pd.read_excel(file)
+                df.columns = df.columns.str.strip()
 
-        else:
-            df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
+        except Exception as e:
+            st.error(f"❌ Грешка при обработка на файл: {file.name}")
+            continue
 
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
@@ -821,15 +934,23 @@ if uploaded_files:
         st.write("DEBUG DF:")
         st.dataframe(final_df.head(20))
 
-    # ✅ ✅ ВАЖНО – вътре в блока
+    # ✅ Валидация
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
+    # ✅ нормализация на код
+    final_df["Тарифен код"] = (
+        final_df["Тарифен код"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str[:8]
+    )
 
+    # ✅ махаме нереални редове
     final_df = final_df[final_df["тегло"] > 0]
 
+    # ✅ REPORT
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
