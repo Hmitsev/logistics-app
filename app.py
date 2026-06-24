@@ -479,7 +479,7 @@ def parse_motul(text):
     return pd.DataFrame(rows)
 
 # ======================================================
-# ✅ NISTA
+# ✅ NISTA (FINAL FIXED ✅)
 # ======================================================
 def parse_nista_excel(file):
 
@@ -492,26 +492,33 @@ def parse_nista_excel(file):
         try:
             row = df.iloc[i]
 
-            # ✅ Menge
+            # ✅ MENGE (liter)
             menge = None
             for cell in row:
                 if pd.notna(cell):
                     t = str(cell).lower()
                     if "liter" in t:
-                        menge = float(re.search(r"(\d+)", t).group(1))
-                        break
+                        m = re.search(r"(\d+)", t)
+                        if m:
+                            menge = float(m.group(1))
+                            break
 
             if not menge:
                 continue
 
-            # ✅ CODE
+            # ✅ CODE (normalized → 27101981)
             code = None
             for cell in row:
                 if pd.notna(cell):
                     m = re.search(r"27[0-9\s]{6,}", str(cell))
                     if m:
                         digits = re.sub(r"\D", "", m.group(0))
-                        code = digits[:8]
+
+                        # ✅ гаранция за 8 цифри
+                        if len(digits) >= 8:
+                            code = digits[:8]
+                        else:
+                            continue
                         break
 
             if not code:
@@ -556,6 +563,7 @@ def parse_nista_excel(file):
             if not weight:
                 continue
 
+            # ✅ ДОБАВЯНЕ
             rows.append({
                 "Тарифен код": code,
                 "Количество": int(round(menge / wid)),
@@ -567,15 +575,33 @@ def parse_nista_excel(file):
         except:
             continue
 
+    # ✅ ако няма данни
     if not rows:
-        st.error("❌ NISTA parser не извлече данни")
+        st.error("❌ NISTA parser не извлече валидни данни")
         return pd.DataFrame()
 
-    return pd.DataFrame(rows).groupby(
+    # ✅ DataFrame
+    df_out = pd.DataFrame(rows)
+
+    # ✅ ✅ МЕГА ВАЖНО — FINAL NORMALIZATION
+    df_out["Тарифен код"] = (
+        df_out["Тарифен код"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)  # маха интервали/символи
+        .str[:8]                             # точно 8 цифри
+    )
+
+    # ✅ GROUP
+    df_out = df_out.groupby(
         ["Тарифен код", "wid"],
         as_index=False
-    ).sum()
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
 
+    return df_out
 
 # ======================================================
 # ✅ FINAL REPORT
