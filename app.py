@@ -647,13 +647,14 @@ def parse_nista_excel(file):
     df = pd.read_excel(file, header=None)
 
     rows = []
+    VALID_WID = [1, 4, 5, 20, 60, 200]
 
     for i in range(len(df)):
 
         try:
             row = df.iloc[i]
 
-            # ✅ Menge (намираме "liter" в реда)
+            # ✅ Menge
             menge = None
             for cell in row:
                 if pd.notna(cell):
@@ -665,19 +666,20 @@ def parse_nista_excel(file):
             if not menge:
                 continue
 
-            # ✅ CODE (Zolltarifn)
+            # ✅ CODE (FIX)
             code = None
             for cell in row:
                 if pd.notna(cell):
-                    match = re.search(r"\b27\d{6}\b", str(cell))
+                    match = re.search(r"27[0-9\s]{6,}", str(cell))
                     if match:
-                        code = match.group(0)
+                        code_raw = match.group(0)
+                        code = re.sub(r"\D", "", code_raw)[:8]
                         break
 
             if not code:
                 continue
 
-            # ✅ WID (Geb)
+            # ✅ WID (FIX)
             wid = None
             for cell in row:
                 if pd.notna(cell):
@@ -687,22 +689,27 @@ def parse_nista_excel(file):
                     single = re.search(r"(\d+)l", c)
 
                     if multi:
-                        wid = float(multi.group(1))
-                        break
+                        w = int(multi.group(1))
+                        if w in VALID_WID:
+                            wid = float(w)
+                            break
+
                     elif single:
-                        wid = float(single.group(1))
-                        break
+                        w = int(single.group(1))
+                        if w in VALID_WID:
+                            wid = float(w)
+                            break
 
             if not wid:
                 continue
 
-            # ✅ ТЕГЛО (последното число в реда)
+            # ✅ ТЕГЛО
             weight = None
             for cell in reversed(row):
                 if pd.notna(cell):
                     try:
                         val = float(str(cell).replace(",", "."))
-                        if val > 10:  # филтър срещу глупости
+                        if val > 10:
                             weight = val
                             break
                     except:
@@ -731,7 +738,6 @@ def parse_nista_excel(file):
 
     df = pd.DataFrame(rows)
 
-    # ✅ GROUP
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
