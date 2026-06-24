@@ -639,90 +639,67 @@ def parse_flukar_excel(file):
 
 from decimal import Decimal, ROUND_HALF_UP
 
-# ======================================================
-# ✅ NISTA (EXCEL ONLY ✅)
-# ======================================================
 def parse_nista_excel(file):
 
     df = pd.read_excel(file, header=None)
 
-    # ✅ намираме header ред
-    header_row = None
+    rows = []
+
     for i in range(len(df)):
-        row = df.iloc[i].astype(str)
 
-        if "menge" in " ".join(row).lower():
-            header_row = i
-            break
+        try:
+            row = df.iloc[i].astype(str)
 
-    if header_row is None:
-        st.error("❌ Не е намерен header (Menge)")
+            # ✅ търсим ред с "liter"
+            if "liter" in row[0].lower():
+
+                # ✅ Menge (литри)
+                menge = float(row[0].split()[0])
+
+                # ✅ следващи редове
+                code_row = df.iloc[i+3].astype(str)
+                geb_row = df.iloc[i+4].astype(str)
+                weight_row = df.iloc[i+5].astype(str)
+
+                # ✅ Тарифен код
+                code_raw = code_row[0]
+                code = re.sub(r"\D", "", code_raw)[:8]
+
+                # ✅ wid (разфасовка)
+                geb = geb_row[0].lower().replace(" ", "")
+
+                multi = re.search(r"\d+x(\d+)", geb)
+                single = re.search(r"(\d+)l", geb)
+
+                if multi:
+                    wid = float(multi.group(1))
+                elif single:
+                    wid = float(single.group(1))
+                else:
+                    continue
+
+                # ✅ тегло
+                weight = float(str(weight_row[0]).replace(",", ".").replace(" ", ""))
+
+                # ✅ broj
+                broj = menge / wid
+
+                rows.append({
+                    "Тарифен код": code,
+                    "wid": wid,
+                    "Количество": round(broj),
+                    "kolichestvo": menge,
+                    "тегло": weight
+                })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ NISTA parser не намери валидни редове")
         return pd.DataFrame()
 
-    df = pd.read_excel(file, header=header_row)
-    df.columns = df.columns.astype(str).str.strip()
-
-    # ✅ rename
-    rename_map = {}
-
-    for col in df.columns:
-        c = col.lower()
-
-        if "menge" in c:
-            rename_map[col] = "kolichestvo"
-
-        elif "zoll" in c:
-            rename_map[col] = "Тарифен код"
-
-        elif "geb" in c:
-            rename_map[col] = "wid_raw"
-
-        elif "gew" in c:
-            rename_map[col] = "тегло"
-
-    df = df.rename(columns=rename_map)
-
-    required = ["Тарифен код", "kolichestvo", "wid_raw", "тегло"]
-
-    for col in required:
-        if col not in df.columns:
-            st.error(f"❌ Липсва колона: {col}")
-            return pd.DataFrame()
-
-    df = df.dropna(subset=["Тарифен код"])
-
-    # ✅ парсване на wid (разфасовка)
-    def extract_wid(val):
-        val = str(val).lower().replace(" ", "")
-
-        multi = re.search(r"\d+x(\d+)", val)
-        single = re.search(r"(\d+)l", val)
-
-        if multi:
-            return float(multi.group(1))
-        elif single:
-            return float(single.group(1))
-        return None
-
-    df["wid"] = df["wid_raw"].apply(extract_wid)
-
-    # ✅ numeric cleaning
-    df["kolichestvo"] = pd.to_numeric(df["kolichestvo"], errors="coerce")
-    df["wid"] = pd.to_numeric(df["wid"], errors="coerce")
-    df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
-
-    df = df.dropna(subset=["kolichestvo", "wid", "тегло"])
-
-    # ✅ Broj (брой)
-    df["Количество"] = (df["kolichestvo"] / df["wid"]).round(0)
-
-    # ✅ чистим тарифен код
-    df["Тарифен код"] = (
-        df["Тарифен код"]
-        .astype(str)
-        .str.replace(r"\D", "", regex=True)
-        .str[:8]
-    )
+    df = pd.DataFrame(rows)
 
     # ✅ group
     df = df.groupby(
