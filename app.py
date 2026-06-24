@@ -909,7 +909,6 @@ if uploaded_files:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    })
 
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
