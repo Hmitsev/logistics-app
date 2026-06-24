@@ -642,112 +642,84 @@ from decimal import Decimal, ROUND_HALF_UP
 # ======================================================
 # ✅ NISTA (FINAL CORRECT VERSION ✅)
 # ======================================================
-def parse_nista_excel(file):
+def build_final_report(df, supplier):
 
-    df = pd.read_excel(file, header=None)
+    df["тегло"] = df["тегло"].round(3)
+    df["kolichestvo"] = df["kolichestvo"].round(2)
 
     rows = []
-    VALID_WID = [1, 4, 5, 20, 60, 200]
 
-    for i in range(len(df)):
-
-        try:
-            row = df.iloc[i]
-
-            # ✅ Menge
-            menge = None
-            for cell in row:
-                if pd.notna(cell):
-                    text = str(cell).lower()
-                    if "liter" in text:
-                        menge = float(re.search(r"(\d+)", text).group(1))
-                        break
-
-            if not menge:
-                continue
-
-            # ✅ CODE (FIX)
-            code = None
-            for cell in row:
-                if pd.notna(cell):
-                    match = re.search(r"27[0-9\s]{6,}", str(cell))
-                    if match:
-                        code_raw = match.group(0)
-                        code = re.sub(r"\D", "", code_raw)[:8]
-                        break
-
-            if not code:
-                continue
-
-            # ✅ WID (FIX)
-            wid = None
-            for cell in row:
-                if pd.notna(cell):
-                    c = str(cell).lower().replace(" ", "")
-
-                    multi = re.search(r"\d+x(\d+)", c)
-                    single = re.search(r"(\d+)l", c)
-
-                    if multi:
-                        w = int(multi.group(1))
-                        if w in VALID_WID:
-                            wid = float(w)
-                            break
-
-                    elif single:
-                        w = int(single.group(1))
-                        if w in VALID_WID:
-                            wid = float(w)
-                            break
-
-            if not wid:
-                continue
-
-            # ✅ ТЕГЛО
-            weight = None
-            for cell in reversed(row):
-                if pd.notna(cell):
-                    try:
-                        val = float(str(cell).replace(",", "."))
-                        if val > 10:
-                            weight = val
-                            break
-                    except:
-                        pass
-
-            if not weight:
-                continue
-
-            # ✅ BROJ
-            broj = menge / wid
-
-            rows.append({
-                "Тарифен код": code,
-                "wid": wid,
-                "Количество": int(round(broj)),
-                "kolichestvo": menge,
-                "тегло": weight
-            })
-
-        except:
-            continue
-
-    if not rows:
-        st.error("❌ NISTA parser не извлече валидни данни")
-        return pd.DataFrame()
-
-    df = pd.DataFrame(rows)
-
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
+    # ✅ групиране по тарифен код
+    grouped = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
         "Количество": "sum",
         "kolichestvo": "sum",
         "тегло": "sum"
     })
 
-    return df
+    for code, group in grouped.groupby("Тарифен код"):
+
+        # ✅ HEADER ред (code + име)
+        rows.append({
+            "Code": code,
+            "mit_name": "???????? ?????",
+            "Broj": "",
+            "wid": "",
+            "teglo": "",
+            "colic-v L": ""
+        })
+
+        total_kolic = 0
+        total_teglo = 0
+
+        # ✅ детайлни редове
+        for _, r in group.iterrows():
+
+            rows.append({
+                "Code": code,
+                "mit_name": "",
+                "Broj": int(r["Количество"]),
+                "wid": f"{r['wid']:.2f}",
+                "teglo": f"{r['тегло']:.3f}".replace(".", ","),
+                "colic-v L": f"{r['kolichestvo']:.2f}"
+            })
+
+            total_kolic += r["kolichestvo"]
+            total_teglo += r["тегло"]
+
+        # ✅ TOTAL ред
+        rows.append({
+            "Code": f"{code} - Total",
+            "mit_name": "",
+            "Broj": "",
+            "wid": "",
+            "teglo": f"{total_teglo:.3f}".replace(".", ","),
+            "colic-v L": f"{total_kolic:.2f}"
+        })
+
+        # ✅ празен ред
+        rows.append({
+            "Code": "",
+            "mit_name": "",
+            "Broj": "",
+            "wid": "",
+            "teglo": "",
+            "colic-v L": ""
+        })
+
+    # ✅ GRAND TOTAL
+    grand_kolic = grouped["kolichestvo"].sum()
+    grand_teglo = grouped["тегло"].sum()
+
+    rows.append({
+        "Code": "Grand Total",
+        "mit_name": "",
+        "Broj": "",
+        "wid": "",
+        "teglo": f"{grand_teglo:.3f}".replace(".", ","),
+        "colic-v L": f"{grand_kolic:.2f}"
+    })
+
+    return pd.DataFrame(rows)
 # ======================================================
 # ✅ FINAL REPORT (FIXED)
 # ======================================================
