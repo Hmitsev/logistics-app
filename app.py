@@ -645,59 +645,56 @@ def parse_nista_excel(file):
 
     rows = []
 
-    for i in range(len(df)):
+    i = 0
+    while i < len(df):
 
-        try:
-            # ✅ събираме целия ред като текст
-            row_text = " ".join(
-                str(x) for x in df.iloc[i] if pd.notna(x)
-            ).lower()
+        row_text = " ".join(str(x) for x in df.iloc[i] if pd.notna(x)).lower()
 
-            # ✅ търсим ред с литри
-            liter_match = re.search(r"(\d+)\s*liter", row_text)
+        # ✅ намираме ред с "liter"
+        if "liter" in row_text:
 
-            if liter_match:
-                menge = float(liter_match.group(1))
+            try:
+                menge = float(re.search(r"(\d+)", row_text).group(1))
 
-                # ✅ взимаме следващите 5 реда като блок
-                block = []
-                for j in range(1, 6):
-                    if i + j < len(df):
-                        block_row = " ".join(
-                            str(x) for x in df.iloc[i + j] if pd.notna(x)
-                        ).lower()
-                        block.append(block_row)
+                # ✅ взимаме точните следващи редове
+                desc_row = df.iloc[i+2]
+                code_row = df.iloc[i+3]
+                geb_row = df.iloc[i+4]
+                weight_row = df.iloc[i+5]
 
-                block_text = " ".join(block)
+                code_text = " ".join(str(x) for x in code_row if pd.notna(x))
+                geb_text = " ".join(str(x) for x in geb_row if pd.notna(x)).lower()
+                weight_text = " ".join(str(x) for x in weight_row if pd.notna(x))
 
-                # ✅ тарифен код
-                code_match = re.search(r"(\d{4}\s*\d{2}\s*\d{2})", block_text)
-
+                # ✅ ТАРИФЕН КОД (строго)
+                code_match = re.search(r"(\d{4}\s*\d{2}\s*\d{2})", code_text)
                 if not code_match:
+                    i += 1
                     continue
 
                 code = re.sub(r"\D", "", code_match.group(1))[:8]
 
-                # ✅ wid (разфасовка)
-                pack_match = re.search(r"(\d+)\s*x\s*(\d+)\s*l", block_text)
-                single_match = re.search(r"(\d+)\s*l", block_text)
+                # ✅ WID (само от Geb ред!!)
+                multi = re.search(r"(\d+)x(\d+)", geb_text)
+                single = re.search(r"(\d+)\s*l", geb_text)
 
-                if pack_match:
-                    wid = float(pack_match.group(2))
-                elif single_match:
-                    wid = float(single_match.group(1))
+                if multi:
+                    wid = float(multi.group(2))
+                elif single:
+                    wid = float(single.group(1))
                 else:
+                    i += 1
                     continue
 
-                # ✅ тегло
-                weight_match = re.search(r"(\d+[.,]?\d*)\s*$", block_text)
-
+                # ✅ ТЕГЛО (само от правилния ред)
+                weight_match = re.search(r"(\d+[.,]?\d+)", weight_text)
                 if not weight_match:
+                    i += 1
                     continue
 
                 weight = float(weight_match.group(1).replace(",", "."))
 
-                # ✅ broj
+                # ✅ BROJ
                 broj = menge / wid
 
                 rows.append({
@@ -708,16 +705,22 @@ def parse_nista_excel(file):
                     "тегло": weight
                 })
 
-        except:
-            continue
+                # 🔥 jump напред (важно)
+                i += 6
+                continue
+
+            except:
+                pass
+
+        i += 1
 
     if not rows:
-        st.error("❌ NISTA parser не успя да извлече данни")
+        st.error("❌ NISTA parser не извлече данни")
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
 
-    # ✅ group
+    # ✅ GROUP
     df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
