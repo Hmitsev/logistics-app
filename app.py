@@ -478,109 +478,15 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 
-# ======================================================
-# ✅ NISTA (AUTO SHEET DETECT ✅)
-# ======================================================
-def parse_nista_excel(file):
-
-    # ✅ опитваме Sheet2, ако няма → Sheet1
-    try:
-        df = pd.read_excel(file, sheet_name=1)
-    except:
-        df = pd.read_excel(file, sheet_name=0)
-
-    df.columns = df.columns.astype(str).str.strip()
-
-    # ======================================================
-    # ✅ rename колони
-    # ======================================================
-    rename_map = {}
-
-    for col in df.columns:
-        c = col.lower()
-
-        if "zoll" in c:
-            rename_map[col] = "Тарифен код"
-
-        elif "menge" in c:
-            rename_map[col] = "kolichestvo"
-
-        elif "geb" in c:
-            rename_map[col] = "wid_raw"
-
-        elif "gew" in c:
-            rename_map[col] = "тегло"
-
-    df = df.rename(columns=rename_map)
-
-    # ✅ махаме празни
+KeyError: This app has encountered an error. The original error message is redacted to prevent data leaks. Full error details have been recorded in the logs (if you're on Streamlit Cloud, click on 'Manage app' in the lower right of your app).
+Traceback:
+File "/mount/src/logistics-app/app.py", line 660, in <module>
+    df = parse_nista_excel(file)
+File "/mount/src/logistics-app/app.py", line 517, in parse_nista_excel
     df = df.dropna(subset=["Тарифен код"])
-
-    # ======================================================
-    # ✅ NORMALIZE CODE
-    # ======================================================
-    df["Тарифен код"] = (
-        df["Тарифен код"]
-        .astype(str)
-        .str.replace(r"\D", "", regex=True)
-        .str[:8]
-    )
-
-    df = df[df["Тарифен код"].isin(ALLOWED_CODES)]
-
-    # ======================================================
-    # ✅ MENGE
-    # ======================================================
-    df["kolichestvo"] = (
-        df["kolichestvo"]
-        .astype(str)
-        .str.extract(r"(\d+)")
-        .astype(float)
-    )
-
-    # ======================================================
-    # ✅ WID
-    # ======================================================
-    def extract_wid(x):
-        x = str(x).lower().replace(" ", "")
-
-        m = re.search(r"\d+x(\d+)", x)
-        if m:
-            return float(m.group(1))
-
-        s = re.search(r"(\d+)l", x)
-        if s:
-            return float(s.group(1))
-
-        return None
-
-    df["wid"] = df.get("wid_raw", "").apply(extract_wid)
-
-    # ======================================================
-    # ✅ BROJ
-    # ======================================================
-    df["Количество"] = df["kolichestvo"] / df["wid"]
-    df["Количество"] = df["Количество"].round(0)
-
-    # ======================================================
-    # ✅ CLEAN
-    # ======================================================
-    df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
-    df = df.dropna(subset=["wid", "тегло"])
-
-    # ======================================================
-    # ✅ GROUP
-    # ======================================================
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/adminuser/venv/lib/python3.14/site-packages/pandas/core/frame.py", line 7801, in dropna
+    raise KeyError(np.array(subset)[check].tolist())
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
