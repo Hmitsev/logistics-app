@@ -640,32 +640,108 @@ def parse_flukar_excel(file):
 from decimal import Decimal, ROUND_HALF_UP
 
 # ======================================================
-# ✅ NISTA (DEBUG VERSION ✅)
+# ✅ NISTA (FINAL CORRECT VERSION ✅)
 # ======================================================
 def parse_nista_excel(file):
 
     df = pd.read_excel(file, header=None)
 
-    # ✅ DEBUG – показва ВСИЧКО
-    st.write("FULL DEBUG NISTA:")
-    st.dataframe(df)
-
-    # ✅ ✅ СПИРАМЕ ТУК (важно!)
-    st.stop()
-
-    # ======================================================
-    # ⛔ НИЩО НАДОЛУ НЕ СЕ ИЗПЪЛНЯВА В DEBUG MODE
-    # ======================================================
-
     rows = []
 
     for i in range(len(df)):
+
         try:
-            pass
+            row = df.iloc[i]
+
+            # ✅ Menge (намираме "liter" в реда)
+            menge = None
+            for cell in row:
+                if pd.notna(cell):
+                    text = str(cell).lower()
+                    if "liter" in text:
+                        menge = float(re.search(r"(\d+)", text).group(1))
+                        break
+
+            if not menge:
+                continue
+
+            # ✅ CODE (Zolltarifn)
+            code = None
+            for cell in row:
+                if pd.notna(cell):
+                    match = re.search(r"\b27\d{6}\b", str(cell))
+                    if match:
+                        code = match.group(0)
+                        break
+
+            if not code:
+                continue
+
+            # ✅ WID (Geb)
+            wid = None
+            for cell in row:
+                if pd.notna(cell):
+                    c = str(cell).lower().replace(" ", "")
+
+                    multi = re.search(r"\d+x(\d+)", c)
+                    single = re.search(r"(\d+)l", c)
+
+                    if multi:
+                        wid = float(multi.group(1))
+                        break
+                    elif single:
+                        wid = float(single.group(1))
+                        break
+
+            if not wid:
+                continue
+
+            # ✅ ТЕГЛО (последното число в реда)
+            weight = None
+            for cell in reversed(row):
+                if pd.notna(cell):
+                    try:
+                        val = float(str(cell).replace(",", "."))
+                        if val > 10:  # филтър срещу глупости
+                            weight = val
+                            break
+                    except:
+                        pass
+
+            if not weight:
+                continue
+
+            # ✅ BROJ
+            broj = menge / wid
+
+            rows.append({
+                "Тарифен код": code,
+                "wid": wid,
+                "Количество": int(round(broj)),
+                "kolichestvo": menge,
+                "тегло": weight
+            })
+
         except:
             continue
 
-    return pd.DataFrame()
+    if not rows:
+        st.error("❌ NISTA parser не извлече валидни данни")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+
+    # ✅ GROUP
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
 # ======================================================
 # ✅ FINAL REPORT (FIXED)
 # ======================================================
