@@ -646,17 +646,9 @@ def parse_nista_excel(file):
 
     df = pd.read_excel(file, header=None)
 
-    # ✅ ✅ DEBUG – показва реалната структура
-    st.error("🛠 DEBUG NISTA – виж структурата по-долу")
-
-    st.write("➡️ Първите 40 реда от файла:")
-    st.dataframe(df.head(40))
-
-    st.write("➡️ Размер на таблицата:")
-    st.write(df.shape)
-
-    st.write("➡️ Типове на колоните:")
-    st.write(df.dtypes)
+    # ✅ DEBUG – показва ВСИЧКО
+    st.write("FULL DEBUG NISTA:")
+    st.dataframe(df)
 
     # ✅ ✅ СПИРАМЕ ТУК (важно!)
     st.stop()
