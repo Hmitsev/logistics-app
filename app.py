@@ -479,16 +479,21 @@ def parse_motul(text):
     return pd.DataFrame(rows)
 
 # ======================================================
-# ✅ NISTA (SHEET2 VERSION ✅)
+# ✅ NISTA (AUTO SHEET DETECT ✅)
 # ======================================================
 def parse_nista_excel(file):
 
-    # ✅ ЧЕТЕМ Sheet2
-    df = pd.read_excel(file, sheet_name=1)
+    # ✅ опитваме Sheet2, ако няма → Sheet1
+    try:
+        df = pd.read_excel(file, sheet_name=1)
+    except:
+        df = pd.read_excel(file, sheet_name=0)
 
     df.columns = df.columns.astype(str).str.strip()
 
-    # ✅ rename по ключови думи
+    # ======================================================
+    # ✅ rename колони
+    # ======================================================
     rename_map = {}
 
     for col in df.columns:
@@ -508,7 +513,7 @@ def parse_nista_excel(file):
 
     df = df.rename(columns=rename_map)
 
-    # ✅ махаме празни кодове
+    # ✅ махаме празни
     df = df.dropna(subset=["Тарифен код"])
 
     # ======================================================
@@ -521,11 +526,10 @@ def parse_nista_excel(file):
         .str[:8]
     )
 
-    # ✅ махаме грешни кодове
     df = df[df["Тарифен код"].isin(ALLOWED_CODES)]
 
     # ======================================================
-    # ✅ MENGE (360 liter → 360)
+    # ✅ MENGE
     # ======================================================
     df["kolichestvo"] = (
         df["kolichestvo"]
@@ -535,32 +539,31 @@ def parse_nista_excel(file):
     )
 
     # ======================================================
-    # ✅ WID (12x1l → 1, 3x5l → 5)
+    # ✅ WID
     # ======================================================
-    def extract_wid(text):
-        text = str(text).lower().replace(" ", "")
+    def extract_wid(x):
+        x = str(x).lower().replace(" ", "")
 
-        m = re.search(r"\d+x(\d+)", text)
+        m = re.search(r"\d+x(\d+)", x)
         if m:
             return float(m.group(1))
 
-        s = re.search(r"(\d+)l", text)
+        s = re.search(r"(\d+)l", x)
         if s:
             return float(s.group(1))
 
         return None
 
-    df["wid"] = df["wid_raw"].apply(extract_wid)
+    df["wid"] = df.get("wid_raw", "").apply(extract_wid)
 
     # ======================================================
     # ✅ BROJ
     # ======================================================
     df["Количество"] = df["kolichestvo"] / df["wid"]
-
     df["Количество"] = df["Количество"].round(0)
 
     # ======================================================
-    # ✅ CLEAN NUMERIC
+    # ✅ CLEAN
     # ======================================================
     df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
     df = df.dropna(subset=["wid", "тегло"])
