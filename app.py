@@ -639,149 +639,136 @@ def parse_flukar_excel(file):
 
 from decimal import Decimal, ROUND_HALF_UP
 
+# ======================================================
+# ✅ FINAL REPORT (FIXED)
+# ======================================================
+from decimal import Decimal, ROUND_HALF_UP
+
 def build_final_report(df, supplier):
 
-    df["тегло"] = df["тегло"].round(3)
-    df["kolichestvo"] = df["kolichestvo"].round(2)
+    # ✅ FLUKAR логика
+    if supplier == "FLUKAR":
 
-    rows = []
-
-    grouped = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    for code, group in grouped.groupby("Тарифен код"):
-
-        # ✅ HEADER ред
-        rows.append({
-            "Code": code,
-            "mit_name": "???????? ?????",
-            "Broj": "",
-            "wid": "",
-            "teglo": "",
-            "colic": ""
+        grouped = df.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        ).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": list
         })
 
-        total_kolic = 0
-        total_teglo = 0
+        rows = []
 
-        for _, r in group.iterrows():
+        for code, group in grouped.groupby("Тарифен код"):
+
+            for _, r in group.iterrows():
+
+                precise_sum = sum(Decimal(str(x)) for x in r["тегло"])
+
+                rounded = float(
+                    precise_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                )
+
+                rows.append({
+                    "Тарифен код": r["Тарифен код"],
+                    "wid": r["wid"],
+                    "Количество": r["Количество"],
+                    "kolichestvo": r["kolichestvo"],
+                    "тегло": rounded
+                })
+
+            code_sum = sum(
+                Decimal(str(x))
+                for sublist in group["тегло"]
+                for x in sublist
+            )
+
+            code_rounded = float(
+                code_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+            )
 
             rows.append({
-                "Code": code,
-                "mit_name": "",
-                "Broj": int(r["Количество"]),
-                "wid": f"{r['wid']:.2f}",
-                "teglo": f"{r['тегло']:.3f}".replace(".", ","),
-                "colic": f"{r['kolichestvo']:.2f}"
+                "Тарифен код": str(code) + " -",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": sum(group["kolichestvo"]),
+                "тегло": code_rounded
             })
-
-            total_kolic += r["kolichestvo"]
-            total_teglo += r["тегло"]
-
-        # ✅ TOTAL
-        rows.append({
-            "Code": f"{code} - Total",
-            "mit_name": "",
-            "Broj": "",
-            "wid": "",
-            "teglo": f"{total_teglo:.3f}".replace(".", ","),
-            "colic": f"{total_kolic:.2f}"
-        })
-
-        # ✅ празен ред
-        rows.append({
-            "Code": "",
-            "mit_name": "",
-            "Broj": "",
-            "wid": "",
-            "teglo": "",
-            "colic": ""
-        })
-
-    # ✅ GRAND TOTAL
-    rows.append({
-        "Code": "Grand Total",
-        "mit_name": "",
-        "Broj": "",
-        "wid": "",
-        "teglo": f"{grouped['тегло'].sum():.3f}".replace(".", ","),
-        "colic": f"{grouped['kolichestvo'].sum():.2f}"
-    })
-
-    return pd.DataFrame(rows)
-# ======================================================
-# ✅ NISTA REPORT (ОСТАВА САМО ТАЗИ ✅)
-# ======================================================
-def build_final_report(df, supplier):
-
-    if supplier != "NISTA":
-        return df
-
-    df["тегло"] = df["тегло"].round(3)
-    df["kolichestvo"] = df["kolichestvo"].round(2)
-
-    rows = []
-
-    grouped = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    for code, group in grouped.groupby("Тарифен код"):
-
-        rows.append({
-            "code": code,
-            "mit_name": "???????? ?????",
-            "broj": "",
-            "wid": "",
-            "teglo": "",
-            "kolic": ""
-        })
-
-        total_kolic = 0
-        total_teglo = 0
-
-        group = group.sort_values("wid")
-
-        for _, r in group.iterrows():
 
             rows.append({
-                "code": code,
-                "mit_name": "",
-                "broj": int(r["Количество"]),
-                "wid": f"{r['wid']:.2f}",
-                "teglo": f"{r['тегло']:.3f}".replace(".", ","),
-                "kolic": f"{r['kolichestvo']:.2f}"
+                "Тарифен код": "",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": "",
+                "тегло": ""
             })
 
-            total_kolic += r["kolichestvo"]
-            total_teglo += r["тегло"]
+        total_sum = sum(
+            Decimal(str(x))
+            for sublist in grouped["тегло"]
+            for x in sublist
+        )
+
+        total_rounded = float(
+            total_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
 
         rows.append({
-            "code": f"{code} - Total",
-            "mit_name": "",
-            "broj": "",
+            "Тарифен код": "GRAND TOTAL",
             "wid": "",
-            "teglo": f"{total_teglo:.3f}".replace(".", ","),
-            "kolic": f"{total_kolic:.2f}"
+            "Количество": "",
+            "kolichestvo": grouped["kolichestvo"].sum(),
+            "тегло": total_rounded
         })
 
-        rows.append({k: "" for k in ["code","mit_name","broj","wid","teglo","kolic"]})
+        return pd.DataFrame(rows)
 
-    rows.append({
-        "code": "Grand Total",
-        "mit_name": "",
-        "broj": "",
-        "wid": "",
-        "teglo": f"{grouped['тегло'].sum():.3f}".replace(".", ","),
-        "kolic": f"{grouped['kolichestvo'].sum():.2f}"
-    })
+    # ✅ ✅ ВСИЧКИ ДРУГИ (MOTUL, NESTE, CASTROL)
+    else:
 
-    return pd.DataFrame(rows)
+        grouped = df.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        ).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": "sum"
+        })
+
+        rows = []
+
+        for code, group in grouped.groupby("Тарифен код"):
+
+            for _, r in group.iterrows():
+                rows.append(r.to_dict())
+
+            rows.append({
+                "Тарифен код": str(code) + " -",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": group["kolichestvo"].sum(),
+                "тегло": group["тегло"].sum()
+            })
+
+            rows.append({
+                "Тарифен код": "",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": "",
+                "тегло": ""
+            })
+
+        rows.append({
+            "Тарифен код": "GRAND TOTAL",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": grouped["kolichestvo"].sum(),
+            "тегло": grouped["тегло"].sum()
+        })
+
+        return pd.DataFrame(rows)
+
 
 # ======================================================
 # ✅ PROCESS
@@ -794,47 +781,30 @@ if uploaded_files:
 
         df = None
 
-        try:
+        if menu == "NESTE":
+            df = parse_neste_excel(file)
 
-            # ✅ NESTE
-            if menu == "NESTE":
-                df = parse_neste_excel(file)
+        elif menu == "FLUKAR":
+            df = parse_flukar_excel(file)
 
-            # ✅ FLUKAR
-            elif menu == "FLUKAR":
-                df = parse_flukar_excel(file)
+        elif menu == "CASTROL" and source_type == "Excel":
+            df = parse_castrol_excel(file)
 
-            # ✅ ✅ NISTA (НОВО)
-            elif menu == "NISTA":
-                df = parse_nista_excel(file)
+        elif source_type == "PDF":
+            reader = PdfReader(file)
+            text = ""
 
-            # ✅ CASTROL Excel
-            elif menu == "CASTROL" and source_type == "Excel":
-                df = parse_castrol_excel(file)
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
 
-            # ✅ PDF processing
-            elif source_type == "PDF":
-                reader = PdfReader(file)
-                text = ""
-
-                for page in reader.pages:
-                    extracted = page.extract_text()
-                    if extracted:
-                        text += extracted + "\n"
-
-                if menu == "CASTROL":
-                    df = parse_castrol(text)
-                else:
-                    df = parse_motul(text)
-
-            # ✅ fallback Excel
+            if menu == "CASTROL":
+                df = parse_castrol(text)
             else:
-                df = pd.read_excel(file)
-                df.columns = df.columns.str.strip()
+                df = parse_motul(text)
 
-        except Exception as e:
-            st.error(f"❌ Грешка при обработка на файл: {file.name}")
-            continue
+        else:
+            df = pd.read_excel(file)
+            df.columns = df.columns.str.strip()
 
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
@@ -851,23 +821,15 @@ if uploaded_files:
         st.write("DEBUG DF:")
         st.dataframe(final_df.head(20))
 
-    # ✅ Валидация
+    # ✅ ✅ ВАЖНО – вътре в блока
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
-    # ✅ нормализация на код
-    final_df["Тарифен код"] = (
-        final_df["Тарифен код"]
-        .astype(str)
-        .str.replace(r"\D", "", regex=True)
-        .str[:8]
-    )
+    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
-    # ✅ махаме нереални редове
     final_df = final_df[final_df["тегло"] > 0]
 
-    # ✅ REPORT
     report = build_final_report(final_df, menu)
 
     report = report.rename(columns={
