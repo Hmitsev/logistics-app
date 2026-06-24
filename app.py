@@ -647,82 +647,88 @@ def parse_nista_excel(file):
     df = pd.read_excel(file, header=None)
 
     rows = []
-
     VALID_WID = [1, 4, 5, 20, 60, 200]
 
+    # ✅ обхождаме всяка клетка
     for i in range(len(df)):
+        for j in range(len(df.columns)):
 
-        try:
-            row_text = " ".join(str(x) for x in df.iloc[i] if pd.notna(x)).lower()
+            try:
+                cell = str(df.iloc[i, j]).lower()
 
-            liter_match = re.search(r"(\d+)\s*liter", row_text)
+                # ✅ намираме Menge
+                if "liter" in cell:
 
-            if not liter_match:
+                    menge_match = re.search(r"(\d+)", cell)
+                    if not menge_match:
+                        continue
+
+                    menge = float(menge_match.group(1))
+
+                    # ✅ гледаме съседните клетки (дясно)
+                    block_cells = []
+
+                    for dj in range(1, 7):
+                        if j + dj < len(df.columns):
+                            val = df.iloc[i, j + dj]
+                            if pd.notna(val):
+                                block_cells.append(str(val).lower())
+
+                    # ✅ гледаме и следващи редове
+                    for di in range(1, 6):
+                        if i + di < len(df):
+                            for dj in range(0, 6):
+                                if j + dj < len(df.columns):
+                                    val = df.iloc[i + di, j + dj]
+                                    if pd.notna(val):
+                                        block_cells.append(str(val).lower())
+
+                    block_text = " ".join(block_cells)
+
+                    # ✅ CODE
+                    code_match = re.search(r"\b27\d{6}\b", block_text)
+                    if not code_match:
+                        continue
+
+                    code = code_match.group(0)
+
+                    # ✅ WID
+                    wid = None
+                    for w in VALID_WID:
+                        if f"{w}l" in block_text:
+                            wid = float(w)
+                            break
+
+                    if not wid:
+                        continue
+
+                    # ✅ ТЕГЛО
+                    numbers = re.findall(r"\d+[.,]?\d*", block_text)
+
+                    weights = [
+                        float(n.replace(",", "."))
+                        for n in numbers
+                        if 50 < float(n.replace(",", ".")) < 5000
+                    ]
+
+                    if not weights:
+                        continue
+
+                    weight = max(weights)
+
+                    # ✅ БРОЙ
+                    broj = menge / wid
+
+                    rows.append({
+                        "Тарифен код": code,
+                        "wid": wid,
+                        "Количество": int(round(broj)),
+                        "kolichestvo": menge,
+                        "тегло": weight
+                    })
+
+            except:
                 continue
-
-            menge = float(liter_match.group(1))
-
-            # ✅ блок
-            block = []
-            for j in range(1, 8):
-                if i + j < len(df):
-                    block.append(
-                        " ".join(str(x) for x in df.iloc[i+j] if pd.notna(x)).lower()
-                    )
-
-            block_text = " ".join(block)
-
-            # ✅ CODE
-            code_match = re.search(r"\b27\d{6}\b", block_text)
-            if not code_match:
-                continue
-
-            code = code_match.group(0)
-
-            # ✅ WID
-            possible_wid = re.findall(r"(\d+)\s*l", block_text)
-
-            wid = None
-            for w in possible_wid:
-                w_int = int(w)
-                if w_int in VALID_WID:
-                    wid = float(w_int)
-                    break
-
-            if not wid:
-                continue
-
-            # ✅ ТЕГЛО (вземаме най-голямото, но разумно)
-            numbers = re.findall(r"\d+[.,]?\d*", block_text)
-
-            numbers = [
-                float(n.replace(",", "."))
-                for n in numbers
-                if float(n.replace(",", ".")) > 20 and float(n) < 5000
-            ]
-
-            if not numbers:
-                continue
-
-            weight = max(numbers)
-
-            # ✅ ✅ BROJ с толеранс
-            broj = menge / wid
-
-            # ако се получи нещо извън нормата → skip
-            if broj < 1 or broj > 10000:
-                continue
-
-            rows.append({
-                "Тарифен код": code,
-                "wid": wid,
-                "Количество": int(round(broj)),
-                "kolichestvo": menge,
-                "тегло": weight
-            })
-
-        except:
-            continue
 
     if not rows:
         st.error("❌ NISTA parser не извлече валидни данни")
