@@ -649,80 +649,80 @@ def parse_nista_excel(file):
     rows = []
     VALID_WID = [1, 4, 5, 20, 60, 200]
 
+    # ✅ flatten всички клетки в списък
+    flat = []
+
+    for i in range(len(df)):
+        for j in range(len(df.columns)):
+            val = df.iloc[i, j]
+            if pd.notna(val):
+                flat.append(str(val).lower())
+
     i = 0
-    while i < len(df):
+    while i < len(flat):
 
         try:
-            row_text = " ".join(str(x) for x in df.iloc[i] if pd.notna(x)).lower()
+            # ✅ намираме "liter"
+            if "liter" in flat[i]:
 
-            # ✅ намираме начало (Menge)
-            if "liter" not in row_text:
-                i += 1
+                menge = float(re.search(r"(\d+)", flat[i]).group(1))
+
+                # ✅ гледаме следващите елементи
+                block = " ".join(flat[i:i+10])
+
+                # ✅ CODE
+                code_match = re.search(r"\b27\d{6}\b", block)
+                if not code_match:
+                    i += 1
+                    continue
+
+                code = code_match.group(0)
+
+                # ✅ WID
+                wid = None
+                for w in VALID_WID:
+                    if f"{w}l" in block:
+                        wid = float(w)
+                        break
+
+                if not wid:
+                    i += 1
+                    continue
+
+                # ✅ ТЕГЛО (взимаме последното реално число)
+                numbers = re.findall(r"\d+[.,]?\d*", block)
+
+                numbers = [
+                    float(n.replace(",", "."))
+                    for n in numbers
+                    if 50 < float(n.replace(",", ".")) < 5000
+                ]
+
+                if not numbers:
+                    i += 1
+                    continue
+
+                weight = numbers[-1]
+
+                # ✅ BROJ
+                broj = menge / wid
+
+                rows.append({
+                    "Тарифен код": code,
+                    "wid": wid,
+                    "Количество": int(round(broj)),
+                    "kolichestvo": menge,
+                    "тегло": weight
+                })
+
+                # ✅ скачаме напред
+                i += 8
                 continue
-
-            menge = float(re.search(r"(\d+)", row_text).group(1))
-
-            # ✅ събираме следващите редове (block)
-            block = []
-            for j in range(1, 7):
-                if i + j < len(df):
-                    block.append(
-                        " ".join(str(x) for x in df.iloc[i+j] if pd.notna(x)).lower()
-                    )
-
-            block_text = " ".join(block)
-
-            # ✅ CODE
-            code_match = re.search(r"\b27\d{6}\b", block_text)
-            if not code_match:
-                i += 1
-                continue
-
-            code = code_match.group(0)
-
-            # ✅ WID
-            wid = None
-            for w in VALID_WID:
-                if f"{w}l" in block_text:
-                    wid = float(w)
-                    break
-
-            if not wid:
-                i += 1
-                continue
-
-            # ✅ ТЕГЛО (последното число в блока)
-            numbers = re.findall(r"\d+[.,]?\d*", block_text)
-
-            weights = [
-                float(n.replace(",", "."))
-                for n in numbers
-                if 50 < float(n.replace(",", ".")) < 5000
-            ]
-
-            if not weights:
-                i += 1
-                continue
-
-            weight = weights[-1]  # ✅ последното е най-точно
-
-            # ✅ BROJ
-            broj = menge / wid
-
-            rows.append({
-                "Тарифен код": code,
-                "wid": wid,
-                "Количество": int(round(broj)),
-                "kolichestvo": menge,
-                "тегло": weight
-            })
-
-            # ✅ скачаме напред (много важно)
-            i += 6
-            continue
 
         except:
-            i += 1
+            pass
+
+        i += 1
 
     if not rows:
         st.error("❌ NISTA parser не извлече валидни данни")
