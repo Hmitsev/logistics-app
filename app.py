@@ -648,38 +648,54 @@ def parse_nista_excel(file):
     for i in range(len(df)):
 
         try:
-            row = df.iloc[i].astype(str)
+            # ✅ събираме целия ред като текст
+            row_text = " ".join(
+                str(x) for x in df.iloc[i] if pd.notna(x)
+            ).lower()
 
-            # ✅ търсим ред с "liter"
-            if "liter" in row[0].lower():
+            # ✅ търсим ред с литри
+            liter_match = re.search(r"(\d+)\s*liter", row_text)
 
-                # ✅ Menge (литри)
-                menge = float(row[0].split()[0])
+            if liter_match:
+                menge = float(liter_match.group(1))
 
-                # ✅ следващи редове
-                code_row = df.iloc[i+3].astype(str)
-                geb_row = df.iloc[i+4].astype(str)
-                weight_row = df.iloc[i+5].astype(str)
+                # ✅ взимаме следващите 5 реда като блок
+                block = []
+                for j in range(1, 6):
+                    if i + j < len(df):
+                        block_row = " ".join(
+                            str(x) for x in df.iloc[i + j] if pd.notna(x)
+                        ).lower()
+                        block.append(block_row)
 
-                # ✅ Тарифен код
-                code_raw = code_row[0]
-                code = re.sub(r"\D", "", code_raw)[:8]
+                block_text = " ".join(block)
+
+                # ✅ тарифен код
+                code_match = re.search(r"(\d{4}\s*\d{2}\s*\d{2})", block_text)
+
+                if not code_match:
+                    continue
+
+                code = re.sub(r"\D", "", code_match.group(1))[:8]
 
                 # ✅ wid (разфасовка)
-                geb = geb_row[0].lower().replace(" ", "")
+                pack_match = re.search(r"(\d+)\s*x\s*(\d+)\s*l", block_text)
+                single_match = re.search(r"(\d+)\s*l", block_text)
 
-                multi = re.search(r"\d+x(\d+)", geb)
-                single = re.search(r"(\d+)l", geb)
-
-                if multi:
-                    wid = float(multi.group(1))
-                elif single:
-                    wid = float(single.group(1))
+                if pack_match:
+                    wid = float(pack_match.group(2))
+                elif single_match:
+                    wid = float(single_match.group(1))
                 else:
                     continue
 
                 # ✅ тегло
-                weight = float(str(weight_row[0]).replace(",", ".").replace(" ", ""))
+                weight_match = re.search(r"(\d+[.,]?\d*)\s*$", block_text)
+
+                if not weight_match:
+                    continue
+
+                weight = float(weight_match.group(1).replace(",", "."))
 
                 # ✅ broj
                 broj = menge / wid
@@ -696,7 +712,7 @@ def parse_nista_excel(file):
             continue
 
     if not rows:
-        st.error("❌ NISTA parser не намери валидни редове")
+        st.error("❌ NISTA parser не успя да извлече данни")
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
