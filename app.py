@@ -638,6 +638,117 @@ def parse_flukar_excel(file):
     return result
 
 from decimal import Decimal, ROUND_HALF_UP
+# ======================================================
+# ✅ NISTA PARSER (ДОБАВИ ТУК ✅)
+# ======================================================
+def parse_nista_excel(file):
+
+    df = pd.read_excel(file, header=None)
+
+    rows = []
+    VALID_WID = [1, 4, 5, 20, 60, 200]
+
+    for i in range(len(df)):
+        try:
+            row = df.iloc[i]
+
+            # ✅ Menge
+            menge = None
+            for cell in row:
+                if pd.notna(cell):
+                    text = str(cell).lower()
+                    if "liter" in text:
+                        menge = float(re.search(r"(\d+)", text).group(1))
+                        break
+
+            if not menge:
+                continue
+
+            # ✅ CODE
+            code = None
+            for cell in row:
+                if pd.notna(cell):
+                    match = re.search(r"27[0-9\s]{6,}", str(cell))
+                    if match:
+                        digits = re.sub(r"\D", "", match.group(0))
+
+                        if len(digits) > 8 and digits.startswith("27101"):
+                            digits = "27101987"
+
+                        code = digits[:8]
+                        break
+
+            if not code:
+                continue
+
+            # ✅ WID
+            wid = None
+            for cell in row:
+                if pd.notna(cell):
+                    c = str(cell).lower().replace(" ", "")
+
+                    multi = re.search(r"\d+x(\d+)", c)
+                    single = re.search(r"(\d+)l", c)
+
+                    if multi:
+                        w = int(multi.group(1))
+                        if w in VALID_WID:
+                            wid = float(w)
+                            break
+
+                    elif single:
+                        w = int(single.group(1))
+                        if w in VALID_WID:
+                            wid = float(w)
+                            break
+
+            if not wid:
+                continue
+
+            # ✅ ТЕГЛО
+            weight = None
+            for cell in reversed(row):
+                if pd.notna(cell):
+                    try:
+                        val = float(str(cell).replace(",", "."))
+                        if val > 10:
+                            weight = val
+                            break
+                    except:
+                        pass
+
+            if not weight:
+                continue
+
+            broj = menge / wid
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": int(round(broj)),
+                "wid": wid,
+                "kolichestvo": menge,
+                "тегло": weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ NISTA parser не извлече валидни данни")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
 
 # ======================================================
 # ✅ FINAL REPORT (FIXED)
@@ -645,6 +756,77 @@ from decimal import Decimal, ROUND_HALF_UP
 from decimal import Decimal, ROUND_HALF_UP
 
 def build_final_report(df, supplier):
+    if supplier == "NISTA":
+
+        df["тегло"] = df["тегло"].round(3)
+        df["kolichestvo"] = df["kolichestvo"].round(2)
+
+        rows = []
+
+        grouped = df.groupby(["Тарифен код", "wid"], as_index=False).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": "sum"
+        })
+
+        for code, group in grouped.groupby("Тарифен код"):
+
+            rows.append({
+                "code": code,
+                "mit_name": "???????? ?????",
+                "broj": "",
+                "wid": "",
+                "teglo": "",
+                "kolic": ""
+            })
+
+            total_kolic = 0
+            total_teglo = 0
+
+            group = group.sort_values("wid")
+
+            for _, r in group.iterrows():
+
+                rows.append({
+                    "code": code,
+                    "mit_name": "",
+                    "broj": int(r["Количество"]),
+                    "wid": f"{r['wid']:.2f}",
+                    "teglo": f"{r['тегло']:.3f}".replace(".", ","),
+                    "kolic": f"{r['kolichestvo']:.2f}"
+                })
+
+                total_kolic += r["kolichestvo"]
+                total_teglo += r["тегло"]
+
+            rows.append({
+                "code": f"{code} - Total",
+                "mit_name": "",
+                "broj": "",
+                "wid": "",
+                "teglo": f"{total_teglo:.3f}".replace(".", ","),
+                "kolic": f"{total_kolic:.2f}"
+            })
+
+            rows.append({
+                "code": "",
+                "mit_name": "",
+                "broj": "",
+                "wid": "",
+                "teglo": "",
+                "kolic": ""
+            })
+
+        rows.append({
+            "code": "Grand Total",
+            "mit_name": "",
+            "broj": "",
+            "wid": "",
+            "teglo": f"{grouped['тегло'].sum():.3f}".replace(".", ","),
+            "kolic": f"{grouped['kolichestvo'].sum():.2f}"
+        })
+
+        return pd.DataFrame(rows)
 
     # ✅ FLUKAR логика
     if supplier == "FLUKAR":
@@ -789,6 +971,8 @@ if uploaded_files:
 
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
+            elif menu == "NISTA":
+    df = parse_nista_excel(file)
 
         elif source_type == "PDF":
             reader = PdfReader(file)
@@ -832,12 +1016,6 @@ if uploaded_files:
 
     report = build_final_report(final_df, menu)
 
-    report = report.rename(columns={
-        "Тарифен код": "Code",
-        "wid": "wid",
-        "тегло": "teglo",
-        "kolichestvo": "colic-v L",
-        "Количество": "Broj"
     })
 
     st.subheader("📊 Финален отчет")
