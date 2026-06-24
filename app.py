@@ -479,118 +479,96 @@ def parse_motul(text):
     return pd.DataFrame(rows)
 
 # ======================================================
-# ✅ NISTA (FINAL FIXED ✅)
+# ✅ NISTA (SHEET2 VERSION ✅)
 # ======================================================
 def parse_nista_excel(file):
 
-    df = pd.read_excel(file, header=None)
+    # ✅ ЧЕТЕМ Sheet2
+    df = pd.read_excel(file, sheet_name=1)
 
-    rows = []
-    VALID_WID = [1, 4, 5, 20, 60, 200]
+    df.columns = df.columns.astype(str).str.strip()
 
-    for i in range(len(df)):
-        try:
-            row = df.iloc[i]
+    # ✅ rename по ключови думи
+    rename_map = {}
 
-            # ✅ MENGE
-            menge = None
-            for cell in row:
-                if pd.notna(cell):
-                    t = str(cell).lower()
-                    if "liter" in t:
-                        m = re.search(r"(\d+)", t)
-                        if m:
-                            menge = float(m.group(1))
-                            break
+    for col in df.columns:
+        c = col.lower()
 
-            if not menge:
-                continue
+        if "zoll" in c:
+            rename_map[col] = "Тарифен код"
 
-            # ✅ CODE (нормализация)
-            code = None
-            for cell in row:
-                if pd.notna(cell):
-                    m = re.search(r"27[0-9\s]{6,}", str(cell))
-                    if m:
-                        digits = re.sub(r"\D", "", m.group(0))
+        elif "menge" in c:
+            rename_map[col] = "kolichestvo"
 
-                        if len(digits) >= 8:
-                            code = digits[:8]
-                        else:
-                            continue
-                        break
+        elif "geb" in c:
+            rename_map[col] = "wid_raw"
 
-            if not code:
-                continue
+        elif "gew" in c:
+            rename_map[col] = "тегло"
 
-            # ✅ WID
-            wid = None
-            for cell in row:
-                if pd.notna(cell):
-                    c = str(cell).lower().replace(" ", "")
+    df = df.rename(columns=rename_map)
 
-                    multi = re.search(r"\d+x(\d+)", c)
-                    single = re.search(r"(\d+)l", c)
+    # ✅ махаме празни кодове
+    df = df.dropna(subset=["Тарифен код"])
 
-                    if multi:
-                        w = int(multi.group(1))
-                        if w in VALID_WID:
-                            wid = float(w)
-                            break
-
-                    elif single:
-                        w = int(single.group(1))
-                        if w in VALID_WID:
-                            wid = float(w)
-                            break
-
-            if not wid:
-                continue
-
-            # ✅ ТЕГЛО
-            weight = None
-            for cell in reversed(row):
-                if pd.notna(cell):
-                    try:
-                        val = float(str(cell).replace(",", "."))
-                        if val > 10:
-                            weight = val
-                            break
-                    except:
-                        pass
-
-            if not weight:
-                continue
-
-            rows.append({
-                "Тарифен код": code,
-                "Количество": int(round(menge / wid)),
-                "wid": wid,
-                "kolichestvo": menge,
-                "тегло": weight
-            })
-
-        except:
-            continue
-
-    if not rows:
-        st.error("❌ NISTA parser не извлече данни")
-        return pd.DataFrame()
-
-    df_out = pd.DataFrame(rows)
-
-    # ✅ FINAL normalize (най-важното)
-    df_out["Тарифен код"] = (
-        df_out["Тарифен код"]
+    # ======================================================
+    # ✅ NORMALIZE CODE
+    # ======================================================
+    df["Тарифен код"] = (
+        df["Тарифен код"]
         .astype(str)
         .str.replace(r"\D", "", regex=True)
         .str[:8]
     )
 
     # ✅ махаме грешни кодове
-    df_out = df_out[df_out["Тарифен код"].isin(ALLOWED_CODES)]
+    df = df[df["Тарифен код"].isin(ALLOWED_CODES)]
 
-    df_out = df_out.groupby(
+    # ======================================================
+    # ✅ MENGE (360 liter → 360)
+    # ======================================================
+    df["kolichestvo"] = (
+        df["kolichestvo"]
+        .astype(str)
+        .str.extract(r"(\d+)")
+        .astype(float)
+    )
+
+    # ======================================================
+    # ✅ WID (12x1l → 1, 3x5l → 5)
+    # ======================================================
+    def extract_wid(text):
+        text = str(text).lower().replace(" ", "")
+
+        m = re.search(r"\d+x(\d+)", text)
+        if m:
+            return float(m.group(1))
+
+        s = re.search(r"(\d+)l", text)
+        if s:
+            return float(s.group(1))
+
+        return None
+
+    df["wid"] = df["wid_raw"].apply(extract_wid)
+
+    # ======================================================
+    # ✅ BROJ
+    # ======================================================
+    df["Количество"] = df["kolichestvo"] / df["wid"]
+
+    df["Количество"] = df["Количество"].round(0)
+
+    # ======================================================
+    # ✅ CLEAN NUMERIC
+    # ======================================================
+    df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
+    df = df.dropna(subset=["wid", "тегло"])
+
+    # ======================================================
+    # ✅ GROUP
+    # ======================================================
+    df = df.groupby(
         ["Тарифен код", "wid"],
         as_index=False
     ).agg({
@@ -599,7 +577,7 @@ def parse_nista_excel(file):
         "тегло": "sum"
     })
 
-    return df_out
+    return df
 # ======================================================
 # ✅ FINAL REPORT
 # ======================================================
