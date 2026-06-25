@@ -175,7 +175,7 @@ suppliers_table = suppliers_table[::-1]
 # ✅ правим DataFrame за визуализация
 df_suppliers = pd.DataFrame(suppliers_table, columns=["Supplier", "File"])
 
-st.sidebar.dataframe(df_suppliers, use_container_width=True, height=450)
+st.sidebar.dataframe(df_suppliers, use_container_width=True, height=250)
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
     st.session_state["prev_supplier"] = menu
