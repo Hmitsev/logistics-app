@@ -163,7 +163,7 @@ suppliers_table = [
     ("NESTE", "Excel"),
     ("Gasoline", "PDF"),
     ("FEBI", "PDF"),
-    ("NISTA", "Excel"),
+    ("NISTA", "Excel+NewSheet"),
     ("AUTO MEGA", "Excel"),
     ("EMINIA", "Excel"),
     ("Brehman", "Excel"),
