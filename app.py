@@ -488,7 +488,7 @@ def parse_nista_excel(file):
 
     return df_out
 # ======================================================
-# ✅ MOTUL (FINAL REAL WORKING)
+# ✅ MOTUL (FINAL REAL WORKING + FILTER ✅)
 # ======================================================
 def parse_motul(text):
 
@@ -521,7 +521,7 @@ def parse_motul(text):
             units_in_box = 1
             liters_per_unit = float(single.group(1).replace(",", "."))
 
-        # ✅ ✅ ТЕГЛО (ТОЧНО NET след Quantity)
+        # ✅ ТЕГЛО
         weight_match = re.search(
             r"\d+\s+\d+\s+(\d+)\s+([\d\s,]+)\s+([\d\s,]+)",
             line
@@ -533,10 +533,8 @@ def parse_motul(text):
                     weight_match.group(2).replace(" ", "").replace(",", ".")
                 )
 
-                # ✅ защита
                 if net_weight < 100000:
                     current_weight = net_weight
-
             except:
                 pass
 
@@ -545,14 +543,13 @@ def parse_motul(text):
             code = re.search(r"HS code\s*:\s*(\d+)", line)
 
             if code:
-    code_value = code.group(1)[:8]
+                code_value = code.group(1)[:8]
 
-    # ✅ МНОГО ВАЖНО
-    if code_value not in ALLOWED_CODES:
-        continue
+                # ✅ ✅ ✅ ФИЛТЪР ПО ALLOWED_CODES
+                if code_value not in ALLOWED_CODES:
+                    continue
 
-
-
+                # ✅ ЛОГИКА ЗА КОЛИЧЕСТВО
                 if current_qty * units_in_box * liters_per_unit > 100000:
                     real_qty = current_qty
                 else:
@@ -562,12 +559,12 @@ def parse_motul(text):
                         real_qty = current_qty
 
                 rows.append({
-    "Тарифен код": code_value,
-    "Количество": real_qty,
-    "wid": liters_per_unit,
-    "kolichestvo": round(real_qty * liters_per_unit, 3),
-    "тегло": round(current_weight, 3)
-})
+                    "Тарифен код": code_value,
+                    "Количество": real_qty,
+                    "wid": liters_per_unit,
+                    "kolichestvo": round(real_qty * liters_per_unit, 3),
+                    "тегло": round(current_weight, 3)
+                })
 
                 # ✅ RESET
                 current_qty = 0
