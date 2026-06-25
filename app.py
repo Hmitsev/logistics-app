@@ -492,51 +492,151 @@ File "/home/adminuser/venv/lib/python3.14/site-packages/pandas/core/frame.py", l
 # ======================================================
 def build_final_report(df, supplier):
 
-    # ✅ NISTA
-    if supplier == "NISTA":
+    # ======================================================
+# ✅ NISTA (ULTIMATE STABLE ✅)
+# ======================================================
+def parse_nista_excel(file):
 
-        df["тегло"] = df["тегло"].round(3)
-        df["kolichestvo"] = df["kolichestvo"].round(2)
+    # ✅ опит за sheet 2 → fallback sheet 1
+    try:
+        df = pd.read_excel(file, sheet_name=1)
+    except:
+        df = pd.read_excel(file, sheet_name=0)
 
-        rows = []
+    df.columns = df.columns.astype(str)
 
-        grouped = df.groupby(["Тарифен код", "wid"], as_index=False).sum()
+    # ======================================================
+    # ✅ НАМИРАМЕ КОЛОНИ ПО СЪДЪРЖАНИЕ (НЕ ПО ИМЕ)
+    # ======================================================
+    col_code = None
+    col_menge = None
+    col_wid = None
+    col_weight = None
 
-        for code, group in grouped.groupby("Тарифен код"):
+    for col in df.columns:
+        sample = df[col].astype(str).str.lower().head(20)
 
-            rows.append({"code": code})
+        if sample.str.contains("2710").any():
+            col_code = col
 
-            total_k = 0
-            total_t = 0
+        if sample.str.contains("liter").any():
+            col_menge = col
 
-            for _, r in group.sort_values("wid").iterrows():
+        if sample.str.contains("x") \
+           or sample.str.contains("l").any():
+            if col_wid is None:
+                col_wid = col
 
-                rows.append({
-                    "code": code,
-                    "broj": int(r["Количество"]),
-                    "wid": f"{r['wid']:.2f}",
-                    "teglo": f"{r['тегло']:.3f}".replace(".", ","),
-                    "kolic": f"{r['kolichestvo']:.2f}"
-                })
+        if sample.str.contains(r"\d+\.\d+").any():
+            col_weight = col
 
-                total_k += r["kolichestvo"]
-                total_t += r["тегло"]
+    # ✅ fallback по име ако трябва
+    for col in df.columns:
+        c = col.lower()
 
-            rows.append({
-                "code": f"{code} - Total",
-                "teglo": f"{total_t:.3f}".replace(".", ","),
-                "kolic": f"{total_k:.2f}"
-            })
+        if col_code is None and "zoll" in c:
+            col_code = col
 
-            rows.append({})
+        if col_menge is None and "menge" in c:
+            col_menge = col
 
-        rows.append({
-            "code": "Grand Total",
-            "teglo": f"{grouped['тегло'].sum():.3f}".replace(".", ","),
-            "kolic": f"{grouped['kolichestvo'].sum():.2f}"
-        })
+        if col_wid is None and "geb" in c:
+            col_wid = col
 
-        return pd.DataFrame(rows)
+        if col_weight is None and "gew" in c:
+            col_weight = col
+
+    # ✅ ако пак няма — стоп
+    if not col_code or not col_menge:
+        st.error("❌ NISTA: не могат да се намерят нужните колони")
+        st.write("Detected columns:", df.columns.tolist())
+        return pd.DataFrame()
+
+    # ======================================================
+    # ✅ RENAME
+    # ======================================================
+    df = df.rename(columns={
+        col_code: "Тарифен код",
+        col_menge: "kolichestvo",
+        col_wid: "wid_raw" if col_wid else None,
+        col_weight: "тегло" if col_weight else None
+    })
+
+    # ✅ махаме празни кодове
+    df = df.dropna(subset=["Тарифен код"])
+
+    # ======================================================
+    # ✅ CLEAN CODE
+    # ======================================================
+    df["Тарифен код"] = (
+        df["Тарифен код"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str[:8]
+    )
+
+    df = df[df["Тарифен код"].isin(ALLOWED_CODES)]
+
+    # ======================================================
+    # ✅ CLEAN MENGE
+    # ======================================================
+    df["kolichestvo"] = (
+        df["kolichestvo"]
+        .astype(str)
+        .str.extract(r"(\d+)")
+        .astype(float)
+    )
+
+    # ======================================================
+    # ✅ WID
+    # ======================================================
+    def extract_wid(x):
+        x = str(x).lower().replace(" ", "")
+
+        m = re.search(r"\d+x(\d+)", x)
+        if m:
+            return float(m.group(1))
+
+        s = re.search(r"(\d+)l", x)
+        if s:
+            return float(s.group(1))
+
+        return None
+
+    if "wid_raw" in df:
+        df["wid"] = df["wid_raw"].apply(extract_wid)
+    else:
+        df["wid"] = None
+
+    # ======================================================
+    # ✅ BROJ
+    # ======================================================
+    df = df[df["wid"].notna()]
+    df["Количество"] = (df["kolichestvo"] / df["wid"]).round(0)
+
+    # ======================================================
+    # ✅ ТЕГЛО
+    # ======================================================
+    if "тегло" in df:
+        df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
+        df = df[df["тегло"].notna()]
+    else:
+        df["тегло"] = 0
+
+    # ======================================================
+    # ✅ GROUP
+    # ======================================================
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
+
 
     # ✅ fallback
     return df
