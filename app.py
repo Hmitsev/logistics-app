@@ -781,57 +781,73 @@ if uploaded_files:
 
         df = None
 
+        # ✅ NESTE
         if menu == "NESTE":
             df = parse_neste_excel(file)
 
+        # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
 
+        # ✅ CASTROL Excel
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
+        # ✅ ✅ ✅ NISTA (FIXED)
+        elif menu == "NISTA":
+            df = parse_nista_excel(file)
+
+        # ✅ PDF parsing
         elif source_type == "PDF":
             reader = PdfReader(file)
             text = ""
 
             for page in reader.pages:
-                text += page.extract_text() + "\n"
+                t = page.extract_text()
+                if t:
+                    text += t + "\n"
 
             if menu == "CASTROL":
                 df = parse_castrol(text)
             else:
                 df = parse_motul(text)
 
+        # ✅ fallback Excel
         else:
             df = pd.read_excel(file)
             df.columns = df.columns.str.strip()
 
+        # ✅ добавяме ако има данни
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
+    # ✅ ако няма нищо
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # ✅ DEBUG (скрит)
+    # ✅ DEBUG (по желание)
     DEBUG = False
     if DEBUG:
-        st.write("DEBUG DF:")
         st.dataframe(final_df.head(20))
 
-    # ✅ ✅ ВАЖНО – вътре в блока
+    # ✅ проверка за код
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
+    # ✅ normalize
     final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
 
+    # ✅ махаме празно тегло
     final_df = final_df[final_df["тегло"] > 0]
 
+    # ✅ REPORT
     report = build_final_report(final_df, menu)
 
+    # ✅ rename за export
     report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
