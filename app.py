@@ -354,7 +354,7 @@ ALLOWED_CODES = [
     "27101991","27101981","27101983","27101987",
     "27101993","27101999","34031910","34039900",
     "34031980","38119000","38112100","38249992",
-    "27101225","38140090"
+    "27101225","38140090","38249996"
 ]
 
 
@@ -545,7 +545,13 @@ def parse_motul(text):
             code = re.search(r"HS code\s*:\s*(\d+)", line)
 
             if code:
-                code_value = code.group(1)[:8]
+    code_value = code.group(1)[:8]
+
+    # ✅ МНОГО ВАЖНО
+    if code_value not in ALLOWED_CODES:
+        continue
+
+
 
                 if current_qty * units_in_box * liters_per_unit > 100000:
                     real_qty = current_qty
