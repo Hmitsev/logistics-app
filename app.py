@@ -402,7 +402,7 @@ def parse_nista_excel(file):
     df = pd.read_excel(file, header=None)
 
     rows = []
-    VALID_WID = [1, 4, 5, 20, 60, 200]
+    VALID_WID = [1, 4, 5,4.5, 2, 0.300, 0.250, 0.200, 0.500, 30, 40, 80, 20, 60, 200, 210, 208, ]
 
     for i in range(len(df)):
 
