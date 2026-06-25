@@ -395,118 +395,89 @@ def parse_castrol(text):
     return pd.DataFrame(rows)
     
 # ======================================================
-# ✅ NISTA (FINAL REAL VERSION ✅)
+# ✅ NISTA (ROW PARSER ✅ за Lieferschein)
 # ======================================================
 def parse_nista_excel(file):
 
-    # ✅ пробва първо sheet2 (ако има clean sheet)
-    try:
-        df = pd.read_excel(file, sheet_name=1)
-    except:
-        df = pd.read_excel(file, sheet_name=0)
+    df = pd.read_excel(file, header=None)
 
-    df.columns = df.columns.astype(str).str.strip()
+    rows = []
+    VALID_WID = [1, 4, 5, 20, 60, 200]
 
-    st.write("DEBUG columns:", df.columns.tolist())  # временно (можеш да го махнеш)
+    for i in range(len(df)):
 
-    # ======================================================
-    # ✅ намираме колоните по име
-    # ======================================================
-    col_code = None
-    col_menge = None
-    col_wid = None
-    col_weight = None
+        row = df.iloc[i]
 
-    for col in df.columns:
-        c = col.lower()
+        try:
+            row_text = " ".join([str(x) for x in row if pd.notna(x)])
 
-        if "zoll" in c:
-            col_code = col
+            # ✅ търсим код
+            code_match = re.search(r"27[\d\s]{6,}", row_text)
+            if not code_match:
+                continue
 
-        elif "menge" in c:
-            col_menge = col
+            digits = re.sub(r"\D", "", code_match.group(0))
+            if len(digits) < 8:
+                continue
 
-        elif "geb" in c:
-            col_wid = col
+            code = digits[:8]
 
-        elif "gew" in c:
-            col_weight = col
+            if code not in ALLOWED_CODES:
+                continue
 
-    # ✅ ако пак няма → стоп
-    if not col_code:
-        st.error("❌ Няма колона за код (Zolltarif)")
+            # ✅ търсим количество (liter)
+            menge_match = re.search(r"(\d+)\s*liter", row_text.lower())
+            if not menge_match:
+                continue
+
+            menge = float(menge_match.group(1))
+
+            # ✅ wid (12x1l, 3x5l...)
+            wid_match = re.search(r"(\d+)x(\d+)l", row_text.lower())
+
+            if wid_match:
+                wid = float(wid_match.group(2))
+            else:
+                single = re.search(r"(\d+)l", row_text.lower())
+                if not single:
+                    continue
+                wid = float(single.group(1))
+
+            if wid not in VALID_WID:
+                continue
+
+            # ✅ тегло (последното число)
+            weight = None
+            for cell in reversed(row):
+                try:
+                    val = float(str(cell).replace(",", "."))
+                    if val > 10:
+                        weight = val
+                        break
+                except:
+                    continue
+
+            if not weight:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": int(round(menge / wid)),
+                "wid": wid,
+                "kolichestvo": menge,
+                "тегло": weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ NISTA parser не извлече данни")
         return pd.DataFrame()
 
-    # ======================================================
-    # ✅ rename
-    # ======================================================
-    df = df.rename(columns={
-        col_code: "Тарифен код",
-        col_menge: "kolichestvo",
-        col_wid: "wid_raw",
-        col_weight: "тегло"
-    })
+    df_out = pd.DataFrame(rows)
 
-    # ✅ махаме header редове и боклуци
-    df = df[df["Тарифен код"].astype(str).str.contains(r"\d")]
-
-    # ======================================================
-    # ✅ NORMALIZE CODE
-    # ======================================================
-    df["Тарифен код"] = (
-        df["Тарифен код"]
-        .astype(str)
-        .str.replace(r"\D", "", regex=True)
-        .str[:8]
-    )
-
-    df = df[df["Тарифен код"].isin(ALLOWED_CODES)]
-
-    # ======================================================
-    # ✅ MENGE (360 liter → 360)
-    # ======================================================
-    df["kolichestvo"] = (
-        df["kolichestvo"]
-        .astype(str)
-        .str.extract(r"(\d+)")
-        .astype(float)
-    )
-
-    # ======================================================
-    # ✅ WID
-    # ======================================================
-    def extract_wid(x):
-        x = str(x).lower().replace(" ", "")
-
-        m = re.search(r"\d+x(\d+)", x)
-        if m:
-            return float(m.group(1))
-
-        s = re.search(r"(\d+)l", x)
-        if s:
-            return float(s.group(1))
-
-        return None
-
-    df["wid"] = df["wid_raw"].apply(extract_wid)
-
-    df = df[df["wid"].notna()]
-
-    # ======================================================
-    # ✅ BROJ
-    # ======================================================
-    df["Количество"] = (df["kolichestvo"] / df["wid"]).round(0)
-
-    # ======================================================
-    # ✅ ТЕГЛО
-    # ======================================================
-    df["тегло"] = pd.to_numeric(df["тегло"], errors="coerce")
-    df = df[df["тегло"].notna()]
-
-    # ======================================================
-    # ✅ GROUP
-    # ======================================================
-    df = df.groupby(
+    df_out = df_out.groupby(
         ["Тарифен код", "wid"],
         as_index=False
     ).agg({
@@ -515,7 +486,7 @@ def parse_nista_excel(file):
         "тегло": "sum"
     })
 
-    return df
+    return df_out
 # ======================================================
 # ✅ MOTUL (FINAL REAL WORKING)
 # ======================================================
