@@ -488,6 +488,120 @@ def parse_nista_excel(file):
 
     return df_out
 # ======================================================
+# ✅ ORLEN (EXCEL)
+# ======================================================
+def parse_orlen_excel(file):
+
+    df = pd.read_excel(file)
+
+    df.columns = df.columns.astype(str).str.strip()
+
+    rename_map = {}
+
+    for col in df.columns:
+        c = col.lower()
+
+        if "code cn" in c:
+            rename_map[col] = "Тарифен код"
+
+        elif c == "qty":
+            rename_map[col] = "Количество"
+
+        elif "net weight" in c:
+            rename_map[col] = "тегло"
+
+        elif "material" in c:
+            rename_map[col] = "material"
+
+    df = df.rename(columns=rename_map)
+
+    required = [
+        "Тарифен код",
+        "Количество",
+        "тегло",
+        "material"
+    ]
+
+    for col in required:
+        if col not in df.columns:
+            st.error(f"❌ ORLEN: липсва колона {col}")
+            return pd.DataFrame()
+
+    # ✅ само позволените кодове
+    df["Тарифен код"] = (
+        df["Тарифен код"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str[:8]
+    )
+
+    df = df[df["Тарифен код"].isin(ALLOWED_CODES)]
+
+    # ==================================================
+    # ✅ извличане на разфасовка от Material
+    # ==================================================
+    def extract_wid(material):
+
+        txt = str(material).upper().replace(",", ".")
+
+        # 20L, 205L, 4.5L, 0.6L и т.н.
+        m = re.search(r'(\d+(?:\.\d+)?)\s*L\b', txt)
+        if m:
+            return float(m.group(1))
+
+        # 17KG, 9KG, 4.5KG...
+        m = re.search(r'(\d+(?:\.\d+)?)\s*KG\b', txt)
+        if m:
+            return float(m.group(1))
+
+        # 800G, 400G...
+        m = re.search(r'(\d+(?:\.\d+)?)\s*G\b', txt)
+        if m:
+            return float(m.group(1)) / 1000
+
+        return None
+
+    df["wid"] = df["material"].apply(extract_wid)
+
+    df = df[df["wid"].notna()]
+
+    # ✅ числа
+    df["Количество"] = pd.to_numeric(
+        df["Количество"],
+        errors="coerce"
+    )
+
+    df["тегло"] = pd.to_numeric(
+        df["тегло"],
+        errors="coerce"
+    )
+
+    # ✅ Qty × wid
+    df["kolichestvo"] = (
+        df["Количество"] * df["wid"]
+    )
+
+    df = df.dropna(
+        subset=[
+            "Тарифен код",
+            "Количество",
+            "wid",
+            "тегло"
+        ]
+    )
+
+    # ✅ групиране
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df   
+# ======================================================
 # ✅ MOTUL (FINAL REAL WORKING + FILTER ✅)
 # ======================================================
 def parse_motul(text):
@@ -867,108 +981,116 @@ def build_final_report(df, supplier):
 
 
 # ======================================================
-# ✅ PROCESS
+# ✅ ORLEN (EXCEL)
 # ======================================================
-if uploaded_files:
+def parse_orlen_excel(file):
 
-    all_data = []
+    df = pd.read_excel(file)
 
-    for file in uploaded_files:
+    df.columns = df.columns.astype(str).str.strip()
 
-        df = None
+    rename_map = {}
 
-        # ✅ NESTE
-        if menu == "NESTE":
-            df = parse_neste_excel(file)
+    for col in df.columns:
+        c = col.lower()
 
-        # ✅ FLUKAR
-        elif menu == "FLUKAR":
-            df = parse_flukar_excel(file)
+        if "code cn" in c:
+            rename_map[col] = "Тарифен код"
 
-        # ✅ CASTROL Excel
-        elif menu == "CASTROL" and source_type == "Excel":
-            df = parse_castrol_excel(file)
+        elif c == "qty":
+            rename_map[col] = "Количество"
 
-        # ✅ ✅ ✅ NISTA (FIXED)
-        elif menu == "NISTA":
-            df = parse_nista_excel(file)
+        elif "net weight" in c:
+            rename_map[col] = "тегло"
 
-        # ✅ PDF parsing
-        elif source_type == "PDF":
-            reader = PdfReader(file)
-            text = ""
+        elif "material" in c:
+            rename_map[col] = "material"
 
-            for page in reader.pages:
-                t = page.extract_text()
-                if t:
-                    text += t + "\n"
+    df = df.rename(columns=rename_map)
 
-            if menu == "CASTROL":
-                df = parse_castrol(text)
-            else:
-                df = parse_motul(text)
+    required = [
+        "Тарифен код",
+        "Количество",
+        "тегло",
+        "material"
+    ]
 
-        # ✅ fallback Excel
-        else:
-            df = pd.read_excel(file)
-            df.columns = df.columns.str.strip()
+    for col in required:
+        if col not in df.columns:
+            st.error(f"❌ ORLEN: липсва колона {col}")
+            return pd.DataFrame()
 
-        # ✅ добавяме ако има данни
-        if isinstance(df, pd.DataFrame) and not df.empty:
-            all_data.append(df)
-
-    # ✅ ако няма нищо
-    if not all_data:
-        st.warning("⚠️ Няма данни")
-        st.stop()
-
-    final_df = pd.concat(all_data, ignore_index=True)
-
-    # ✅ DEBUG (по желание)
-    DEBUG = False
-    if DEBUG:
-        st.dataframe(final_df.head(20))
-
-    # ✅ проверка за код
-    if "Тарифен код" not in final_df.columns:
-        st.warning("⚠️ Данните не съдържат тарифен код")
-        st.stop()
-
-    # ✅ normalize
-    final_df["Тарифен код"] = final_df["Тарифен код"].astype(str)
-
-    # ✅ махаме празно тегло
-    final_df = final_df[final_df["тегло"] > 0]
-
-    # ✅ REPORT
-    report = build_final_report(final_df, menu)
-
-    # ✅ rename за export
-    report = report.rename(columns={
-        "Тарифен код": "Code",
-        "wid": "wid",
-        "тегло": "teglo",
-        "kolichestvo": "colic-v L",
-        "Количество": "Broj"
-    })
-
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
-
-    # ✅ EXPORT
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        report.to_excel(writer, index=False)
-
-    output.seek(0)
-
-    st.download_button(
-        label="📥 Изтегли Excel",
-        data=output,
-        file_name="final_report.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    # ✅ само позволените кодове
+    df["Тарифен код"] = (
+        df["Тарифен код"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str[:8]
     )
 
-else:
-    st.markdown("**⬆️ Качи файл, за да генерираш отчет**")
+    df = df[df["Тарифен код"].isin(ALLOWED_CODES)]
+
+    # ==================================================
+    # ✅ извличане на разфасовка от Material
+    # ==================================================
+    def extract_wid(material):
+
+        txt = str(material).upper().replace(",", ".")
+
+        # 20L, 205L, 4.5L, 0.6L и т.н.
+        m = re.search(r'(\d+(?:\.\d+)?)\s*L\b', txt)
+        if m:
+            return float(m.group(1))
+
+        # 17KG, 9KG, 4.5KG...
+        m = re.search(r'(\d+(?:\.\d+)?)\s*KG\b', txt)
+        if m:
+            return float(m.group(1))
+
+        # 800G, 400G...
+        m = re.search(r'(\d+(?:\.\d+)?)\s*G\b', txt)
+        if m:
+            return float(m.group(1)) / 1000
+
+        return None
+
+    df["wid"] = df["material"].apply(extract_wid)
+
+    df = df[df["wid"].notna()]
+
+    # ✅ числа
+    df["Количество"] = pd.to_numeric(
+        df["Количество"],
+        errors="coerce"
+    )
+
+    df["тегло"] = pd.to_numeric(
+        df["тегло"],
+        errors="coerce"
+    )
+
+    # ✅ Qty × wid
+    df["kolichestvo"] = (
+        df["Количество"] * df["wid"]
+    )
+
+    df = df.dropna(
+        subset=[
+            "Тарифен код",
+            "Количество",
+            "wid",
+            "тегло"
+        ]
+    )
+
+    # ✅ групиране
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
