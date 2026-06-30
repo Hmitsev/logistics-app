@@ -994,7 +994,7 @@ def parse_orlen_excel(file):
     for col in df.columns:
         c = col.lower()
 
-        if "code cn" in c:
+        if "code cn" in c or "cn code" in c:
             rename_map[col] = "Тарифен код"
 
         elif c == "qty":
