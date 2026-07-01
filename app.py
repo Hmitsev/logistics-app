@@ -17,7 +17,7 @@ def set_bg(image_file):
             f"""
             <style>
             .stApp {{
-                background-image: url("data:image/png;base64,{encoded}");
+                background-image: url("data:image/png;baFse64,{encoded}");
                 background-size: cover;
                 background-position: center;
             }}
@@ -1094,7 +1094,7 @@ def parse_orlen_excel(file):
     })
 
     return df
-# ===# ======================================================
+# ======================================================
 # ✅ AUTO MEGA FINAL
 # ======================================================
 def parse_auto_mega_excel(file):
