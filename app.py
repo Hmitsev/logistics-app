@@ -1095,6 +1095,123 @@ def parse_orlen_excel(file):
 
     return df
     # ======================================================
+# ✅ AUTO MEGA
+# ======================================================
+def parse_auto_mega_excel(file):
+
+    df = pd.read_excel(file)
+
+    df.columns = df.columns.astype(str).str.strip()
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            code = str(row["Tariff Code"]).strip()
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            description = str(row["Description"]).upper()
+
+            qty = pd.to_numeric(
+                row["Delivery"],
+                errors="coerce"
+            )
+
+            net_weight = pd.to_numeric(
+                row["wt./net"],
+                errors="coerce"
+            )
+
+            item_weight = pd.to_numeric(
+                row["wt./item"],
+                errors="coerce"
+            )
+
+            wid = None
+
+            # ==================================================
+            # ТЪРСИ L
+            # ==================================================
+
+            match_l = re.search(
+                r'(\d+(?:[\.,]\d+)?)\s*L',
+                description
+            )
+
+            if match_l:
+
+                wid = float(
+                    match_l.group(1).replace(",", ".")
+                )
+
+            # ==================================================
+            # ТЪРСИ KG
+            # ==================================================
+
+            if wid is None:
+
+                match_kg = re.search(
+                    r'(\d+(?:[\.,]\d+)?)\s*KG',
+                    description
+                )
+
+                if match_kg:
+                    wid = float(
+                        match_kg.group(1).replace(",", ".")
+                    )
+
+            # ==================================================
+            # FALLBACK wt/item
+            # ==================================================
+
+            if wid is None and pd.notna(item_weight):
+
+                # около 1L
+                if 0.75 <= item_weight <= 1.30:
+                    wid = 1
+
+                # около 4L
+                elif 3.5 <= item_weight <= 4.4:
+                    wid = 4
+
+                # около 5L
+                elif 4.4 <= item_weight <= 5.8:
+                    wid = 5
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
+# ======================================================
 # ✅ PROCESS
 # ======================================================
 if uploaded_files:
@@ -1124,6 +1241,10 @@ if uploaded_files:
         # ✅ ORLEN
         elif menu == "ORLEN":
             df = parse_orlen_excel(file)
+
+        # ✅ AUTO MEGA
+        elif menu == "AUTO MEGA":
+            df = parse_auto_mega_excel(file)
 
         # ✅ PDF parsing
         elif source_type == "PDF":
@@ -1170,17 +1291,18 @@ if uploaded_files:
         st.write("DEBUG FINAL")
         st.dataframe(final_df.head(50))
 
-    # ✅ колона код
+    # ✅ проверка за код
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
+    # ✅ normalize
     final_df["Тарифен код"] = (
         final_df["Тарифен код"]
         .astype(str)
     )
 
-    # ✅ само редове с тегло
+    # ✅ махаме празно тегло
     final_df = final_df[
         final_df["тегло"] > 0
     ]
@@ -1191,16 +1313,15 @@ if uploaded_files:
         menu
     )
 
-    # ✅ rename
+    # ✅ rename за export
     report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
-        "Количество": "Broj",
+        "тегло": "teglo",
         "kolichestvo": "colic-v L",
-        "тегло": "teglo"
+        "Количество": "Broj"
     })
 
-    # ✅ показване
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
