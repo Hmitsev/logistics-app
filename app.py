@@ -1094,107 +1094,22 @@ def parse_orlen_excel(file):
     })
 
     return df
-   # ======================================================
-# ✅ AUTO MEGA
+# ======================================================
+# ✅ AUTO MEGA DEBUG
 # ======================================================
 def parse_auto_mega_excel(file):
 
     df = pd.read_excel(file)
 
-    rows = []
+    st.subheader("AUTO MEGA DEBUG")
 
-    for _, row in df.iterrows():
+    st.write("Колони:")
+    st.write(df.columns.tolist())
 
-        try:
+    st.write("Първи 15 реда:")
+    st.dataframe(df.head(15))
 
-            row_text = " ".join(
-                str(x)
-                for x in row
-                if pd.notna(x)
-            )
-
-            # ✅ тарифен код
-            code_match = re.search(
-                r"\b(27101981|27101983|27101987|27101991|27101993|27101999|34031980|34031910|34039900)\b",
-                row_text
-            )
-
-            if not code_match:
-                continue
-
-            code = code_match.group(1)
-
-            # ✅ DELIVERY
-            nums = re.findall(r"\b\d+\b", row_text)
-
-            if len(nums) < 3:
-                continue
-
-            delivery = float(nums[-3])
-
-            # ✅ WT NET
-            net_weight = float(nums[-2])
-
-            description = row_text.upper()
-
-            wid = None
-
-            # ==================================================
-            # ТЪРСИ ЛИТРИ
-            # ==================================================
-
-            match_l = re.search(
-                r'(\d+(?:[\.,]\d+)?)\s*L',
-                description
-            )
-
-            if match_l:
-                wid = float(
-                    match_l.group(1).replace(",", ".")
-                )
-
-            # ==================================================
-            # FALLBACK
-            # ==================================================
-
-            if wid is None:
-
-                if (
-                    "TRANSMISSION OIL" in description
-                    or "AUTOMATIC TRANSMISSION OIL" in description
-                ):
-                    wid = 1
-
-            if wid is None:
-                continue
-
-            rows.append({
-                "Тарифен код": code,
-                "Количество": delivery,
-                "wid": wid,
-                "kolichestvo": delivery * wid,
-                "тегло": net_weight
-            })
-
-        except:
-            continue
-
-    if not rows:
-        st.error("❌ AUTO MEGA parser не извлече данни")
-        return pd.DataFrame()
-
-    df_out = pd.DataFrame(rows)
-
-    df_out = df_out.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df_out 
+    return pd.DataFrame()
 # ======================================================
 # ✅ PROCESS
 # ======================================================
