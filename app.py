@@ -1094,29 +1094,28 @@ def parse_orlen_excel(file):
     })
 
     return df
-    ## ======================================================
+   # ======================================================
 # ✅ AUTO MEGA
 # ======================================================
 def parse_auto_mega_excel(file):
 
-    df = pd.read_excel(file, header=None)
+    df = pd.read_excel(file)
 
     rows = []
 
-    for i in range(len(df)):
+    for _, row in df.iterrows():
 
         try:
 
-            row = df.iloc[i]
-
             row_text = " ".join(
-                str(x) for x in row
+                str(x)
+                for x in row
                 if pd.notna(x)
             )
 
             # ✅ тарифен код
             code_match = re.search(
-                r"(27101981|27101983|27101987|27101991|27101993|27101999|34031980|34031910|34039900|38119000|38112100|38249992)",
+                r"\b(27101981|27101983|27101987|27101991|27101993|27101999|34031980|34031910|34039900)\b",
                 row_text
             )
 
@@ -1125,31 +1124,23 @@ def parse_auto_mega_excel(file):
 
             code = code_match.group(1)
 
-            # ✅ количество (Delivery)
-            numbers = []
+            # ✅ DELIVERY
+            nums = re.findall(r"\b\d+\b", row_text)
 
-            for cell in row:
-                try:
-                    val = float(str(cell).replace(",", "."))
-                    numbers.append(val)
-                except:
-                    pass
-
-            if len(numbers) < 2:
+            if len(nums) < 3:
                 continue
 
-            qty = numbers[0]
+            delivery = float(nums[-3])
 
-            # ✅ тегло
-            net_weight = numbers[1]
+            # ✅ WT NET
+            net_weight = float(nums[-2])
 
-            # ✅ описание
             description = row_text.upper()
 
             wid = None
 
             # ==================================================
-            # ЛИТРИ
+            # ТЪРСИ ЛИТРИ
             # ==================================================
 
             match_l = re.search(
@@ -1163,51 +1154,25 @@ def parse_auto_mega_excel(file):
                 )
 
             # ==================================================
-            # KG
+            # FALLBACK
             # ==================================================
 
             if wid is None:
 
-                match_kg = re.search(
-                    r'(\d+(?:[\.,]\d+)?)\s*KG',
-                    description
-                )
-
-                if match_kg:
-                    wid = float(
-                        match_kg.group(1).replace(",", ".")
-                    )
-
-            # ==================================================
-            # FALLBACK wt/item
-            # ==================================================
-
-            if wid is None:
-
-                item_weight = None
-
-                if len(numbers) >= 3:
-                    item_weight = numbers[-2]
-
-                if item_weight:
-
-                    if 0.75 <= item_weight <= 1.30:
-                        wid = 1
-
-                    elif 3.5 <= item_weight <= 4.4:
-                        wid = 4
-
-                    elif 4.4 <= item_weight <= 5.8:
-                        wid = 5
+                if (
+                    "TRANSMISSION OIL" in description
+                    or "AUTOMATIC TRANSMISSION OIL" in description
+                ):
+                    wid = 1
 
             if wid is None:
                 continue
 
             rows.append({
                 "Тарифен код": code,
-                "Количество": qty,
+                "Количество": delivery,
                 "wid": wid,
-                "kolichestvo": qty * wid,
+                "kolichestvo": delivery * wid,
                 "тегло": net_weight
             })
 
@@ -1229,7 +1194,7 @@ def parse_auto_mega_excel(file):
         "тегло": "sum"
     })
 
-    return df_out
+    return df_out 
 # ======================================================
 # ✅ PROCESS
 # ======================================================
