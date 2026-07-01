@@ -1094,22 +1094,132 @@ def parse_orlen_excel(file):
     })
 
     return df
-# ======================================================
-# ✅ AUTO MEGA DEBUG
+# ===# ======================================================
+# ✅ AUTO MEGA FINAL
 # ======================================================
 def parse_auto_mega_excel(file):
 
-    df = pd.read_excel(file)
+    # ✅ истинският header е на ред 2
+    df = pd.read_excel(file, header=2)
 
-    st.subheader("AUTO MEGA DEBUG")
+    df.columns = df.columns.astype(str).str.strip()
 
-    st.write("Колони:")
-    st.write(df.columns.tolist())
+    rows = []
 
-    st.write("Първи 15 реда:")
-    st.dataframe(df.head(15))
+    for _, row in df.iterrows():
 
-    return pd.DataFrame()
+        try:
+
+            code = str(row["Tariff Code"]).strip()
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            description = str(row["Description"]).upper()
+
+            qty = pd.to_numeric(
+                row["Delivery"],
+                errors="coerce"
+            )
+
+            net_weight = pd.to_numeric(
+                row["wt./net"],
+                errors="coerce"
+            )
+
+            item_weight = pd.to_numeric(
+                row["wt./item"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(net_weight):
+                continue
+
+            wid = None
+
+            # ==========================================
+            # ✅ от описанието
+            # ==========================================
+
+            match = re.search(
+                r'(\d+(?:[.,]\d+)?)\s*L',
+                description
+            )
+
+            if match:
+                wid = float(
+                    match.group(1).replace(",", ".")
+                )
+
+            # ==========================================
+            # ✅ fallback по wt./item
+            # ==========================================
+
+            if wid is None and pd.notna(item_weight):
+
+                if 0.75 <= item_weight <= 1.30:
+                    wid = 1
+
+                elif 1.70 <= item_weight <= 2.30:
+                    wid = 2
+
+                elif 3.50 <= item_weight <= 4.40:
+                    wid = 4
+
+                elif 4.40 <= item_weight <= 5.80:
+                    wid = 5
+
+            # ==========================================
+            # ✅ TOYOTA SAE 5W40 -> 2L
+            # ==========================================
+
+            if wid is None:
+
+                if "TOYOTA SAE 5W40" in description:
+                    wid = 2
+
+            # ==========================================
+            # ✅ TRANSMISSION OIL -> 1L
+            # ==========================================
+
+            if wid is None:
+
+                if "TRANSMISSION OIL" in description:
+                    wid = 1
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ AUTO MEGA parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 # ======================================================
 # ✅ PROCESS
 # ======================================================
