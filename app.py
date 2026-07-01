@@ -17,7 +17,7 @@ def set_bg(image_file):
             f"""
             <style>
             .stApp {{
-                background-image: url("data:image/png;baFse64,{encoded}");
+                background-image: url("data:image/png;base64,{encoded}");
                 background-size: cover;
                 background-position: center;
             }}
@@ -1094,133 +1094,7 @@ def parse_orlen_excel(file):
     })
 
     return df
-# ======================================================
-# ✅ AUTO MEGA FINAL
-# ======================================================
-def parse_auto_mega_excel(file):
-
-    # ✅ истинският header е на ред 2
-    df = pd.read_excel(file, header=2)
-
-    df.columns = df.columns.astype(str).str.strip()
-
-    rows = []
-
-    for _, row in df.iterrows():
-
-        try:
-
-            code = str(row["Tariff Code"]).strip()
-
-            if code not in ALLOWED_CODES:
-                continue
-
-            description = str(row["Description"]).upper()
-
-            qty = pd.to_numeric(
-                row["Delivery"],
-                errors="coerce"
-            )
-
-            net_weight = pd.to_numeric(
-                row["wt./net"],
-                errors="coerce"
-            )
-
-            item_weight = pd.to_numeric(
-                row["wt./item"],
-                errors="coerce"
-            )
-
-            if pd.isna(qty):
-                continue
-
-            if pd.isna(net_weight):
-                continue
-
-            wid = None
-
-            # ==========================================
-            # ✅ от описанието
-            # ==========================================
-
-            match = re.search(
-                r'(\d+(?:[.,]\d+)?)\s*L',
-                description
-            )
-
-            if match:
-                wid = float(
-                    match.group(1).replace(",", ".")
-                )
-
-            # ==========================================
-            # ✅ fallback по wt./item
-            # ==========================================
-
-            if wid is None and pd.notna(item_weight):
-
-                if 0.75 <= item_weight <= 1.30:
-                    wid = 1
-
-                elif 1.70 <= item_weight <= 2.30:
-                    wid = 2
-
-                elif 3.50 <= item_weight <= 4.40:
-                    wid = 4
-
-                elif 4.40 <= item_weight <= 5.80:
-                    wid = 5
-
-            # ==========================================
-            # ✅ TOYOTA SAE 5W40 -> 2L
-            # ==========================================
-
-            if wid is None:
-
-                if "TOYOTA SAE 5W40" in description:
-                    wid = 2
-
-            # ==========================================
-            # ✅ TRANSMISSION OIL -> 1L
-            # ==========================================
-
-            if wid is None:
-
-                if "TRANSMISSION OIL" in description:
-                    wid = 1
-
-            if wid is None:
-                continue
-
-            rows.append({
-                "Тарифен код": code,
-                "Количество": qty,
-                "wid": wid,
-                "kolichestvo": qty * wid,
-                "тегло": net_weight
-            })
-
-        except:
-            continue
-
-    if not rows:
-        st.error("❌ AUTO MEGA parser не извлече данни")
-        return pd.DataFrame()
-
-    df_out = pd.DataFrame(rows)
-
-    df_out = df_out.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df_out
-# ======================================================
+    # ======================================================
 # ✅ PROCESS
 # ======================================================
 if uploaded_files:
@@ -1250,10 +1124,6 @@ if uploaded_files:
         # ✅ ORLEN
         elif menu == "ORLEN":
             df = parse_orlen_excel(file)
-
-        # ✅ AUTO MEGA
-        elif menu == "AUTO MEGA":
-            df = parse_auto_mega_excel(file)
 
         # ✅ PDF parsing
         elif source_type == "PDF":
@@ -1300,18 +1170,17 @@ if uploaded_files:
         st.write("DEBUG FINAL")
         st.dataframe(final_df.head(50))
 
-    # ✅ проверка за код
+    # ✅ колона код
     if "Тарифен код" not in final_df.columns:
         st.warning("⚠️ Данните не съдържат тарифен код")
         st.stop()
 
-    # ✅ normalize
     final_df["Тарифен код"] = (
         final_df["Тарифен код"]
         .astype(str)
     )
 
-    # ✅ махаме празно тегло
+    # ✅ само редове с тегло
     final_df = final_df[
         final_df["тегло"] > 0
     ]
@@ -1322,15 +1191,16 @@ if uploaded_files:
         menu
     )
 
-    # ✅ rename за export
+    # ✅ rename
     report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
-        "тегло": "teglo",
+        "Количество": "Broj",
         "kolichestvo": "colic-v L",
-        "Количество": "Broj"
+        "тегло": "teglo"
     })
 
+    # ✅ показване
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
