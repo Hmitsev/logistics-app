@@ -1094,47 +1094,62 @@ def parse_orlen_excel(file):
     })
 
     return df
-    # ======================================================
+    ## ======================================================
 # ✅ AUTO MEGA
 # ======================================================
 def parse_auto_mega_excel(file):
 
-    df = pd.read_excel(file)
-
-    df.columns = df.columns.astype(str).str.strip()
+    df = pd.read_excel(file, header=None)
 
     rows = []
 
-    for _, row in df.iterrows():
+    for i in range(len(df)):
 
         try:
 
-            code = str(row["Tariff Code"]).strip()
+            row = df.iloc[i]
 
-            if code not in ALLOWED_CODES:
+            row_text = " ".join(
+                str(x) for x in row
+                if pd.notna(x)
+            )
+
+            # ✅ тарифен код
+            code_match = re.search(
+                r"(27101981|27101983|27101987|27101991|27101993|27101999|34031980|34031910|34039900|38119000|38112100|38249992)",
+                row_text
+            )
+
+            if not code_match:
                 continue
 
-            description = str(row["Description"]).upper()
+            code = code_match.group(1)
 
-            qty = pd.to_numeric(
-                row["Delivery"],
-                errors="coerce"
-            )
+            # ✅ количество (Delivery)
+            numbers = []
 
-            net_weight = pd.to_numeric(
-                row["wt./net"],
-                errors="coerce"
-            )
+            for cell in row:
+                try:
+                    val = float(str(cell).replace(",", "."))
+                    numbers.append(val)
+                except:
+                    pass
 
-            item_weight = pd.to_numeric(
-                row["wt./item"],
-                errors="coerce"
-            )
+            if len(numbers) < 2:
+                continue
+
+            qty = numbers[0]
+
+            # ✅ тегло
+            net_weight = numbers[1]
+
+            # ✅ описание
+            description = row_text.upper()
 
             wid = None
 
             # ==================================================
-            # ТЪРСИ L
+            # ЛИТРИ
             # ==================================================
 
             match_l = re.search(
@@ -1143,13 +1158,12 @@ def parse_auto_mega_excel(file):
             )
 
             if match_l:
-
                 wid = float(
                     match_l.group(1).replace(",", ".")
                 )
 
             # ==================================================
-            # ТЪРСИ KG
+            # KG
             # ==================================================
 
             if wid is None:
@@ -1168,19 +1182,23 @@ def parse_auto_mega_excel(file):
             # FALLBACK wt/item
             # ==================================================
 
-            if wid is None and pd.notna(item_weight):
+            if wid is None:
 
-                # около 1L
-                if 0.75 <= item_weight <= 1.30:
-                    wid = 1
+                item_weight = None
 
-                # около 4L
-                elif 3.5 <= item_weight <= 4.4:
-                    wid = 4
+                if len(numbers) >= 3:
+                    item_weight = numbers[-2]
 
-                # около 5L
-                elif 4.4 <= item_weight <= 5.8:
-                    wid = 5
+                if item_weight:
+
+                    if 0.75 <= item_weight <= 1.30:
+                        wid = 1
+
+                    elif 3.5 <= item_weight <= 4.4:
+                        wid = 4
+
+                    elif 4.4 <= item_weight <= 5.8:
+                        wid = 5
 
             if wid is None:
                 continue
@@ -1197,6 +1215,7 @@ def parse_auto_mega_excel(file):
             continue
 
     if not rows:
+        st.error("❌ AUTO MEGA parser не извлече данни")
         return pd.DataFrame()
 
     df_out = pd.DataFrame(rows)
