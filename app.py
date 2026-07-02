@@ -688,7 +688,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ AUTO MEGA DEBUG 2L
+# ✅ AUTO MEGA FINAL
 # ======================================================
 def parse_auto_mega_excel(file):
 
@@ -726,8 +726,6 @@ def parse_auto_mega_excel(file):
     )
 
     rows = []
-
-    st.subheader("🔍 AUTO MEGA 2L DEBUG")
 
     for _, row in df.iterrows():
 
@@ -773,6 +771,7 @@ def parse_auto_mega_excel(file):
 
             wid = None
 
+            # ✅ търси литраж в описанието
             match = re.search(
                 r"(\d+(?:[.,]\d+)?)\s*L",
                 description
@@ -780,20 +779,24 @@ def parse_auto_mega_excel(file):
 
             if match:
                 wid = float(
-                    match.group(1)
-                    .replace(",", ".")
+                    match.group(1).replace(",", ".")
                 )
+
+            # ✅ специални случаи
 
             if wid is None:
 
+                # 🔥 FIX
                 if "TOYOTA SAE 5W40" in description:
-                    wid = 2
+                    wid = 5
 
                 elif "AUTOMATIC TRANSMISSION OIL" in description:
                     wid = 1
 
                 elif "TRANSMISSION OIL" in description:
                     wid = 1
+
+            # ✅ fallback по тегло
 
             if wid is None and pd.notna(item_weight):
 
@@ -808,16 +811,6 @@ def parse_auto_mega_excel(file):
 
                 elif 4.40 <= item_weight <= 5.80:
                     wid = 5
-
-            # ✅ DEBUG
-            if wid == 2:
-
-                st.write({
-                    "Description": description,
-                    "Qty": qty,
-                    "wt/item": item_weight,
-                    "Code": code
-                })
 
             if wid is None:
                 continue
