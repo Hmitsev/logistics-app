@@ -688,19 +688,155 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ AUTO MEGA FINAL
+# ✅ AUTO MEGA FINAL V2
 # ======================================================
 def parse_auto_mega_excel(file):
 
-    df = pd.read_excel(file, header=2)
+    raw = pd.read_excel(file, header=None)
 
-    st.write("COLS")
-    st.write(df.columns.tolist())
+    header_row = None
 
-    st.write("HEAD")
-    st.dataframe(df.head(10))
+    for i in range(len(raw)):
 
-    return pd.DataFrame()
+        row_text = " ".join(
+            str(x)
+            for x in raw.iloc[i]
+            if pd.notna(x)
+        ).upper()
+
+        if (
+            "TARIFF" in row_text
+            and "DESCRIPTION" in row_text
+        ):
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ AUTO MEGA header не е намерен")
+        return pd.DataFrame()
+
+    df = pd.read_excel(
+        file,
+        header=header_row
+    )
+
+    df.columns = (
+        df.columns.astype(str)
+        .str.strip()
+    )
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            code = str(
+                row["Tariff Code"]
+            ).strip()
+
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            description = str(
+                row["Description"]
+            ).upper()
+
+            qty = pd.to_numeric(
+                row["Delivery"],
+                errors="coerce"
+            )
+
+            net_weight = pd.to_numeric(
+                row["wt./net"],
+                errors="coerce"
+            )
+
+            item_weight = pd.to_numeric(
+                row["wt./item"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(net_weight):
+                continue
+
+            wid = None
+
+            match = re.search(
+                r"(\d+(?:[.,]\d+)?)\s*L",
+                description
+            )
+
+            if match:
+                wid = float(
+                    match.group(1)
+                    .replace(",", ".")
+                )
+
+            if wid is None:
+
+                if "TOYOTA SAE 5W40" in description:
+                    wid = 2
+
+                elif "AUTOMATIC TRANSMISSION OIL" in description:
+                    wid = 1
+
+                elif "TRANSMISSION OIL" in description:
+                    wid = 1
+
+            if wid is None and pd.notna(item_weight):
+
+                if 0.75 <= item_weight <= 1.30:
+                    wid = 1
+
+                elif 1.70 <= item_weight <= 2.30:
+                    wid = 2
+
+                elif 3.50 <= item_weight <= 4.40:
+                    wid = 4
+
+                elif 4.40 <= item_weight <= 5.80:
+                    wid = 5
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ AUTO MEGA parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
