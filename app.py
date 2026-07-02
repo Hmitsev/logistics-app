@@ -688,7 +688,7 @@ def parse_motul(text):
 
     return pd.DataFrame(rows)
 # ======================================================
-# ✅ AUTO MEGA FINAL V2
+# ✅ AUTO MEGA DEBUG 2L
 # ======================================================
 def parse_auto_mega_excel(file):
 
@@ -726,6 +726,8 @@ def parse_auto_mega_excel(file):
     )
 
     rows = []
+
+    st.subheader("🔍 AUTO MEGA 2L DEBUG")
 
     for _, row in df.iterrows():
 
@@ -806,6 +808,16 @@ def parse_auto_mega_excel(file):
 
                 elif 4.40 <= item_weight <= 5.80:
                     wid = 5
+
+            # ✅ DEBUG
+            if wid == 2:
+
+                st.write({
+                    "Description": description,
+                    "Qty": qty,
+                    "wt/item": item_weight,
+                    "Code": code
+                })
 
             if wid is None:
                 continue
