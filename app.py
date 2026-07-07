@@ -1413,7 +1413,7 @@ def parse_orlen_excel(file):
     })
 
     return df
-    # ======================================================
+# ======================================================
 # ✅ PROCESS
 # ======================================================
 if uploaded_files:
@@ -1502,16 +1502,38 @@ if uploaded_files:
         menu
     )
 
-    # ✅ EMCS FIX
+    # ==================================================
+    # ✅ SPECIAL CODES
+    # ==================================================
+
     report["Тарифен код"] = (
         report["Тарифен код"]
         .astype(str)
-        .str.replace(
-            "38119000",
-            "38119000 - EMCS",
+    )
+
+    # ✅ EMCS
+    report["Тарифен код"] = report["Тарифен код"].str.replace(
+        "38119000",
+        "38119000 - EMCS",
+        regex=False
+    )
+
+    # ✅ Special !
+    special_codes = [
+        "38112100",
+        "38249992",
+        "27101225",
+        "38140090",
+        "38249996"
+    ]
+
+    for code in special_codes:
+
+        report["Тарифен код"] = report["Тарифен код"].str.replace(
+            code,
+            code + " !",
             regex=False
         )
-    )
 
     report = report.rename(columns={
         "Тарифен код": "Code",
