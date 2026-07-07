@@ -1413,7 +1413,7 @@ def parse_orlen_excel(file):
     })
 
     return df
-# ======================================================
+    # ======================================================
 # ✅ PROCESS
 # ======================================================
 if uploaded_files:
@@ -1500,6 +1500,17 @@ if uploaded_files:
     report = build_final_report(
         final_df,
         menu
+    )
+
+    # ✅ EMCS FIX
+    report["Тарифен код"] = (
+        report["Тарифен код"]
+        .astype(str)
+        .str.replace(
+            "38119000",
+            "38119000 - EMCS",
+            regex=False
+        )
     )
 
     report = report.rename(columns={
