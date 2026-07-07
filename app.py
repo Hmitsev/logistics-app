@@ -1518,7 +1518,7 @@ if uploaded_files:
         regex=False
     )
 
-    # ✅ Special !
+    # ✅ Кодове със специален знак
     special_codes = [
         "38112100",
         "38249992",
@@ -1529,10 +1529,16 @@ if uploaded_files:
 
     for code in special_codes:
 
+        # subtotal ред
         report["Тарифен код"] = report["Тарифен код"].str.replace(
-            code,
-            code + " !",
+            f"{code} -",
+            f"{code} - ( ! )",
             regex=False
+        )
+
+        # обикновен ред
+        report["Тарифен код"] = report["Тарифен код"].replace(
+            {code: f"{code} ( ! )"}
         )
 
     report = report.rename(columns={
