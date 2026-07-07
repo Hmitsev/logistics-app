@@ -842,6 +842,171 @@ def parse_auto_mega_excel(file):
     })
 
     return df_out
+    # ======================================================
+# ✅ FUCHS PDF
+# ======================================================
+def parse_fuchs(text):
+
+    rows = []
+
+    current_code = None
+    current_wid = None
+
+    current_qty = 0
+    current_net = 0
+
+    lines = text.split("\n")
+
+    def flush_article():
+
+        nonlocal current_code
+        nonlocal current_wid
+        nonlocal current_qty
+        nonlocal current_net
+
+        if (
+            current_code
+            and current_wid is not None
+            and current_qty > 0
+        ):
+
+            if current_wid < 1:
+                kolichestvo = current_net
+            else:
+                kolichestvo = current_qty * current_wid
+
+            rows.append({
+                "Тарифен код": current_code,
+                "Количество": current_qty,
+                "wid": current_wid,
+                "kolichestvo": round(kolichestvo, 3),
+                "тегло": round(current_net, 3)
+            })
+
+        current_code = None
+        current_wid = None
+        current_qty = 0
+        current_net = 0
+
+    for line in lines:
+
+        line = " ".join(line.split())
+
+        # ==============================================
+        # ✅ нов артикул
+        # ==============================================
+        if "Material" in line:
+
+            flush_article()
+
+            wid = None
+
+            upper_line = line.upper()
+
+            # ✅ L
+            m = re.search(
+                r'(\d+(?:[\.,]\d+)?)\s*L\b',
+                upper_line
+            )
+
+            if m:
+                wid = float(
+                    m.group(1).replace(",", ".")
+                )
+
+            # ✅ KG
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:[\.,]\d+)?)\s*KG\b',
+                    upper_line
+                )
+
+                if m:
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    )
+
+            # ✅ G
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:[\.,]\d+)?)\s*G\b',
+                    upper_line
+                )
+
+                if m:
+                    wid = (
+                        float(
+                            m.group(1).replace(",", ".")
+                        ) / 1000
+                    )
+
+            current_wid = wid
+
+        # ==============================================
+        # ✅ код
+        # ==============================================
+        if "Commodity Code" in line:
+
+            m = re.search(
+                r'Commodity Code\s+(\d+)',
+                line,
+                re.IGNORECASE
+            )
+
+            if m:
+
+                code = m.group(1)[:8]
+
+                if code in ALLOWED_CODES:
+                    current_code = code
+                else:
+                    current_code = None
+
+        # ==============================================
+        # ✅ количества
+        # ==============================================
+        if "Quantity/net/gross" in line:
+
+            m = re.search(
+                r'([\d\.,]+)\s*EA\s*/\s*([\d\.,]+)\s*KG',
+                line,
+                re.IGNORECASE
+            )
+
+            if m:
+
+                qty = float(
+                    m.group(1)
+                    .replace(",", "")
+                )
+
+                net = float(
+                    m.group(2)
+                    .replace(",", "")
+                )
+
+                current_qty += qty
+                current_net += net
+
+    flush_article()
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
@@ -1248,7 +1413,7 @@ def parse_orlen_excel(file):
     })
 
     return df
- # ======================================================
+# ======================================================
 # ✅ PROCESS
 # ======================================================
 if uploaded_files:
@@ -1290,9 +1455,15 @@ if uploaded_files:
                 if t:
                     text += t + "\n"
 
+            # ✅ CASTROL
             if menu == "CASTROL":
                 df = parse_castrol(text)
 
+            # ✅ FUCHS
+            elif menu == "FUCHS":
+                df = parse_fuchs(text)
+
+            # ✅ всички други PDF
             else:
                 df = parse_motul(text)
 
