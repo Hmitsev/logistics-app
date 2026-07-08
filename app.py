@@ -1303,12 +1303,11 @@ def parse_chempioil_excel(file):
     })
 
     return df_out
-    # ======================================================
+# ======================================================
 # ✅ VALVOLINE EXCEL
 # ======================================================
 def parse_valvoline_excel(file):
 
-    # ✅ Взимаме само PL sheet
     xl = pd.ExcelFile(file)
 
     sheet_name = None
@@ -1400,7 +1399,7 @@ def parse_valvoline_excel(file):
                 errors="coerce"
             )
 
-            broj = pd.to_numeric(
+            packages = pd.to_numeric(
                 row["No. of packages"],
                 errors="coerce"
             )
@@ -1411,7 +1410,7 @@ def parse_valvoline_excel(file):
             if pd.isna(net_weight):
                 continue
 
-            if pd.isna(broj):
+            if pd.isna(packages):
                 continue
 
             wid = None
@@ -1438,31 +1437,34 @@ def parse_valvoline_excel(file):
                         .replace(",", ".")
                     )
 
-                    kolichestvo = broj * units_per_case
+                    # ✅ FIX
+                    broj = packages * units_per_case
+
+                    colic = broj * wid
 
                 else:
 
-                    single_case = re.search(
+                    no_l_match = re.search(
                         r'(\d+)\s*[Xx]\s*(\d+(?:[.,]\d+)?)',
                         packaging
                     )
 
-                    if single_case:
-
-                        units_per_case = float(
-                            single_case.group(1)
-                        )
-
-                        wid = float(
-                            single_case.group(2)
-                            .replace(",", ".")
-                        )
-
-                        kolichestvo = broj * units_per_case
-
-                    else:
-
+                    if not no_l_match:
                         continue
+
+                    units_per_case = float(
+                        no_l_match.group(1)
+                    )
+
+                    wid = float(
+                        no_l_match.group(2)
+                        .replace(",", ".")
+                    )
+
+                    # ✅ FIX
+                    broj = packages * units_per_case
+
+                    colic = broj * wid
 
             # =====================================
             # ✅ LIT / KG
@@ -1482,8 +1484,6 @@ def parse_valvoline_excel(file):
                         .replace(",", ".")
                     )
 
-                    kolichestvo = qty
-
                 else:
 
                     m = re.search(
@@ -1498,16 +1498,19 @@ def parse_valvoline_excel(file):
                             .replace(",", ".")
                         )
 
-                        kolichestvo = qty
-
                 if wid is None:
                     continue
+
+                broj = packages
+
+                # ✅ Qty е готовите литри/кг
+                colic = qty
 
             rows.append({
                 "Тарифен код": code,
                 "Количество": broj,
                 "wid": wid,
-                "kolichestvo": kolichestvo,
+                "kolichestvo": colic,
                 "тегло": net_weight
             })
 
