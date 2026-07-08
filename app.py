@@ -2178,15 +2178,12 @@ if uploaded_files:
                 if t:
                     text += t + "\n"
 
-            # ✅ FUCHS
             if menu == "FUCHS":
                 df = parse_fuchs(text)
 
-            # ✅ CHEMPIOIL PDF
             elif menu == "Chempioil (FANFARO)":
                 df = parse_chempioil_pdf(text)
 
-            # ✅ MOTUL + останалите PDF
             else:
                 df = parse_motul(text)
 
@@ -2255,16 +2252,17 @@ if uploaded_files:
         report["Тарифен код"] = report["Тарифен код"].replace(
             {code: f"{code} ( ! )"}
         )
-        report = report.rename(columns={
+
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
+
+    report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
         "Количество": "Broj",
         "kolichestvo": "colic-v L",
         "тегло": "teglo"
     })
-
-    st.subheader("📊 Финален отчет")
-    st.dataframe(report)
 
     from openpyxl.styles import Font
 
@@ -2279,10 +2277,6 @@ if uploaded_files:
             writer,
             index=False
         )
-
-        # ==========================================
-        # ✅ RED + BOLD CODES
-        # ==========================================
 
         ws = writer.sheets["Sheet1"]
 
@@ -2302,8 +2296,8 @@ if uploaded_files:
                 if value.startswith(code):
 
                     code_cell.font = Font(
-                        color="FF0000",
-                        bold=True
+                        bold=True,
+                        color="FF0000"
                     )
 
                     break
