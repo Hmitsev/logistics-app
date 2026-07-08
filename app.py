@@ -1740,11 +1740,16 @@ def parse_valvoline_pdf(text):
                             )
 
                 if wid is None:
-                    continue
+    continue
 
-                broj = packages
-                colic = qty
-                if code in ["27101999", "34031980"]:
+broj = packages
+colic = qty
+
+# =====================================
+# ✅ DEBUG
+# =====================================
+
+if code in ["27101999", "34031980"]:
 
     st.write({
         "CODE": code,
@@ -1757,7 +1762,13 @@ def parse_valvoline_pdf(text):
         "LINE": line
     })
 
-            rows.append({
+rows.append({
+    "Тарифен код": code,
+    "Количество": broj,
+    "wid": wid,
+    "kolichestvo": colic,
+    "тегло": net_weight
+})
                 "Тарифен код": code,
                 "Количество": broj,
                 "wid": wid,
