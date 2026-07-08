@@ -1124,17 +1124,43 @@ def parse_chempioil_pdf(text):
 
     return df_out
 # ======================================================
-# ✅ CHEMPIOIL EXCEL FINAL
+# ✅ CHEMPIOIL EXCEL (ALL FORMATS)
 # ======================================================
 def parse_chempioil_excel(file):
 
-    df = pd.read_excel(
-        file,
-        header=8
-    )
+    df = pd.read_excel(file, header=8)
 
     df.columns = df.iloc[0]
     df = df.iloc[1:].reset_index(drop=True)
+
+    columns = [str(c).strip() for c in df.columns]
+
+    # ==================================================
+    # ✅ FORMAT 1
+    # ==================================================
+
+    if "HS Code" in columns:
+
+        code_col = "HS Code"
+        name_col = "Name"
+        qty_col = "Quantity"
+        net_col = "Net weight"
+
+    # ==================================================
+    # ✅ FORMAT 2
+    # ==================================================
+
+    elif "CN" in columns:
+
+        code_col = "CN"
+        name_col = "Product Name"
+        qty_col = "Quantity"
+        net_col = "Total Weight (NET:)"
+
+    else:
+
+        st.error("❌ CHEMPIOIL: непознат Excel формат")
+        return pd.DataFrame()
 
     rows = []
 
@@ -1143,11 +1169,11 @@ def parse_chempioil_excel(file):
         try:
 
             description = str(
-                row["Name"]
+                row[name_col]
             ).upper()
 
             code = str(
-                row["HS Code"]
+                row[code_col]
             )
 
             code = re.sub(
@@ -1160,12 +1186,12 @@ def parse_chempioil_excel(file):
                 continue
 
             qty = pd.to_numeric(
-                row["Quantity"],
+                row[qty_col],
                 errors="coerce"
             )
 
             net_weight = pd.to_numeric(
-                row["Net weight"],
+                row[net_col],
                 errors="coerce"
             )
 
@@ -1210,11 +1236,9 @@ def parse_chempioil_excel(file):
                 )
 
                 if m:
-                    wid = (
-                        float(
-                            m.group(1).replace(",", ".")
-                        ) / 1000
-                    )
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    ) / 1000
 
             if wid is None:
                 continue
