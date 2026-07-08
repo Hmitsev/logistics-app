@@ -393,6 +393,91 @@ def parse_castrol(text):
                 pass
 
     return pd.DataFrame(rows)
+    # ======================================================
+# ✅ CASTROL EXCEL
+# ======================================================
+def parse_castrol_excel(file):
+
+    df = pd.read_excel(file)
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            code = str(
+                row["Commodity code"]
+            )
+
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            qty = pd.to_numeric(
+                row["Delivery quantity"],
+                errors="coerce"
+            )
+
+            volume = pd.to_numeric(
+                row["Volume"],
+                errors="coerce"
+            )
+
+            net_weight = pd.to_numeric(
+                row["Net Weight"],
+                errors="coerce"
+            )
+
+            wid = pd.to_numeric(
+                row["Type of packaging"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(volume):
+                continue
+
+            if pd.isna(net_weight):
+                continue
+
+            if pd.isna(wid):
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": volume,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ CASTROL Excel parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
     
 # ======================================================
 # ✅ NISTA (ROW PARSER ✅ за Lieferschein)
@@ -1124,35 +1209,414 @@ def parse_chempioil_pdf(text):
 
     return df_out
 # ======================================================
-# ✅ CHEMPIOIL EXCEL DEBUG
+# ✅ CHEMPIOIL EXCEL (ALL FORMATS)
 # ======================================================
 def parse_chempioil_excel(file):
 
-    df = pd.read_excel(
+    raw = pd.read_excel(
         file,
         header=None
     )
 
-    st.write("✅ FIRST 20 ROWS")
+    header_row = None
 
-    for i in range(min(20, len(df))):
+    for i in range(len(raw)):
+
+        row_text = " ".join(
+            str(x)
+            for x in raw.iloc[i]
+            if pd.notna(x)
+        ).upper()
+
+        if (
+            ("HS CODE" in row_text and "NAME" in row_text)
+            or
+            ("PRODUCT NAME" in row_text and "CN" in row_text)
+        ):
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ CHEMPIOIL header не е намерен")
+        return pd.DataFrame()
+
+    df = pd.read_excel(
+        file,
+        header=header_row
+    )
+
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
+    ]
+
+    # ==================================================
+    # ✅ FORMAT 1
+    # ==================================================
+
+    if "HS Code" in df.columns:
+
+        code_col = "HS Code"
+        name_col = "Name"
+        qty_col = "Quantity"
+        net_col = "Net weight"
+
+    # ==================================================
+    # ✅ FORMAT 2
+    # ==================================================
+
+    elif "CN" in df.columns:
+
+        code_col = "CN"
+        name_col = "Product Name"
+        qty_col = "Quantity"
+        net_col = "Total Weight (NET):"
+
+    else:
+
+        st.error("❌ CHEMPIOIL: непознат Excel формат")
+        return pd.DataFrame()
+
+    rows = []
+
+    for _, row in df.iterrows():
 
         try:
 
-            row_values = [
-                str(x)
-                for x in df.iloc[i].tolist()
-            ]
+            description = str(
+                row[name_col]
+            ).upper()
 
-            st.write(
-                f"ROW {i}:",
-                row_values
+            code = str(
+                row[code_col]
             )
 
-        except:
-            pass
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
 
-    return pd.DataFrame()
+            if code not in ALLOWED_CODES:
+                continue
+
+            qty = pd.to_numeric(
+                row[qty_col],
+                errors="coerce"
+            )
+
+            net_weight = pd.to_numeric(
+                row[net_col],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(net_weight):
+                continue
+
+            wid = None
+
+            m = re.search(
+                r'(\d+(?:[.,]\d+)?)\s*L\b',
+                description
+            )
+
+            if m:
+                wid = float(
+                    m.group(1).replace(",", ".")
+                )
+
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:[.,]\d+)?)\s*KG\b',
+                    description
+                )
+
+                if m:
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    )
+
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:[.,]\d+)?)\s*(?:GR|G)\b',
+                    description
+                )
+
+                if m:
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    ) / 1000
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": float(qty),
+                "wid": wid,
+                "kolichestvo": round(
+                    float(qty) * wid,
+                    3
+                ),
+                "тегло": round(
+                    float(net_weight),
+                    3
+                )
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ CHEMPIOIL Excel parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
+# ======================================================
+# ✅ VALVOLINE EXCEL
+# ======================================================
+def parse_valvoline_excel(file):
+
+    xl = pd.ExcelFile(file)
+
+    sheet_name = None
+
+    for s in xl.sheet_names:
+
+        if "PL" in str(s).upper():
+            sheet_name = s
+            break
+
+    if sheet_name is None:
+        sheet_name = xl.sheet_names[0]
+
+    raw = pd.read_excel(
+        file,
+        sheet_name=sheet_name,
+        header=None
+    )
+
+    header_row = None
+
+    for i in range(len(raw)):
+
+        row_text = " ".join(
+            str(x)
+            for x in raw.iloc[i]
+            if pd.notna(x)
+        ).upper()
+
+        if (
+            "TARIFF NO." in row_text
+            and
+            "PACKAGING" in row_text
+            and
+            "NET KG" in row_text
+        ):
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ VALVOLINE header не е намерен")
+        return pd.DataFrame()
+
+    df = pd.read_excel(
+        file,
+        sheet_name=sheet_name,
+        header=header_row
+    )
+
+    df.columns = [
+        str(col).strip()
+        for col in df.columns
+    ]
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            tariff = str(
+                row["Tariff No."]
+            )
+
+            code = re.sub(
+                r"\D",
+                "",
+                tariff
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            packaging = str(
+                row["Packaging"]
+            ).upper()
+
+            uom = str(
+                row["UoM"]
+            ).strip().lower()
+
+            qty = pd.to_numeric(
+                row["Qty"],
+                errors="coerce"
+            )
+
+            net_weight = pd.to_numeric(
+                row["Net Kg"],
+                errors="coerce"
+            )
+
+            packages = pd.to_numeric(
+                row["No. of packages"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(net_weight):
+                continue
+
+            if pd.isna(packages):
+                continue
+
+            wid = None
+
+            # =====================================
+            # ✅ CASE
+            # =====================================
+
+            if uom == "case":
+
+                case_match = re.search(
+                    r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(?:L|KG|G)?',
+                    packaging
+                )
+
+                if case_match:
+
+                    units_per_case = float(
+                        case_match.group(1)
+                    )
+
+                    wid = float(
+                        case_match.group(2)
+                        .replace(",", ".")
+                    )
+
+                    # ✅ G
+                    if "G" in packaging and "KG" not in packaging:
+                        wid = wid / 1000
+
+                    broj = packages * units_per_case
+
+                    colic = broj * wid
+
+                else:
+
+                    continue
+
+            # =====================================
+            # ✅ LIT / KG / G
+            # =====================================
+
+            else:
+
+                m = re.search(
+                    r'(\d+(?:[.,]\d+)?)\s*L',
+                    packaging
+                )
+
+                if m:
+
+                    wid = float(
+                        m.group(1)
+                        .replace(",", ".")
+                    )
+
+                else:
+
+                    m = re.search(
+                        r'(\d+(?:[.,]\d+)?)\s*KG',
+                        packaging
+                    )
+
+                    if m:
+
+                        wid = float(
+                            m.group(1)
+                            .replace(",", ".")
+                        )
+
+                    else:
+
+                        m = re.search(
+                            r'(\d+(?:[.,]\d+)?)\s*G',
+                            packaging
+                        )
+
+                        if m:
+
+                            wid = (
+                                float(
+                                    m.group(1)
+                                    .replace(",", ".")
+                                ) / 1000
+                            )
+
+                if wid is None:
+                    continue
+
+                broj = packages
+
+                colic = qty
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": broj,
+                "wid": wid,
+                "kolichestvo": colic,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ VALVOLINE parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
+  
 # ======================================================
 # ✅ FLUKAR (EXCEL ONLY ✅)
 # ======================================================
@@ -1521,6 +1985,10 @@ if uploaded_files:
         elif menu == "Chempioil (FANFARO)" and source_type == "Excel":
             df = parse_chempioil_excel(file)
 
+        # ✅ VALVOLINE EXCEL ONLY
+        elif menu == "VALVOLINE":
+            df = parse_valvoline_excel(file)
+
         # ✅ PDF SECTION
         elif source_type == "PDF":
 
@@ -1551,7 +2019,6 @@ if uploaded_files:
             else:
                 df = parse_motul(text)
 
-        # ✅ FALLBACK
         else:
 
             df = pd.read_excel(file)
@@ -1560,9 +2027,6 @@ if uploaded_files:
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
-    # ==================================================
-    # ✅ Няма данни
-    # ==================================================
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -1585,9 +2049,6 @@ if uploaded_files:
         final_df["тегло"] > 0
     ]
 
-    # ==================================================
-    # ✅ BUILD REPORT
-    # ==================================================
     report = build_final_report(
         final_df,
         menu
@@ -1602,14 +2063,12 @@ if uploaded_files:
         .astype(str)
     )
 
-    # ✅ EMCS
     report["Тарифен код"] = report["Тарифен код"].str.replace(
         "38119000",
         "38119000 - EMCS",
         regex=False
     )
 
-    # ✅ Кодове със знак
     special_codes = [
         "38112100",
         "38249992",
@@ -1620,21 +2079,16 @@ if uploaded_files:
 
     for code in special_codes:
 
-        # subtotal
         report["Тарифен код"] = report["Тарифен код"].str.replace(
             f"{code} -",
             f"{code} - ( ! )",
             regex=False
         )
 
-        # normal row
         report["Тарифен код"] = report["Тарифен код"].replace(
             {code: f"{code} ( ! )"}
         )
 
-    # ==================================================
-    # ✅ RENAME
-    # ==================================================
     report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
@@ -1643,15 +2097,9 @@ if uploaded_files:
         "тегло": "teglo"
     })
 
-    # ==================================================
-    # ✅ SHOW REPORT
-    # ==================================================
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
-    # ==================================================
-    # ✅ EXPORT
-    # ==================================================
     output = io.BytesIO()
 
     with pd.ExcelWriter(
