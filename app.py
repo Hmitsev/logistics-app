@@ -1437,7 +1437,6 @@ def parse_valvoline_excel(file):
                         .replace(",", ".")
                     )
 
-                    # ✅ FIX
                     broj = packages * units_per_case
 
                     colic = broj * wid
@@ -1461,7 +1460,6 @@ def parse_valvoline_excel(file):
                         .replace(",", ".")
                     )
 
-                    # ✅ FIX
                     broj = packages * units_per_case
 
                     colic = broj * wid
@@ -1503,7 +1501,6 @@ def parse_valvoline_excel(file):
 
                 broj = packages
 
-                # ✅ Qty е готовите литри/кг
                 colic = qty
 
             rows.append({
@@ -1519,6 +1516,194 @@ def parse_valvoline_excel(file):
 
     if not rows:
         st.error("❌ VALVOLINE parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
+    # ======================================================
+# ✅ VALVOLINE PDF
+# ======================================================
+def parse_valvoline_pdf(text):
+
+    def euro_to_float(value):
+
+        value = str(value).strip()
+
+        if "," in value:
+
+            value = value.replace(".", "")
+            value = value.replace(",", ".")
+
+        else:
+
+            if value.count(".") == 1:
+
+                left, right = value.split(".")
+
+                if len(right) == 3:
+                    value = left + right
+
+        return float(value)
+
+    rows = []
+
+    lines = text.split("\n")
+
+    for line in lines:
+
+        line = " ".join(line.split())
+
+        try:
+
+            tariff_match = re.search(
+                r'(271\d{7,}|340\d{7,}|381\d{7,})',
+                line
+            )
+
+            if not tariff_match:
+                continue
+
+            code = re.sub(
+                r"\D",
+                "",
+                tariff_match.group(1)
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            packaging = None
+
+            package_patterns = [
+
+                r'(\d+\s*[Xx]\s*\d+\s*L)',
+                r'(\d+\s*[Xx]\s*\d+)',
+                r'(\d+\s*L)',
+                r'(\d+\s*KG)',
+                r'(\d+\s*G)'
+            ]
+
+            for pattern in package_patterns:
+
+                m = re.search(
+                    pattern,
+                    line,
+                    re.IGNORECASE
+                )
+
+                if m:
+                    packaging = m.group(1).upper()
+                    break
+
+            if packaging is None:
+                continue
+
+            nums = re.findall(
+                r'[\d\.,]+',
+                line
+            )
+
+            if len(nums) < 4:
+                continue
+
+            qty = euro_to_float(nums[-4])
+            net_weight = euro_to_float(nums[-3])
+            gross_weight = euro_to_float(nums[-2])
+            packages = euro_to_float(nums[-1])
+
+            wid = None
+
+            if "X" in packaging:
+
+                m = re.search(
+                    r'(\d+)\s*[Xx]\s*(\d+(?:\.\d+)?)',
+                    packaging
+                )
+
+                if not m:
+                    continue
+
+                units_per_case = float(
+                    m.group(1)
+                )
+
+                wid = float(
+                    m.group(2)
+                )
+
+                broj = packages * units_per_case
+
+                colic = broj * wid
+
+            else:
+
+                m = re.search(
+                    r'(\d+(?:\.\d+)?)\s*L',
+                    packaging
+                )
+
+                if m:
+
+                    wid = float(
+                        m.group(1)
+                    )
+
+                else:
+
+                    m = re.search(
+                        r'(\d+(?:\.\d+)?)\s*KG',
+                        packaging
+                    )
+
+                    if m:
+
+                        wid = float(
+                            m.group(1)
+                        )
+
+                    else:
+
+                        m = re.search(
+                            r'(\d+(?:\.\d+)?)\s*G',
+                            packaging
+                        )
+
+                        if m:
+
+                            wid = float(
+                                m.group(1)
+                            ) / 1000
+
+                if wid is None:
+                    continue
+
+                broj = packages
+
+                colic = qty
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": broj,
+                "wid": wid,
+                "kolichestvo": colic,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ VALVOLINE PDF parser не извлече данни")
         return pd.DataFrame()
 
     df_out = pd.DataFrame(rows)
