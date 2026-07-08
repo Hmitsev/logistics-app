@@ -1603,7 +1603,8 @@ def parse_valvoline_pdf(text):
 
                 r'(\d+\s*L)',
                 r'(\d+\s*KG)',
-                r'(\d+\s*G)'
+                r'(\d+\s*G)',
+                r'(\d+\s*ML)'
             ]
 
             for pattern in package_patterns:
@@ -1630,11 +1631,8 @@ def parse_valvoline_pdf(text):
                 continue
 
             qty = euro_to_float(nums[-4])
-
             net_weight = euro_to_float(nums[-3])
-
             gross_weight = euro_to_float(nums[-2])
-
             packages = euro_to_float(nums[-1])
 
             wid = None
@@ -1683,12 +1681,19 @@ def parse_valvoline_pdf(text):
                     m.group(2)
                 )
 
-                if (
+                # ✅ ML -> литри
+                if "ML" in line.upper():
+
+                    wid = wid / 1000
+
+                # ✅ 24x400G остава 400
+                elif (
                     "G" in packaging
                     and
                     "KG" not in packaging
                 ):
-                    wid = wid / 1000
+
+                    wid = wid
 
                 broj = packages * units_per_case
 
@@ -1729,10 +1734,9 @@ def parse_valvoline_pdf(text):
 
                         if m:
 
-                            wid = (
-                                float(
-                                    m.group(1)
-                                ) / 1000
+                            # ✅ 400G остава 400
+                            wid = float(
+                                m.group(1)
                             )
 
                 if wid is None:
