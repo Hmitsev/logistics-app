@@ -1744,6 +1744,18 @@ def parse_valvoline_pdf(text):
 
                 broj = packages
                 colic = qty
+                if code in ["27101999", "34031980"]:
+
+    st.write({
+        "CODE": code,
+        "PACKAGING": packaging,
+        "QTY": qty,
+        "PACKAGES": packages,
+        "BROJ": broj,
+        "COLIC": colic,
+        "NET": net_weight,
+        "LINE": line
+    })
 
             rows.append({
                 "Тарифен код": code,
