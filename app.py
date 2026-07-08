@@ -1124,23 +1124,35 @@ def parse_chempioil_pdf(text):
 
     return df_out
 # ======================================================
-# ✅ CHEMPIOIL EXCEL (ALL FORMATS)
+# ✅ CHEMPIOIL EXCEL DEBUG
 # ======================================================
-
 def parse_chempioil_excel(file):
 
-    df = pd.read_excel(file, header=None)
+    df = pd.read_excel(
+        file,
+        header=None
+    )
 
-    st.write("ROWS")
+    st.write("✅ FIRST 20 ROWS")
 
-    for i in range(20):
+    for i in range(min(20, len(df))):
+
         try:
-            st.write(i, df.iloc[i].tolist())
+
+            row_values = [
+                str(x)
+                for x in df.iloc[i].tolist()
+            ]
+
+            st.write(
+                f"ROW {i}:",
+                row_values
+            )
+
         except:
             pass
 
-    return pd.DataFrame(
-
+    return pd.DataFrame()
 # ======================================================
 # ✅ FLUKAR (EXCEL ONLY ✅)
 # ======================================================
