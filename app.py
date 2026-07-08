@@ -2263,59 +2263,60 @@ if uploaded_files:
         "kolichestvo": "colic-v L",
         "тегло": "teglo"
     })
-
-    st.subheader("📊 Финален отчет")
+    
+st.subheader("📊 Финален отчет")
     st.dataframe(report)
+
     from openpyxl.styles import Font
 
-output = io.BytesIO()
+    output = io.BytesIO()
 
-with pd.ExcelWriter(
-    output,
-    engine="openpyxl"
-) as writer:
+    with pd.ExcelWriter(
+        output,
+        engine="openpyxl"
+    ) as writer:
 
-    report.to_excel(
-        writer,
-        index=False
+        report.to_excel(
+            writer,
+            index=False
+        )
+
+        # ==========================================
+        # ✅ SPECIAL RED CODES
+        # ==========================================
+
+        ws = writer.sheets["Sheet1"]
+
+        red_codes = [
+            "34039900",
+            "34031910"
+        ]
+
+        for row in ws.iter_rows(min_row=2):
+
+            code_cell = row[0]
+
+            value = str(code_cell.value)
+
+            for code in red_codes:
+
+                if value.startswith(code):
+
+                    code_cell.font = Font(
+                        bold=True,
+                        color="FF0000"
+                    )
+
+                    break
+
+    output.seek(0)
+
+    st.download_button(
+        label="📥 Изтегли Excel",
+        data=output,
+        file_name="final_report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-    # ==========================================
-    # ✅ SPECIAL RED CODES
-    # ==========================================
-
-    ws = writer.sheets["Sheet1"]
-
-    red_codes = [
-        "34039900",
-        "34031910"
-    ]
-
-    for row in ws.iter_rows(min_row=2):
-
-        code_cell = row[0]
-
-        value = str(code_cell.value)
-
-        for code in red_codes:
-
-            if value.startswith(code):
-
-                code_cell.font = Font(
-                    bold=True,
-                    color="FF0000"
-                )
-
-                break
-
-output.seek(0)
-
-st.download_button(
-    label="📥 Изтегли Excel",
-    data=output,
-    file_name="final_report.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
 
 else:
 
