@@ -1532,7 +1532,7 @@ def parse_valvoline_excel(file):
 
     return df_out
     # ======================================================
-# ✅ VALVOLINE PDF DEBUG 27101987
+# ✅ VALVOLINE PDF
 # ======================================================
 def parse_valvoline_pdf(text):
 
@@ -1639,7 +1639,30 @@ def parse_valvoline_pdf(text):
 
             wid = None
 
-            if re.search(
+            # =====================================
+            # ✅ FIX 75W90 / 80W90
+            # =====================================
+
+            if "W90" in line.upper():
+
+                wid = 20
+                broj = packages
+                colic = qty
+
+            elif (
+                "W140" in line.upper()
+                and "208 L" in line.upper()
+            ):
+
+                wid = 208
+                broj = packages
+                colic = qty
+
+            # =====================================
+            # ✅ CASE
+            # =====================================
+
+            elif re.search(
                 r'\d+\s*[Xx/]\s*\d+',
                 packaging
             ):
@@ -1716,23 +1739,7 @@ def parse_valvoline_pdf(text):
                     continue
 
                 broj = packages
-
                 colic = qty
-
-            # ==========================================
-            # ✅ DEBUG 27101987
-            # ==========================================
-
-            if code == "27101987":
-
-                st.write({
-                    "PACKAGING": packaging,
-                    "WID": wid,
-                    "BROJ": broj,
-                    "COLIC": colic,
-                    "NET": net_weight,
-                    "LINE": line
-                })
 
             rows.append({
                 "Тарифен код": code,
@@ -1761,6 +1768,7 @@ def parse_valvoline_pdf(text):
     })
 
     return df_out
+  
 # ======================================================
 # ✅ FLUKAR (EXCEL ONLY ✅)
 # ======================================================
