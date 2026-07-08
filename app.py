@@ -1957,9 +1957,9 @@ if uploaded_files:
 
         df = None
 
-        # ✅ NESTE
+        # ✅ NESTE (същата структура като CASTROL)
         if menu == "NESTE":
-            df = parse_neste_excel(file)
+            df = parse_castrol_excel(file)
 
         # ✅ FLUKAR
         elif menu == "FLUKAR":
@@ -1985,7 +1985,7 @@ if uploaded_files:
         elif menu == "Chempioil (FANFARO)" and source_type == "Excel":
             df = parse_chempioil_excel(file)
 
-        # ✅ VALVOLINE EXCEL ONLY
+        # ✅ VALVOLINE
         elif menu == "VALVOLINE":
             df = parse_valvoline_excel(file)
 
@@ -2003,7 +2003,7 @@ if uploaded_files:
                 if t:
                     text += t + "\n"
 
-            # ✅ CASTROL
+            # ✅ CASTROL PDF
             if menu == "CASTROL":
                 df = parse_castrol(text)
 
@@ -2053,10 +2053,6 @@ if uploaded_files:
         final_df,
         menu
     )
-
-    # ==================================================
-    # ✅ SPECIAL CODES
-    # ==================================================
 
     report["Тарифен код"] = (
         report["Тарифен код"]
