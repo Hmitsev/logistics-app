@@ -1172,19 +1172,10 @@ def parse_chempioil_excel(file):
                 errors="coerce"
             )
 
-            # ✅ Colic-v L
-            gross_weight = pd.to_numeric(
-                row["Gross weight"],
-                errors="coerce"
-            )
-
             if pd.isna(qty):
                 continue
 
             if pd.isna(net_weight):
-                continue
-
-            if pd.isna(gross_weight):
                 continue
 
             # ==========================================
@@ -1240,10 +1231,17 @@ def parse_chempioil_excel(file):
                 "Количество": qty,
                 "wid": wid,
 
-                # ✅ По спецификация
-                "kolichestvo": gross_weight,
+                # ✅ Colic-v L
+                "kolichestvo": round(
+                    qty * wid,
+                    3
+                ),
 
-                "тегло": net_weight
+                # ✅ Teglo
+                "тегло": round(
+                    net_weight,
+                    3
+                )
             })
 
         except:
