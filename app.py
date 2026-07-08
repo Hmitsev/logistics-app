@@ -1022,10 +1022,7 @@ def parse_chempioil_pdf(text):
 
         try:
 
-            # ==========================================
             # ✅ HS CODE
-            # ==========================================
-
             hs_match = re.search(
                 r'(\d{4}\.\d{2}\.\d{2}\.\d{2})',
                 line
@@ -1043,71 +1040,45 @@ def parse_chempioil_pdf(text):
             if code not in ALLOWED_CODES:
                 continue
 
-            # ==========================================
-            # ✅ Quantity
-            # ==========================================
-
-            qty_match = re.search(
-                r'(\d+(?:\.\d+)?)\s+SZT',
+            # ✅ Quantity + Net + Gross
+            m = re.search(
+                r'(\d+(?:\.\d+)?)\s+SZT\s+'
+                r'(\d+(?:\.\d+)?)\s+'
+                r'(\d+(?:\.\d+)?)\s+'
+                r'\d{4}\.\d{2}\.\d{2}\.\d{2}',
                 line
             )
 
-            if not qty_match:
+            if not m:
                 continue
 
-            qty = float(
-                qty_match.group(1)
-            )
+            qty = float(m.group(1))
+            net_weight = float(m.group(2))
+            gross_weight = float(m.group(3))
 
-            # ==========================================
-            # ✅ NET WEIGHT
-            # ==========================================
-
-            weights = re.findall(
-                r'(\d+(?:\.\d+)?)',
-                line
-            )
-
-            if len(weights) < 3:
-                continue
-
-            net_weight = float(
-                weights[-3]
-            )
-
-            # ==========================================
             # ✅ WID
-            # ==========================================
-
             wid = None
 
             upper_line = line.upper()
 
-            # ✅ L
             m = re.search(
-                r'(\d+(?:\.\d+)?)\s*L\b',
+                r'(\d+(?:\.\d+)?)L\b',
                 upper_line
             )
 
             if m:
-                wid = float(
-                    m.group(1)
-                )
+                wid = float(m.group(1))
 
-            # ✅ KG
             if wid is None:
 
                 m = re.search(
-                    r'(\d+(?:\.\d+)?)\s*KG\b',
+                    r'(\d+(?:\.\d+)?)KG\b',
                     upper_line
                 )
 
                 if m:
-                    wid = float(
-                        m.group(1)
-                    )
+                    wid = float(m.group(1))
 
-            # ✅ GR / G
             if wid is None:
 
                 m = re.search(
@@ -1116,11 +1087,7 @@ def parse_chempioil_pdf(text):
                 )
 
                 if m:
-                    wid = (
-                        float(
-                            m.group(1)
-                        ) / 1000
-                    )
+                    wid = float(m.group(1)) / 1000
 
             if wid is None:
                 continue
@@ -1139,6 +1106,23 @@ def parse_chempioil_pdf(text):
 
         except:
             continue
+
+    if not rows:
+        st.error("❌ CHEMPIOIL PDF parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
     # ======================================================
 # ✅ CHEMPIOIL EXCEL
 # ======================================================
