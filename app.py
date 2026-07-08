@@ -1531,7 +1531,7 @@ def parse_valvoline_excel(file):
     })
 
     return df_out
- # ======================================================
+# ======================================================
 # ✅ VALVOLINE PDF
 # ======================================================
 def parse_valvoline_pdf(text):
@@ -1540,19 +1540,33 @@ def parse_valvoline_pdf(text):
 
         value = str(value).strip()
 
-        if "," in value:
+        # ✅ 1,020 -> 1020
+        if "," in value and "." not in value:
+
+            parts = value.split(",")
+
+            if len(parts[-1]) == 3:
+
+                value = "".join(parts)
+
+            else:
+
+                value = value.replace(",", ".")
+
+        # ✅ 1.252,80 -> 1252.80
+        elif "," in value and "." in value:
 
             value = value.replace(".", "")
             value = value.replace(",", ".")
 
-        else:
+        # ✅ 1.440 -> 1440
+        elif "." in value:
 
-            if value.count(".") == 1:
+            parts = value.split(".")
 
-                left, right = value.split(".")
+            if len(parts[-1]) == 3:
 
-                if len(right) == 3:
-                    value = left + right
+                value = "".join(parts)
 
         return float(value)
 
@@ -1617,15 +1631,6 @@ def parse_valvoline_pdf(text):
 
             if len(nums) < 4:
                 continue
-
-            # ✅ DEBUG ЗА 27101983
-            if code == "27101983":
-
-                st.write("LINE 27101983")
-                st.write(line)
-
-                st.write("NUMS")
-                st.write(nums)
 
             qty = euro_to_float(
                 nums[-4]
