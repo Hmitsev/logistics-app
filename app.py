@@ -1124,7 +1124,7 @@ def parse_chempioil_pdf(text):
 
     return df_out
 # ======================================================
-# ✅ CHEMPIOIL EXCEL
+# ✅ CHEMPIOIL EXCEL DEBUG 2
 # ======================================================
 def parse_chempioil_excel(file):
 
@@ -1133,124 +1133,12 @@ def parse_chempioil_excel(file):
         header=8
     )
 
-    df.columns = [
-        str(col).strip()
-        for col in df.columns
-    ]
+    st.write("HEADER=8 COLUMNS")
+    st.write(df.columns.tolist())
 
-    rows = []
+    st.dataframe(df.head(5))
 
-    for _, row in df.iterrows():
-
-        try:
-
-            code = str(
-                row["HS Code"]
-            )
-
-            code = re.sub(
-                r"\D",
-                "",
-                code
-            )[:8]
-
-            if code not in ALLOWED_CODES:
-                continue
-
-            description = str(
-                row["Name"]
-            ).upper()
-
-            qty = pd.to_numeric(
-                row["Quantity"],
-                errors="coerce"
-            )
-
-            net_weight = pd.to_numeric(
-                row["Net weight"],
-                errors="coerce"
-            )
-
-            if pd.isna(qty):
-                continue
-
-            if pd.isna(net_weight):
-                continue
-
-            wid = None
-
-            # ✅ L
-            m = re.search(
-                r'(\d+(?:[.,]\d+)?)\s*L\b',
-                description
-            )
-
-            if m:
-                wid = float(
-                    m.group(1)
-                    .replace(",", ".")
-                )
-
-            # ✅ KG
-            if wid is None:
-
-                m = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*KG\b',
-                    description
-                )
-
-                if m:
-                    wid = float(
-                        m.group(1)
-                        .replace(",", ".")
-                    )
-
-            # ✅ G / GR
-            if wid is None:
-
-                m = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*(?:GR|G)\b',
-                    description
-                )
-
-                if m:
-                    wid = (
-                        float(
-                            m.group(1)
-                            .replace(",", ".")
-                        ) / 1000
-                    )
-
-            if wid is None:
-                continue
-
-            rows.append({
-                "Тарифен код": code,
-                "Количество": qty,
-                "wid": wid,
-                "kolichestvo": round(qty * wid, 3),
-                "тегло": round(net_weight, 3)
-            })
-
-        except:
-            continue
-
-    if not rows:
-        st.error("❌ CHEMPIOIL Excel parser не извлече данни")
-        return pd.DataFrame()
-
-    df_out = pd.DataFrame(rows)
-
-    df_out = df_out.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df_out
+    return pd.DataFrame()
 
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
