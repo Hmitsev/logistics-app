@@ -1616,11 +1616,10 @@ def parse_valvoline_excel(file):
     })
 
     return df_out
-    # ======================================================
+# ======================================================
 # ✅ EMINIA EXCEL
 # ======================================================
 def parse_eminia_excel(file):
-    st.write(df.columns.tolist())
 
     df = pd.read_excel(file)
 
@@ -1628,6 +1627,9 @@ def parse_eminia_excel(file):
         str(c).strip()
         for c in df.columns
     ]
+
+    st.write("EMINIA COLUMNS:")
+    st.write(df.columns.tolist())
 
     rows = []
 
@@ -1651,7 +1653,6 @@ def parse_eminia_excel(file):
 
             if code not in ALLOWED_CODES:
                 continue
-
             # ==================================
             # ✅ WID от Description
             # ==================================
