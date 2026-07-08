@@ -1532,7 +1532,7 @@ def parse_valvoline_excel(file):
 
     return df_out
     # ======================================================
-# ✅ VALVOLINE PDF
+# ✅ VALVOLINE PDF DEBUG 27101987
 # ======================================================
 def parse_valvoline_pdf(text):
 
@@ -1540,7 +1540,6 @@ def parse_valvoline_pdf(text):
 
         value = str(value).strip()
 
-        # ✅ 1,440 -> 1440
         if "," in value and "." not in value:
 
             parts = value.split(",")
@@ -1550,17 +1549,14 @@ def parse_valvoline_pdf(text):
             else:
                 value = value.replace(",", ".")
 
-        # ✅ 1,252.80 -> 1252.80
         elif "," in value and "." in value:
 
             if value.find(",") < value.find("."):
                 value = value.replace(",", "")
-
             else:
                 value = value.replace(".", "")
                 value = value.replace(",", ".")
 
-        # ✅ 1.440 -> 1440
         elif "." in value:
 
             parts = value.split(".")
@@ -1604,7 +1600,8 @@ def parse_valvoline_pdf(text):
                 r'(\d+\s*[Xx]\s*\d+\s*L)',
                 r'(\d+\s*[Xx]\s*\d+\s*L\s*\(.*?\))',
                 r'(\d+\s*[Xx/]\s*\d+\s*L)',
-                r'(\d+(?:[.,]\d+)?)\s*L\b'
+
+                r'(\d+\s*L)',
                 r'(\d+\s*KG)',
                 r'(\d+\s*G)'
             ]
@@ -1641,10 +1638,6 @@ def parse_valvoline_pdf(text):
             packages = euro_to_float(nums[-1])
 
             wid = None
-
-            # =====================================
-            # ✅ CASE
-            # =====================================
 
             if re.search(
                 r'\d+\s*[Xx/]\s*\d+',
@@ -1723,7 +1716,23 @@ def parse_valvoline_pdf(text):
                     continue
 
                 broj = packages
+
                 colic = qty
+
+            # ==========================================
+            # ✅ DEBUG 27101987
+            # ==========================================
+
+            if code == "27101987":
+
+                st.write({
+                    "PACKAGING": packaging,
+                    "WID": wid,
+                    "BROJ": broj,
+                    "COLIC": colic,
+                    "NET": net_weight,
+                    "LINE": line
+                })
 
             rows.append({
                 "Тарифен код": code,
