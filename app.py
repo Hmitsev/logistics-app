@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL", "MOTUL", "NESTE", "FLUKAR", "GASOLIN", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "ELROMI RONAX","NISTA", "AMTRA" , "AUTO MEGA" ,"EMINIA" ,"Brehman"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL & NESTE ", "MOTUL", "FLUKAR", "GASOLIN", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "ELROMI RONAX","NISTA", "AMTRA" , "AUTO MEGA" ,"EMINIA" ,"Brehman"])
 # ✅ статичен списък (като таблица в sidebar)
 st.sidebar.markdown("### 📋 Suppliers & File type")
 
