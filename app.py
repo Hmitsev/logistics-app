@@ -1007,6 +1007,288 @@ def parse_fuchs(text):
     })
 
     return df
+    # ======================================================
+# ✅ CHEMPIOIL PDF
+# ======================================================
+def parse_chempioil_pdf(text):
+
+    rows = []
+
+    lines = text.split("\n")
+
+    for line in lines:
+
+        line = " ".join(line.split())
+
+        try:
+
+            # ==========================================
+            # ✅ HS CODE
+            # ==========================================
+
+            hs_match = re.search(
+                r'(\d{4}\.\d{2}\.\d{2}\.\d{2})',
+                line
+            )
+
+            if not hs_match:
+                continue
+
+            code = re.sub(
+                r"\D",
+                "",
+                hs_match.group(1)
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            # ==========================================
+            # ✅ Quantity
+            # ==========================================
+
+            qty_match = re.search(
+                r'(\d+(?:\.\d+)?)\s+SZT',
+                line
+            )
+
+            if not qty_match:
+                continue
+
+            qty = float(qty_match.group(1))
+
+            # ==========================================
+            # ✅ Net Weight
+            # ==========================================
+
+            weights = re.findall(
+                r'(\d+(?:\.\d+)?)',
+                line
+            )
+
+            if len(weights) < 3:
+                continue
+
+            net_weight = float(weights[-3])
+
+            gross_weight = float(weights[-2])
+
+            # ==========================================
+            # ✅ WID
+            # ==========================================
+
+            wid = None
+
+            upper_line = line.upper()
+
+            m = re.search(
+                r'(\d+(?:\.\d+)?)\s*L\b',
+                upper_line
+            )
+
+            if m:
+                wid = float(m.group(1))
+
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:\.\d+)?)\s*KG\b',
+                    upper_line
+                )
+
+                if m:
+                    wid = float(m.group(1))
+
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:\.\d+)?)\s*(?:GR|G)\b',
+                    upper_line
+                )
+
+                if m:
+                    wid = (
+                        float(m.group(1))
+                        / 1000
+                    )
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+
+                # ✅ по спецификация:
+                # Gross weight -> colic-v L
+                "kolichestvo": gross_weight,
+
+                # ✅ Net weight
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ CHEMPIOIL PDF parser не извлече данни")
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+
+    df = df.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df
+    # ======================================================
+# ✅ CHEMPIOIL EXCEL
+# ======================================================
+def parse_chempioil_excel(file):
+
+    df = pd.read_excel(file)
+
+    df.columns = [
+        str(col).strip()
+        for col in df.columns
+    ]
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            # ✅ HS CODE
+            code = str(
+                row["HS Code"]
+            )
+
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            # ✅ Name
+            description = str(
+                row["Name"]
+            ).upper()
+
+            # ✅ Broj
+            qty = pd.to_numeric(
+                row["Quantity"],
+                errors="coerce"
+            )
+
+            # ✅ Teglo
+            net_weight = pd.to_numeric(
+                row["Net weight"],
+                errors="coerce"
+            )
+
+            # ✅ Colic-v L
+            gross_weight = pd.to_numeric(
+                row["Gross weight"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(net_weight):
+                continue
+
+            if pd.isna(gross_weight):
+                continue
+
+            # ==========================================
+            # ✅ WID
+            # ==========================================
+
+            wid = None
+
+            # ✅ 208L / 20L / 5L / 4L / 1L
+            m = re.search(
+                r'(\d+(?:[.,]\d+)?)\s*L\b',
+                description
+            )
+
+            if m:
+                wid = float(
+                    m.group(1).replace(",", ".")
+                )
+
+            # ✅ 4KG / 18KG
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:[.,]\d+)?)\s*KG\b',
+                    description
+                )
+
+                if m:
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    )
+
+            # ✅ 400G / 400GR
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:[.,]\d+)?)\s*(?:GR|G)\b',
+                    description
+                )
+
+                if m:
+                    wid = (
+                        float(
+                            m.group(1).replace(",", ".")
+                        ) / 1000
+                    )
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+
+                # ✅ По спецификация
+                "kolichestvo": gross_weight,
+
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ CHEMPIOIL Excel parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 # ======================================================
 # ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
 # ======================================================
@@ -1424,24 +1706,35 @@ if uploaded_files:
 
         df = None
 
+        # ✅ NESTE
         if menu == "NESTE":
             df = parse_neste_excel(file)
 
+        # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
 
+        # ✅ CASTROL EXCEL
         elif menu == "CASTROL" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
+        # ✅ NISTA
         elif menu == "NISTA":
             df = parse_nista_excel(file)
 
+        # ✅ ORLEN
         elif menu == "ORLEN":
             df = parse_orlen_excel(file)
 
+        # ✅ AUTO MEGA
         elif menu == "AUTO MEGA":
             df = parse_auto_mega_excel(file)
 
+        # ✅ CHEMPIOIL EXCEL
+        elif menu == "Chempioil (FANFARO)" and source_type == "Excel":
+            df = parse_chempioil_excel(file)
+
+        # ✅ PDF SECTION
         elif source_type == "PDF":
 
             reader = PdfReader(file)
@@ -1463,10 +1756,15 @@ if uploaded_files:
             elif menu == "FUCHS":
                 df = parse_fuchs(text)
 
-            # ✅ всички други PDF
+            # ✅ CHEMPIOIL PDF
+            elif menu == "Chempioil (FANFARO)":
+                df = parse_chempioil_pdf(text)
+
+            # ✅ MOTUL + останалите PDF
             else:
                 df = parse_motul(text)
 
+        # ✅ FALLBACK
         else:
 
             df = pd.read_excel(file)
@@ -1475,6 +1773,9 @@ if uploaded_files:
         if isinstance(df, pd.DataFrame) and not df.empty:
             all_data.append(df)
 
+    # ==================================================
+    # ✅ Няма данни
+    # ==================================================
     if not all_data:
         st.warning("⚠️ Няма данни")
         st.stop()
@@ -1497,6 +1798,9 @@ if uploaded_files:
         final_df["тегло"] > 0
     ]
 
+    # ==================================================
+    # ✅ BUILD REPORT
+    # ==================================================
     report = build_final_report(
         final_df,
         menu
@@ -1518,7 +1822,7 @@ if uploaded_files:
         regex=False
     )
 
-    # ✅ Кодове със специален знак
+    # ✅ Кодове със знак
     special_codes = [
         "38112100",
         "38249992",
@@ -1529,18 +1833,21 @@ if uploaded_files:
 
     for code in special_codes:
 
-        # subtotal ред
+        # subtotal
         report["Тарифен код"] = report["Тарифен код"].str.replace(
             f"{code} -",
             f"{code} - ( ! )",
             regex=False
         )
 
-        # обикновен ред
+        # normal row
         report["Тарифен код"] = report["Тарифен код"].replace(
             {code: f"{code} ( ! )"}
         )
 
+    # ==================================================
+    # ✅ RENAME
+    # ==================================================
     report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
@@ -1549,9 +1856,15 @@ if uploaded_files:
         "тегло": "teglo"
     })
 
+    # ==================================================
+    # ✅ SHOW REPORT
+    # ==================================================
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
+    # ==================================================
+    # ✅ EXPORT
+    # ==================================================
     output = io.BytesIO()
 
     with pd.ExcelWriter(
