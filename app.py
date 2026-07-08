@@ -1007,7 +1007,7 @@ def parse_fuchs(text):
     })
 
     return df
-    # ======================================================
+ # ======================================================
 # ✅ CHEMPIOIL PDF
 # ======================================================
 def parse_chempioil_pdf(text):
@@ -1055,10 +1055,12 @@ def parse_chempioil_pdf(text):
             if not qty_match:
                 continue
 
-            qty = float(qty_match.group(1))
+            qty = float(
+                qty_match.group(1)
+            )
 
             # ==========================================
-            # ✅ Net Weight
+            # ✅ NET WEIGHT
             # ==========================================
 
             weights = re.findall(
@@ -1069,9 +1071,9 @@ def parse_chempioil_pdf(text):
             if len(weights) < 3:
                 continue
 
-            net_weight = float(weights[-3])
-
-            gross_weight = float(weights[-2])
+            net_weight = float(
+                weights[-3]
+            )
 
             # ==========================================
             # ✅ WID
@@ -1081,14 +1083,18 @@ def parse_chempioil_pdf(text):
 
             upper_line = line.upper()
 
+            # ✅ L
             m = re.search(
                 r'(\d+(?:\.\d+)?)\s*L\b',
                 upper_line
             )
 
             if m:
-                wid = float(m.group(1))
+                wid = float(
+                    m.group(1)
+                )
 
+            # ✅ KG
             if wid is None:
 
                 m = re.search(
@@ -1097,8 +1103,11 @@ def parse_chempioil_pdf(text):
                 )
 
                 if m:
-                    wid = float(m.group(1))
+                    wid = float(
+                        m.group(1)
+                    )
 
+            # ✅ GR / G
             if wid is None:
 
                 m = re.search(
@@ -1108,8 +1117,9 @@ def parse_chempioil_pdf(text):
 
                 if m:
                     wid = (
-                        float(m.group(1))
-                        / 1000
+                        float(
+                            m.group(1)
+                        ) / 1000
                     )
 
             if wid is None:
@@ -1120,33 +1130,17 @@ def parse_chempioil_pdf(text):
                 "Количество": qty,
                 "wid": wid,
 
-                # ✅ по спецификация:
-                # Gross weight -> colic-v L
-                "kolichestvo": gross_weight,
+                # ✅ литри
+                "kolichestvo": qty * wid,
 
-                # ✅ Net weight
+                # ✅ тегло
                 "тегло": net_weight
             })
 
         except:
             continue
 
-    if not rows:
-        st.error("❌ CHEMPIOIL PDF parser не извлече данни")
-        return pd.DataFrame()
 
-    df = pd.DataFrame(rows)
-
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
     # ======================================================
 # ✅ CHEMPIOIL EXCEL
 # ======================================================
