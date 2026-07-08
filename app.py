@@ -1540,6 +1540,7 @@ def parse_valvoline_pdf(text):
 
         value = str(value).strip()
 
+        # ✅ 1,440 -> 1440
         if "," in value and "." not in value:
 
             parts = value.split(",")
@@ -1549,11 +1550,17 @@ def parse_valvoline_pdf(text):
             else:
                 value = value.replace(",", ".")
 
+        # ✅ 1,252.80 -> 1252.80
         elif "," in value and "." in value:
 
-            value = value.replace(".", "")
-            value = value.replace(",", ".")
+            if value.find(",") < value.find("."):
+                value = value.replace(",", "")
 
+            else:
+                value = value.replace(".", "")
+                value = value.replace(",", ".")
+
+        # ✅ 1.440 -> 1440
         elif "." in value:
 
             parts = value.split(".")
@@ -1717,7 +1724,6 @@ def parse_valvoline_pdf(text):
                     continue
 
                 broj = packages
-
                 colic = qty
 
             rows.append({
