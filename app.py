@@ -1620,6 +1620,7 @@ def parse_valvoline_excel(file):
 # ✅ EMINIA EXCEL
 # ======================================================
 def parse_eminia_excel(file):
+    st.write(df.columns.tolist())
 
     df = pd.read_excel(file)
 
