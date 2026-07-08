@@ -1604,7 +1604,6 @@ def parse_valvoline_pdf(text):
                 r'(\d+\s*[Xx]\s*\d+\s*L)',
                 r'(\d+\s*[Xx]\s*\d+\s*L\s*\(.*?\))',
                 r'(\d+\s*[Xx/]\s*\d+\s*L)',
-                r'(\d+\s*[Xx/]\s*\d+)',
                 r'(\d+\s*L)',
                 r'(\d+\s*KG)',
                 r'(\d+\s*G)'
