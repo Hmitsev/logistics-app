@@ -1958,7 +1958,7 @@ if uploaded_files:
         df = None
 
         # ✅ CASTROL + NESTE
-        if menu == "CASTROL & NESTE" and source_type == "Excel"
+        if menu == "CASTROL & NESTE" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
         # ✅ FLUKAR
