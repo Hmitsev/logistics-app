@@ -1530,8 +1530,8 @@ def parse_valvoline_excel(file):
     })
 
     return df_out
- # ======================================================
-# ✅ VALVOLINE PDF
+# ======================================================
+# ✅ VALVOLINE PDF DEBUG
 # ======================================================
 def parse_valvoline_pdf(text):
 
@@ -1565,10 +1565,6 @@ def parse_valvoline_pdf(text):
 
         try:
 
-            # =====================================
-            # ✅ Tariff No
-            # =====================================
-
             tariff_match = re.search(
                 r'(271\d{7,}|340\d{7,}|381\d{7,})',
                 line
@@ -1585,10 +1581,6 @@ def parse_valvoline_pdf(text):
 
             if code not in ALLOWED_CODES:
                 continue
-
-            # =====================================
-            # ✅ Packaging
-            # =====================================
 
             packaging = None
 
@@ -1617,10 +1609,6 @@ def parse_valvoline_pdf(text):
             if packaging is None:
                 continue
 
-            # =====================================
-            # ✅ Qty / Net / Gross / Packages
-            # =====================================
-
             nums = re.findall(
                 r'[\d\.,]+',
                 line
@@ -1629,9 +1617,7 @@ def parse_valvoline_pdf(text):
             if len(nums) < 4:
                 continue
 
-            qty = euro_to_float(
-                nums[-4]
-            )
+            qty = euro_to_float(nums[-4])
 
             net_weight = euro_to_float(
                 nums[-3]
@@ -1646,10 +1632,6 @@ def parse_valvoline_pdf(text):
             )
 
             wid = None
-
-            # =====================================
-            # ✅ CASE
-            # =====================================
 
             if re.search(
                 r'\d+\s*[Xx]\s*\d+',
@@ -1675,10 +1657,6 @@ def parse_valvoline_pdf(text):
                 broj = packages * units_per_case
 
                 colic = broj * wid
-
-            # =====================================
-            # ✅ L / KG / G
-            # =====================================
 
             else:
 
@@ -1715,19 +1693,25 @@ def parse_valvoline_pdf(text):
 
                         if m:
 
-                            wid = (
-                                float(
-                                    m.group(1)
-                                ) / 1000
-                            )
+                            wid = float(
+                                m.group(1)
+                            ) / 1000
 
                 if wid is None:
                     continue
 
                 broj = packages
 
-                # ✅ при Lit взимаме Qty
                 colic = qty
+
+            # ✅ DEBUG
+            st.write({
+                "PACKAGING": packaging,
+                "BROJ": broj,
+                "WID": wid,
+                "COLIC": colic,
+                "CODE": code
+            })
 
             rows.append({
                 "Тарифен код": code,
