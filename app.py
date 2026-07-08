@@ -1531,7 +1531,7 @@ def parse_valvoline_excel(file):
     })
 
     return df_out
-# ======================================================
+    # ======================================================
 # ✅ VALVOLINE PDF
 # ======================================================
 def parse_valvoline_pdf(text):
@@ -1540,24 +1540,20 @@ def parse_valvoline_pdf(text):
 
         value = str(value).strip()
 
-        # ✅ 1,020 -> 1020
         if "," in value and "." not in value:
 
             parts = value.split(",")
 
             if len(parts[-1]) == 3:
                 value = "".join(parts)
-
             else:
                 value = value.replace(",", ".")
 
-        # ✅ 1.252,80 -> 1252.80
         elif "," in value and "." in value:
 
             value = value.replace(".", "")
             value = value.replace(",", ".")
 
-        # ✅ 1.440 -> 1440
         elif "." in value:
 
             parts = value.split(".")
@@ -1630,21 +1626,13 @@ def parse_valvoline_pdf(text):
             if len(nums) < 4:
                 continue
 
-            qty = euro_to_float(
-                nums[-4]
-            )
+            qty = euro_to_float(nums[-4])
 
-            net_weight = euro_to_float(
-                nums[-3]
-            )
+            net_weight = euro_to_float(nums[-3])
 
-            gross_weight = euro_to_float(
-                nums[-2]
-            )
+            gross_weight = euro_to_float(nums[-2])
 
-            packages = euro_to_float(
-                nums[-1]
-            )
+            packages = euro_to_float(nums[-1])
 
             wid = None
 
@@ -1714,34 +1702,23 @@ def parse_valvoline_pdf(text):
 
                         m = re.search(
                             r'(\d+(?:\.\d+)?)\s*G',
-                            pa*kaging
+                            packaging
                         )
 
-*                       if m:
+                        if m:
 
-    *                       wid = (
-   *                            float(*                                  * m.group(1)
-                      *         ) / 1000
-                *           )
+                            wid = (
+                                float(
+                                    m.group(1)
+                                ) / 1000
+                            )
 
-                if w*d is None:
-                    con*inue
+                if wid is None:
+                    continue
 
-                broj = packa*es
+                broj = packages
 
                 colic = qty
-
- *          # ======================*==============
-            # ✅ FIX*            # Изключва реда:
-     *      # VAL ALL CLIMATE 5W30 12/1 * EEE
-            # ===============*=====================
-
-           *if (
-                code == "2710*981"
-                and packaging*in ["12X1 L", "12 X 1 L"]
-        *       and abs(net_weight - 10.27)*< 0.1
-            ):
-                continue
 
             rows.append({
                 "Тарифен код": code,
