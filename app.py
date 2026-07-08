@@ -1124,7 +1124,7 @@ def parse_chempioil_pdf(text):
 
     return df_out
 # ======================================================
-# ✅ CHEMPIOIL EXCEL DEBUG 2
+# ✅ CHEMPIOIL EXCEL DEBUG FINAL
 # ======================================================
 def parse_chempioil_excel(file):
 
@@ -1133,41 +1133,18 @@ def parse_chempioil_excel(file):
         header=8
     )
 
-    st.write("HEADER=8 COLUMNS")
+    # взимаме първия ред като header
+    df.columns = df.iloc[0]
+
+    # махаме реда с имената
+    df = df.iloc[1:].reset_index(drop=True)
+
+    st.write("✅ REAL COLUMNS")
     st.write(df.columns.tolist())
 
-    st.dataframe(df.head(5))
+    st.dataframe(df.head(10))
 
     return pd.DataFrame()
-
-# ======================================================
-# ✅ NESTE (EXCEL ONLY ✅)  ✅ ТУК Е ФИКСЪТ
-# ======================================================
-def parse_neste_excel(file):
-
-    df = pd.read_excel(file)
-    df.columns = df.columns.str.strip()
-
-    df = df.rename(columns={
-        "Commodity code": "Тарифен код",
-        "Type of packaging": "wid",
-        "Delivery quantity": "Количество",
-        "Volume": "kolichestvo",
-        "Net Weight": "тегло"
-    })
-
-    df = df.dropna(subset=["Тарифен код"])
-
-    df = df.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df
 # ======================================================
 # ✅ CASTROL (EXCEL ✅)
 # ======================================================
