@@ -2282,7 +2282,7 @@ st.subheader("📊 Финален отчет")
         )
 
         # ==========================================
-        # ✅ SPECIAL RED CODES
+        # ✅ RED + BOLD CODES
         # ==========================================
 
         ws = writer.sheets["Sheet1"]
@@ -2303,8 +2303,8 @@ st.subheader("📊 Финален отчет")
                 if value.startswith(code):
 
                     code_cell.font = Font(
-                        bold=True,
-                        color="FF0000"
+                        color="FF0000",
+                        bold=True
                     )
 
                     break
