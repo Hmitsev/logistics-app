@@ -1531,16 +1531,16 @@ def parse_valvoline_excel(file):
     })
 
     return df_out
-  # ======================================================
-# ✅ VALVOLINE PDF
+# ======================================================
+# ✅ VALVOLINE PDF (V2)
 # ======================================================
 def parse_valvoline_pdf(text):
 
-    def euro_to_float(value):
+    def to_num(value):
 
         value = str(value).strip()
 
-        # ✅ 1,020 -> 1020
+        # 1,440 -> 1440
         if "," in value and "." not in value:
 
             parts = value.split(",")
@@ -1550,13 +1550,13 @@ def parse_valvoline_pdf(text):
             else:
                 value = value.replace(",", ".")
 
-        # ✅ 1.252,80 -> 1252.80
+        # 1.252,80 -> 1252.80
         elif "," in value and "." in value:
 
             value = value.replace(".", "")
             value = value.replace(",", ".")
 
-        # ✅ 1.440 -> 1440
+        # 1.440 -> 1440
         elif "." in value:
 
             parts = value.split(".")
@@ -1568,46 +1568,83 @@ def parse_valvoline_pdf(text):
 
     rows = []
 
-    lines = text.split("\n")
+    # ✅ split by item rows
+    item_rows = re.findall(
+        r'(\d+\s+\d+\s+\S+\s+\d{10}.*?(?=\s+\d+\s+\d+\s+\S+\s+\d{10}|\s+TOTAL:))',
+        text,
+        flags=re.DOTALL
+    )
 
-    for line in lines:
-
-        line = " ".join(line.split())
+    for row_text in item_rows:
 
         try:
 
-            tariff_match = re.search(
-                r'(271\d{7,}|340\d{7,}|381\d{7,})',
-                line
+            # =====================================
+            # ✅ CODE
+            # =====================================
+
+            tariff = re.search(
+                r'(\d{10})',
+                row_text
             )
 
-            if not tariff_match:
+            if not tariff:
                 continue
 
-            code = re.sub(
-                r"\D",
-                "",
-                tariff_match.group(1)
-            )[:8]
+            code = tariff.group(1)[:8]
 
             if code not in ALLOWED_CODES:
                 continue
 
+            # =====================================
+            # ✅ LAST 4 NUMBERS
+            # Qty / Net / Gross / Packages
+            # =====================================
+
             nums = re.findall(
                 r'[\d\.,]+',
-                line
+                row_text
             )
 
             if len(nums) < 4:
                 continue
 
-            qty = euro_to_float(nums[-4])
+            qty = to_num(nums[-4])
+            net_weight = to_num(nums[-3])
+            gross_weight = to_num(nums[-2])
+            packages = to_num(nums[-1])
 
-            net_weight = euro_to_float(nums[-3])
+            # =====================================
+            # ✅ PACKAGING
+            # =====================================
 
-            gross_weight = euro_to_float(nums[-2])
+            packaging = None
 
-            packages = euro_to_float(nums[-1])
+            patterns = [
+
+                r'(\d+\s*[Xx/]\s*\d+\s*L)',
+                r'(\d+\s*[Xx/]\s*\d+\s*KG)',
+                r'(\d+\s*[Xx/]\s*\d+\s*G)',
+
+                r'(\d+\s*L)',
+                r'(\d+\s*KG)',
+                r'(\d+\s*G)'
+            ]
+
+            for p in patterns:
+
+                m = re.search(
+                    p,
+                    row_text,
+                    re.IGNORECASE
+                )
+
+                if m:
+                    packaging = m.group(1).upper()
+                    break
+
+            if packaging is None:
+                continue
 
             wid = None
 
@@ -1616,9 +1653,8 @@ def parse_valvoline_pdf(text):
             # =====================================
 
             case_match = re.search(
-                r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(?:L|KG|G)?',
-                line,
-                re.IGNORECASE
+                r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)',
+                packaging
             )
 
             if case_match:
@@ -1633,8 +1669,8 @@ def parse_valvoline_pdf(text):
                 )
 
                 if (
-                    "G" in case_match.group(0).upper()
-                    and "KG" not in case_match.group(0).upper()
+                    "G" in packaging
+                    and "KG" not in packaging
                 ):
                     wid = wid / 1000
 
@@ -1644,40 +1680,24 @@ def parse_valvoline_pdf(text):
 
             else:
 
-                # =====================================
-                # ✅ 20 L Lit
-                # =====================================
-
-                pack_match = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*L\s+LIT',
-                    line,
-                    re.IGNORECASE
+                m = re.search(
+                    r'(\d+(?:[.,]\d+)?)',
+                    packaging
                 )
 
-                if pack_match:
-
-                    wid = float(
-                        pack_match.group(1)
-                        .replace(",", ".")
-                    )
-
-                else:
-
-                    pack_match = re.search(
-                        r'(\d+(?:[.,]\d+)?)\s*KG\s+(?:KG|LIT|CASE)',
-                        line,
-                        re.IGNORECASE
-                    )
-
-                    if pack_match:
-
-                        wid = float(
-                            pack_match.group(1)
-                            .replace(",", ".")
-                        )
-
-                if wid is None:
+                if not m:
                     continue
+
+                wid = float(
+                    m.group(1)
+                    .replace(",", ".")
+                )
+
+                if (
+                    "G" in packaging
+                    and "KG" not in packaging
+                ):
+                    wid = wid / 1000
 
                 broj = packages
 
