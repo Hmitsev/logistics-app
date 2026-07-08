@@ -1531,7 +1531,7 @@ def parse_valvoline_excel(file):
     })
 
     return df_out
-    # ======================================================
+  # ======================================================
 # ✅ VALVOLINE PDF
 # ======================================================
 def parse_valvoline_pdf(text):
@@ -1540,6 +1540,7 @@ def parse_valvoline_pdf(text):
 
         value = str(value).strip()
 
+        # ✅ 1,020 -> 1020
         if "," in value and "." not in value:
 
             parts = value.split(",")
@@ -1549,11 +1550,13 @@ def parse_valvoline_pdf(text):
             else:
                 value = value.replace(",", ".")
 
+        # ✅ 1.252,80 -> 1252.80
         elif "," in value and "." in value:
 
             value = value.replace(".", "")
             value = value.replace(",", ".")
 
+        # ✅ 1.440 -> 1440
         elif "." in value:
 
             parts = value.split(".")
@@ -1614,22 +1617,23 @@ def parse_valvoline_pdf(text):
 
             case_match = re.search(
                 r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(?:L|KG|G)?',
-                line*
+                line,
                 re.IGNORECASE
-   *        )
+            )
 
-            if case_mat*h:
+            if case_match:
 
-                units_per_case*= float(
-                    case_*atch.group(1)
+                units_per_case = float(
+                    case_match.group(1)
                 )
 
- *              wid = float(
-       *            case_match.group(2).re*lace(",", ".")
+                wid = float(
+                    case_match.group(2)
+                    .replace(",", ".")
                 )
 
-*               if (
-              *     "G" in case_match.group(0).upper()
+                if (
+                    "G" in case_match.group(0).upper()
                     and "KG" not in case_match.group(0).upper()
                 ):
                     wid = wid / 1000
@@ -1641,7 +1645,7 @@ def parse_valvoline_pdf(text):
             else:
 
                 # =====================================
-                # ✅ PACKAGING COLUMN ONLY
+                # ✅ 20 L Lit
                 # =====================================
 
                 pack_match = re.search(
@@ -1661,49 +1665,51 @@ def parse_valvoline_pdf(text):
 
                     pack_match = re.search(
                         r'(\d+(?:[.,]\d+)?)\s*KG\s+(?:KG|LIT|CASE)',
-           *            line,
-                *       re.IGNORECASE
-             *      )
+                        line,
+                        re.IGNORECASE
+                    )
 
-                    if pa*k_match:
+                    if pack_match:
 
-                        *id = float(
-                      *     pack_match.group(1)
-         *                  .replace(",", ".*)
+                        wid = float(
+                            pack_match.group(1)
+                            .replace(",", ".")
                         )
 
-     *          if wid is None:
-        *           continue
+                if wid is None:
+                    continue
 
-             *  broj = packages
-                *olic = qty
+                broj = packages
 
-            rows.appen*({
-                "Тарифен код": *ode,
-                "Количество":*broj,
+                colic = qty
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": broj,
                 "wid": wid,
-*               "kolichestvo": coli*,
-                "тегло": net_wei*ht
+                "kolichestvo": colic,
+                "тегло": net_weight
             })
 
-        except:*            continue
+        except:
+            continue
 
-    if not r*ws:
-        st.error("❌ VALVOLINE *DF parser не извлече данни")
-     *  return pd.DataFrame()
+    if not rows:
+        st.error("❌ VALVOLINE PDF parser не извлече данни")
+        return pd.DataFrame()
 
-    df_ou* = pd.DataFrame(rows)
+    df_out = pd.DataFrame(rows)
 
-    df_out * df_out.groupby(
+    df_out = df_out.groupby(
         ["Тарифен код", "wid"],
-        as_index=Fal*e
+        as_index=False
     ).agg({
-        "Количество"* "sum",
-        "kolichestvo": "su*",
+        "Количество": "sum",
+        "kolichestvo": "sum",
         "тегло": "sum"
     })
 
-*   return df_out
+    return df_out
 # ======================================================
 # ✅ FLUKAR (EXCEL ONLY ✅)
 # ======================================================
