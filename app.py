@@ -1531,7 +1531,7 @@ def parse_valvoline_excel(file):
     })
 
     return df_out
-    # ======================================================
+ # ======================================================
 # ✅ VALVOLINE PDF
 # ======================================================
 def parse_valvoline_pdf(text):
@@ -1595,32 +1595,36 @@ def parse_valvoline_pdf(text):
                 r'(\d+\s*G)'
             ]
 
-            for*pattern in package_patterns:
+            for pattern in package_patterns:
 
-    *           m = re.search(
-        *           pattern,
-              *     line,
-                    re.*GNORECASE
+                m = re.search(
+                    pattern,
+                    line,
+                    re.IGNORECASE
                 )
 
-     *          if m:
-                  * packaging = m.group(1).upper()
-  *                 break
+                if m:
+                    packaging = m.group(1).upper()
+                    break
 
-          * if packaging is None:
-           *    continue
+            if packaging is None:
+                continue
 
-            nums = r*.findall(
+            nums = re.findall(
                 r'[\d\.,]+',
                 line
-         *  )
+            )
 
-            if len(nums) < 4:*                continue
+            if len(nums) < 4:
+                continue
 
-        *   # ✅ DEBUG за проблемния код
-   *        if code == "27101983":
-                st.write("LINE 27101983:")
+            # ✅ DEBUG ЗА 27101983
+            if code == "27101983":
+
+                st.write("LINE 27101983")
                 st.write(line)
+
+                st.write("NUMS")
                 st.write(nums)
 
             qty = euro_to_float(
@@ -1648,14 +1652,14 @@ def parse_valvoline_pdf(text):
 
                 m = re.search(
                     r'(\d+)\s*[Xx]\s*(\d+(?:\.\d+)?)',
-          *         packaging
-               *)
+                    packaging
+                )
 
                 if not m:
-     *              continue
+                    continue
 
-          *     units_per_case = float(
-     *              m.group(1)
+                units_per_case = float(
+                    m.group(1)
                 )
 
                 wid = float(
