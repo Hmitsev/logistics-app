@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL & NESTE ", "MOTUL", "FLUKAR", "GASOLIN", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "ELROMI RONAX","NISTA", "AMTRA" , "AUTO MEGA" ,"EMINIA" ,"Brehman"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL & NESTE", "MOTUL", "FLUKAR", "GASOLIN", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "ELROMI RONAX","NISTA", "AMTRA" , "AUTO MEGA" ,"EMINIA" ,"Brehman"])
 # ✅ статичен списък (като таблица в sidebar)
 st.sidebar.markdown("### 📋 Suppliers & File type")
 
@@ -1957,17 +1957,13 @@ if uploaded_files:
 
         df = None
 
-        # ✅ NESTE (същата структура като CASTROL)
-        if menu == "NESTE":
+        # ✅ CASTROL + NESTE
+        if menu == "CASTROL & NESTE" and source_type == "Excel":
             df = parse_castrol_excel(file)
 
         # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
-
-        # ✅ CASTROL EXCEL
-        elif menu == "CASTROL" and source_type == "Excel":
-            df = parse_castrol_excel(file)
 
         # ✅ NISTA
         elif menu == "NISTA":
@@ -2003,12 +1999,8 @@ if uploaded_files:
                 if t:
                     text += t + "\n"
 
-            # ✅ CASTROL PDF
-            if menu == "CASTROL":
-                df = parse_castrol(text)
-
             # ✅ FUCHS
-            elif menu == "FUCHS":
+            if menu == "FUCHS":
                 df = parse_fuchs(text)
 
             # ✅ CHEMPIOIL PDF
