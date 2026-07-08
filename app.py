@@ -2255,16 +2255,15 @@ if uploaded_files:
         report["Тарифен код"] = report["Тарифен код"].replace(
             {code: f"{code} ( ! )"}
         )
-
-    report = report.rename(columns={
+        report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
         "Количество": "Broj",
         "kolichestvo": "colic-v L",
         "тегло": "teglo"
     })
-    
-st.subheader("📊 Финален отчет")
+
+    st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
     from openpyxl.styles import Font
