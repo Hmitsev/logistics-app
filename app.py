@@ -1422,7 +1422,7 @@ def parse_valvoline_excel(file):
             if uom == "case":
 
                 case_match = re.search(
-                    r'(\d+)\s*[Xx]\s*(\d+(?:[.,]\d+)?)\s*L',
+                    r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(?:L|KG|G)?',
                     packaging
                 )
 
@@ -1437,35 +1437,20 @@ def parse_valvoline_excel(file):
                         .replace(",", ".")
                     )
 
+                    # ✅ G
+                    if "G" in packaging and "KG" not in packaging:
+                        wid = wid / 1000
+
                     broj = packages * units_per_case
 
                     colic = broj * wid
 
                 else:
 
-                    no_l_match = re.search(
-                        r'(\d+)\s*[Xx]\s*(\d+(?:[.,]\d+)?)',
-                        packaging
-                    )
-
-                    if not no_l_match:
-                        continue
-
-                    units_per_case = float(
-                        no_l_match.group(1)
-                    )
-
-                    wid = float(
-                        no_l_match.group(2)
-                        .replace(",", ".")
-                    )
-
-                    broj = packages * units_per_case
-
-                    colic = broj * wid
+                    continue
 
             # =====================================
-            # ✅ LIT / KG
+            # ✅ LIT / KG / G
             # =====================================
 
             else:
@@ -1495,6 +1480,22 @@ def parse_valvoline_excel(file):
                             m.group(1)
                             .replace(",", ".")
                         )
+
+                    else:
+
+                        m = re.search(
+                            r'(\d+(?:[.,]\d+)?)\s*G',
+                            packaging
+                        )
+
+                        if m:
+
+                            wid = (
+                                float(
+                                    m.group(1)
+                                    .replace(",", ".")
+                                ) / 1000
+                            )
 
                 if wid is None:
                     continue
