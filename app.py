@@ -1595,28 +1595,33 @@ def parse_valvoline_pdf(text):
                 r'(\d+\s*G)'
             ]
 
-            for pattern in package_patterns:
+            for*pattern in package_patterns:
 
-                m = re.search(
-                    pattern,
-                    line,
-                    re.IGNORECASE
+    *           m = re.search(
+        *           pattern,
+              *     line,
+                    re.*GNORECASE
                 )
 
-                if m:
-                    packaging = m.group(1).upper()
-                    break
+     *          if m:
+                  * packaging = m.group(1).upper()
+  *                 break
 
-            if packaging is None:
-                continue
+          * if packaging is None:
+           *    continue
 
-            nums = re.findall(
+            nums = r*.findall(
                 r'[\d\.,]+',
                 line
-            )
+         *  )
 
-            if len(nums) < 4:
-                continue
+            if len(nums) < 4:*                continue
+
+        *   # ✅ DEBUG за проблемния код
+   *        if code == "27101983":
+                st.write("LINE 27101983:")
+                st.write(line)
+                st.write(nums)
 
             qty = euro_to_float(
                 nums[-4]
@@ -1643,14 +1648,14 @@ def parse_valvoline_pdf(text):
 
                 m = re.search(
                     r'(\d+)\s*[Xx]\s*(\d+(?:\.\d+)?)',
-                    packaging
-                )
+          *         packaging
+               *)
 
                 if not m:
-                    continue
+     *              continue
 
-                units_per_case = float(
-                    m.group(1)
+          *     units_per_case = float(
+     *              m.group(1)
                 )
 
                 wid = float(
@@ -1706,7 +1711,6 @@ def parse_valvoline_pdf(text):
                     continue
 
                 broj = packages
-
                 colic = qty
 
             rows.append({
