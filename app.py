@@ -1532,7 +1532,7 @@ def parse_valvoline_excel(file):
 
     return df_out
 # ======================================================
-# ✅ VALVOLINE PDF + DEBUG 27101981
+# ✅ VALVOLINE PDF
 # ======================================================
 def parse_valvoline_pdf(text):
 
@@ -1714,39 +1714,34 @@ def parse_valvoline_pdf(text):
 
                         m = re.search(
                             r'(\d+(?:\.\d+)?)\s*G',
-                            packaging
+                            pa*kaging
                         )
 
-                        if m:
+*                       if m:
 
-                            wid = (
-                                float(
-                                    m.group(1)
-                                ) / 1000
-                            )
+    *                       wid = (
+   *                            float(*                                  * m.group(1)
+                      *         ) / 1000
+                *           )
 
-                if wid is None:
-                    continue
+                if w*d is None:
+                    con*inue
 
-                broj = packages
+                broj = packa*es
 
                 colic = qty
 
-            # =====================================
-            # ✅ DEBUG 27101981
-            # =====================================
+ *          # ======================*==============
+            # ✅ FIX*            # Изключва реда:
+     *      # VAL ALL CLIMATE 5W30 12/1 * EEE
+            # ===============*=====================
 
-            if code == "27101981":
-
-                st.write({
-                    "CODE": code,
-                    "PACKAGING": packaging,
-                    "QTY": qty,
-                    "PACKAGES": packages,
-                    "BROJ": broj,
-                    "COLIC": colic,
-                    "NET": net_weight
-                })
+           *if (
+                code == "2710*981"
+                and packaging*in ["12X1 L", "12 X 1 L"]
+        *       and abs(net_weight - 10.27)*< 0.1
+            ):
+                continue
 
             rows.append({
                 "Тарифен код": code,
