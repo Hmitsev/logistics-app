@@ -1628,8 +1628,59 @@ def parse_eminia_excel(file):
         for c in df.columns
     ]
 
-    st.write("EMINIA COLUMNS:")
-    st.write(df.columns.tolist())
+    # ==========================================
+    # ✅ намиране на колони
+    # ==========================================
+
+    desc_col = None
+    code_col = None
+    qty_col = None
+    weight_col = None
+
+    for col in df.columns:
+
+        c = str(col).strip().lower()
+
+        if "description" in c:
+            desc_col = col
+
+        elif "customs" in c and "code" in c:
+            code_col = col
+
+        elif c == "qty":
+            qty_col = col
+
+        elif (
+            "total net weight" in c
+            or "total weight" in c
+        ):
+            weight_col = col
+
+    # ==========================================
+    # ✅ fallback по позиция
+    # D,E,H,L
+    # ==========================================
+
+    cols = list(df.columns)
+
+    if desc_col is None and len(cols) > 3:
+        desc_col = cols[3]
+
+    if code_col is None and len(cols) > 4:
+        code_col = cols[4]
+
+    if qty_col is None and len(cols) > 6:
+        qty_col = cols[6]
+
+    if weight_col is None:
+
+        # L колона
+        if len(cols) > 11:
+            weight_col = cols[11]
+
+        # K колона
+        elif len(cols) > 10:
+            weight_col = cols[10]
 
     rows = []
 
@@ -1638,11 +1689,11 @@ def parse_eminia_excel(file):
         try:
 
             description = str(
-                row["Description"]
+                row[desc_col]
             )
 
             code = str(
-                row["Customs Code"]
+                row[code_col]
             )
 
             code = re.sub(
@@ -1653,15 +1704,15 @@ def parse_eminia_excel(file):
 
             if code not in ALLOWED_CODES:
                 continue
+
             # ==================================
-            # ✅ WID от Description
+            # ✅ WID
             # ==================================
 
             wid = None
 
             txt = description.upper().replace(",", ".")
 
-            # L
             m = re.search(
                 r'(\d+(?:\.\d+)?)\s*L\b',
                 txt
@@ -1670,7 +1721,6 @@ def parse_eminia_excel(file):
             if m:
                 wid = float(m.group(1))
 
-            # KG
             if wid is None:
 
                 m = re.search(
@@ -1681,7 +1731,6 @@ def parse_eminia_excel(file):
                 if m:
                     wid = float(m.group(1))
 
-            # G / GR
             if wid is None:
 
                 m = re.search(
@@ -1697,12 +1746,12 @@ def parse_eminia_excel(file):
                 continue
 
             qty = pd.to_numeric(
-                row["Qty"],
+                row[qty_col],
                 errors="coerce"
             )
 
             total_weight = pd.to_numeric(
-                row["Total Weight (Kg)"],
+                row[weight_col],
                 errors="coerce"
             )
 
@@ -1717,10 +1766,9 @@ def parse_eminia_excel(file):
                 "Количество": qty,
                 "wid": wid,
 
-                # ✅ по твоя логика
+                # както поиска
                 "kolichestvo": total_weight,
 
-                # ✅ тегло
                 "тегло": total_weight
             })
 
