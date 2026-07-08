@@ -1616,6 +1616,131 @@ def parse_valvoline_excel(file):
     })
 
     return df_out
+    # ======================================================
+# ✅ EMINIA EXCEL
+# ======================================================
+def parse_eminia_excel(file):
+
+    df = pd.read_excel(file)
+
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
+    ]
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            description = str(
+                row["Description"]
+            )
+
+            code = str(
+                row["Customs Code"]
+            )
+
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            # ==================================
+            # ✅ WID от Description
+            # ==================================
+
+            wid = None
+
+            txt = description.upper().replace(",", ".")
+
+            # L
+            m = re.search(
+                r'(\d+(?:\.\d+)?)\s*L\b',
+                txt
+            )
+
+            if m:
+                wid = float(m.group(1))
+
+            # KG
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:\.\d+)?)\s*KG\b',
+                    txt
+                )
+
+                if m:
+                    wid = float(m.group(1))
+
+            # G / GR
+            if wid is None:
+
+                m = re.search(
+                    r'(\d+(?:\.\d+)?)\s*(?:GR|G)\b',
+                    txt
+                )
+
+                if m:
+                    wid = float(m.group(1)) / 1000
+
+            # не е масло
+            if wid is None:
+                continue
+
+            qty = pd.to_numeric(
+                row["Qty"],
+                errors="coerce"
+            )
+
+            total_weight = pd.to_numeric(
+                row["Total Weight (Kg)"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(total_weight):
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+
+                # ✅ по твоя логика
+                "kolichestvo": total_weight,
+
+                # ✅ тегло
+                "тегло": total_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ EMINIA parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
   
 # ======================================================
 # ✅ FLUKAR (EXCEL ONLY ✅)
@@ -1976,6 +2101,10 @@ if uploaded_files:
         # ✅ AUTO MEGA
         elif menu == "AUTO MEGA":
             df = parse_auto_mega_excel(file)
+
+        # ✅ EMINIA
+        elif menu == "EMINIA":
+            df = parse_eminia_excel(file)
 
         # ✅ CHEMPIOIL EXCEL
         elif menu == "Chempioil (FANFARO)" and source_type == "Excel":
