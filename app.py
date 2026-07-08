@@ -1126,156 +1126,21 @@ def parse_chempioil_pdf(text):
 # ======================================================
 # ✅ CHEMPIOIL EXCEL (ALL FORMATS)
 # ======================================================
+
 def parse_chempioil_excel(file):
 
-    df = pd.read_excel(file, header=8)
+    df = pd.read_excel(file, header=None)
 
-    df.columns = df.iloc[0]
-    df = df.iloc[1:].reset_index(drop=True)
+    st.write("ROWS")
 
-    columns = [str(c).strip() for c in df.columns]
-
-    # ==================================================
-    # ✅ FORMAT 1
-    # ==================================================
-
-    if "HS Code" in columns:
-
-        code_col = "HS Code"
-        name_col = "Name"
-        qty_col = "Quantity"
-        net_col = "Net weight"
-
-    # ==================================================
-    # ✅ FORMAT 2
-    # ==================================================
-
-    elif "CN" in columns:
-
-        code_col = "CN"
-        name_col = "Product Name"
-        qty_col = "Quantity"
-        net_col = "Total Weight (NET:)"
-
-    else:
-
-        st.error("❌ CHEMPIOIL: непознат Excel формат")
-        return pd.DataFrame()
-
-    rows = []
-
-    for _, row in df.iterrows():
-
+    for i in range(20):
         try:
-
-            description = str(
-                row[name_col]
-            ).upper()
-
-            code = str(
-                row[code_col]
-            )
-
-            code = re.sub(
-                r"\D",
-                "",
-                code
-            )[:8]
-
-            if code not in ALLOWED_CODES:
-                continue
-
-            qty = pd.to_numeric(
-                row[qty_col],
-                errors="coerce"
-            )
-
-            net_weight = pd.to_numeric(
-                row[net_col],
-                errors="coerce"
-            )
-
-            if pd.isna(qty):
-                continue
-
-            if pd.isna(net_weight):
-                continue
-
-            wid = None
-
-            # ✅ L
-            m = re.search(
-                r'(\d+(?:[.,]\d+)?)\s*L\b',
-                description
-            )
-
-            if m:
-                wid = float(
-                    m.group(1).replace(",", ".")
-                )
-
-            # ✅ KG
-            if wid is None:
-
-                m = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*KG\b',
-                    description
-                )
-
-                if m:
-                    wid = float(
-                        m.group(1).replace(",", ".")
-                    )
-
-            # ✅ G / GR
-            if wid is None:
-
-                m = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*(?:GR|G)\b',
-                    description
-                )
-
-                if m:
-                    wid = float(
-                        m.group(1).replace(",", ".")
-                    ) / 1000
-
-            if wid is None:
-                continue
-
-            rows.append({
-                "Тарифен код": code,
-                "Количество": float(qty),
-                "wid": wid,
-                "kolichestvo": round(
-                    float(qty) * wid,
-                    3
-                ),
-                "тегло": round(
-                    float(net_weight),
-                    3
-                )
-            })
-
+            st.write(i, df.iloc[i].tolist())
         except:
-            continue
+            pass
 
-    if not rows:
-        st.error("❌ CHEMPIOIL Excel parser не извлече данни")
-        return pd.DataFrame()
+    return pd.DataFrame(
 
-    df_out = pd.DataFrame(rows)
-
-    df_out = df_out.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df_out
 # ======================================================
 # ✅ FLUKAR (EXCEL ONLY ✅)
 # ======================================================
