@@ -2229,6 +2229,123 @@ def parse_elromi_excel(file):
     })
 
     return df_out
+    # ======================================================
+# ✅ BRECHMANN
+# ======================================================
+def parse_brechmann_excel(file):
+
+    df = pd.read_excel(file)
+
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
+    ]
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            code = str(row["HS Code"])
+
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            qty = pd.to_numeric(
+                row["Qty"],
+                errors="coerce"
+            )
+
+            net_weight = pd.to_numeric(
+                row["Net Weight"],
+                errors="coerce"
+            )
+
+            package = str(
+                row["Gebindegröße Öl"]
+            ).upper()
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(net_weight):
+                continue
+
+            wid = None
+
+            m = re.search(
+                r'X\s*(\d+(?:[.,]\d+)?)\s*L',
+                package
+            )
+
+            if m:
+                wid = float(
+                    m.group(1).replace(",", ".")
+                )
+
+            if wid is None:
+
+                m = re.search(
+                    r'X\s*(\d+(?:[.,]\d+)?)\s*KG',
+                    package
+                )
+
+                if m:
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    )
+
+            if wid is None:
+
+                m = re.search(
+                    r'X\s*(\d+(?:[.,]\d+)?)\s*G',
+                    package
+                )
+
+                if m:
+                    wid = (
+                        float(
+                            m.group(1).replace(",", ".")
+                        ) / 1000
+                    )
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": qty * net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ BRECHMANN parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 
 
 # ======================================================
@@ -2384,6 +2501,10 @@ if uploaded_files:
         # ✅ EMINIA
         elif menu == "EMINIA":
             df = parse_eminia_excel(file)
+            
+        # ✅ BRECHMANN
+        elif menu == "Brehman":
+            df = parse_brechmann_excel(file)
 
         # ✅ CHEMPIOIL EXCEL
         elif menu == "Chempioil (FANFARO)" and source_type == "Excel":
