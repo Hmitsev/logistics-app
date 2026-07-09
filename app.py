@@ -1093,14 +1093,14 @@ def parse_fuchs(text):
 
     return df
 # ======================================================
-# ✅ GASOLINE PDF
+# ✅ GASOLINE PDF (UNIVERSAL)
 # ======================================================
 def parse_gasoline(text):
 
     rows = []
 
     # ==========================================
-    # ✅ редове с митнически код
+    # ✅ С КОД
     # ==========================================
 
     pattern = re.compile(
@@ -1115,9 +1115,7 @@ def parse_gasoline(text):
 
         try:
 
-            total_liters = float(
-                match.group(1)
-            )
+            total_liters = float(match.group(1))
 
             weight = float(
                 match.group(2)
@@ -1128,9 +1126,6 @@ def parse_gasoline(text):
             package = match.group(3)
 
             code = match.group(4)
-
-            if code not in ALLOWED_CODES:
-                continue
 
             package_match = re.search(
                 r'(\d+)\s*x\s*(\d+)',
@@ -1159,11 +1154,9 @@ def parse_gasoline(text):
                     fass_match.group(1)
                 )
 
-            broj = total_liters / wid
-
             rows.append({
                 "Тарифен код": code,
-                "Количество": broj,
+                "Количество": total_liters / wid,
                 "wid": wid,
                 "kolichestvo": total_liters,
                 "тегло": weight
@@ -1173,27 +1166,61 @@ def parse_gasoline(text):
             continue
 
     # ==========================================
-    # ✅ KIA БЕЗ CN CODE
+    # ✅ БЕЗ КОД -> 00000000
     # ==========================================
 
-    kia_match = re.search(
-        r'465\s*Liter.*?'
-        r'KIA\s+ORIGINAL\s+OIL.*?'
-        r'432,45.*?'
-        r'3\s*x\s*5\s*Liter',
-        text,
+    no_code_pattern = re.compile(
+        r'(\d+)\s*Liter\s+'
+        r'.*?'
+        r'([\d\.,]+)\s+'
+        r'(\d+\s*x\s*\d+|\d+x\d+)'
+        r'\s*Liter\s+im\s+Karton',
         re.IGNORECASE | re.DOTALL
     )
 
-    if kia_match:
+    for match in no_code_pattern.finditer(text):
 
-        rows.append({
-            "Тарифен код": "00000000",
-            "Количество": 93,
-            "wid": 5,
-            "kolichestvo": 465,
-            "тегло": 432.45
-        })
+        try:
+
+            total_liters = float(
+                match.group(1)
+            )
+
+            weight = float(
+                match.group(2)
+                .replace(".", "")
+                .replace(",", ".")
+            )
+
+            package = match.group(3)
+
+            wid = float(
+                re.search(
+                    r'x\s*(\d+)',
+                    package,
+                    re.IGNORECASE
+                ).group(1)
+            )
+
+            broj = total_liters / wid
+
+            already_exists = any(
+                abs(r["kolichestvo"] - total_liters) < 0.01
+                for r in rows
+            )
+
+            if not already_exists:
+
+                rows.append({
+                    "Тарифен код": "00000000",
+                    "Количество": broj,
+                    "wid": wid,
+                    "kolichestvo": total_liters,
+                    "тегло": weight
+                })
+
+        except:
+            continue
 
     if not rows:
 
