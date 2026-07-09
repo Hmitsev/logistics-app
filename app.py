@@ -2407,7 +2407,7 @@ def parse_brechmann_excel(file):
 
     return df_out
 # ======================================================
-# ✅ FEBI EXCEL (XLS + XML Spreadsheet)
+# ✅ FEBI EXCEL
 # ======================================================
 def parse_febi_excel(file):
 
@@ -2471,16 +2471,30 @@ def parse_febi_excel(file):
             ).upper()
 
             wid = None
+            real_qty = qty
 
             # ==========================================
-            # ✅ X6 / X7 / X5 + (1PC=1L)
+            # ✅ X6 / X7 / X8 + (1PC=1L)
             # ==========================================
             if "1PC=1L" in customer_material:
 
                 wid = 1
 
+                m = re.search(
+                    r"X\s*(\d+)",
+                    customer_material
+                )
+
+                if m:
+
+                    multiplier = int(
+                        m.group(1)
+                    )
+
+                    real_qty = qty * multiplier
+
             # ==========================================
-            # ✅ = 5L
+            # ✅ 1PC = 5L
             # ==========================================
             if wid is None:
 
@@ -2516,9 +2530,9 @@ def parse_febi_excel(file):
 
             rows.append({
                 "Тарифен код": code,
-                "Количество": qty,
+                "Количество": real_qty,
                 "wid": wid,
-                "kolichestvo": qty * wid,
+                "kolichestvo": real_qty * wid,
                 "тегло": net_weight
             })
 
