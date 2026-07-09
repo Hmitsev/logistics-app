@@ -2362,7 +2362,9 @@ if uploaded_files:
         # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
-            
+        # ✅ ELROMI
+        elif menu == "ELROMI RONAX":
+            df = parse_elromi_excel(file)
 
         # ✅ NISTA
         elif menu == "NISTA":
