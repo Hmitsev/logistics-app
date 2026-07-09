@@ -1095,7 +1095,7 @@ def parse_fuchs(text):
     # ======================================================
 # ✅ GASOLINE PDF
 # ======================================================
-def parse_gasolin(text):
+def parse_gasoline(text):
 
     rows = []
 
@@ -1160,7 +1160,7 @@ def parse_gasolin(text):
     if not rows:
 
         st.error(
-            "❌ GASOLIN parser не извлече данни"
+            "❌ GASOLINE parser не извлече данни"
         )
 
         return pd.DataFrame()
@@ -2841,10 +2841,10 @@ if uploaded_files:
 
                 df = parse_chempioil_pdf(text)
 
-            # ✅ GASOLIN
-            elif menu == "GASOLIN":
+            # ✅ GASOLINE
+            elif menu == "GASOLINE":
 
-                df = parse_gasolin(text)
+                df = parse_gasoline(text)
 
             # ✅ MOTUL + останалите PDF
             else:
