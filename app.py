@@ -2416,17 +2416,10 @@ def parse_febi_excel(file):
 
     try:
 
-        xl = pd.ExcelFile(file)
+        content = file.read(500)
 
-        st.write("SHEETS:")
-        st.write(xl.sheet_names)
-
-        df = xl.parse(
-            xl.sheet_names[0]
-        )
-
-        st.write("COLUMNS:")
-        st.write(df.columns.tolist())
+        st.write("FIRST BYTES:")
+        st.write(content)
 
         return pd.DataFrame()
 
