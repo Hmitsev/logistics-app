@@ -2276,7 +2276,7 @@ if uploaded_files:
             df = parse_auto_mega_excel(file)
          # ✅ AMTRA
         elif menu == "AMTRA":
-            df = parse_auto_amtra_excel(file)
+            df = parse_amtra_excel(file)
         # ✅ EMINIA
         elif menu == "EMINIA":
             df = parse_eminia_excel(file)
