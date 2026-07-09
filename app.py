@@ -2406,6 +2406,138 @@ def parse_brechmann_excel(file):
     )
 
     return df_out
+    # ======================================================
+# ✅ FEBI EXCEL
+# ======================================================
+def parse_febi_excel(file):
+
+    df = pd.read_excel(file)
+
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
+    ]
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            # =============================================
+            # CODE
+            # =============================================
+            code = str(
+                row["HS-Code"]
+            )
+
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            # =============================================
+            # BROJ
+            # =============================================
+            qty = pd.to_numeric(
+                row["Quantity"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            # =============================================
+            # TEGLO
+            # =============================================
+            net_weight = pd.to_numeric(
+                row["Net weight"],
+                errors="coerce"
+            )
+
+            if pd.isna(net_weight):
+                continue
+
+            # =============================================
+            # WID
+            # =============================================
+            customer_material = str(
+                row["Customer material"]
+            ).upper()
+
+            wid = None
+
+            # ✅ първо X7 / X6 / X5 ...
+            m = re.search(
+                r"X\s*(\d+(?:[.,]\d+)?)",
+                customer_material
+            )
+
+            if m:
+                wid = float(
+                    m.group(1).replace(",", ".")
+                )
+
+            # ✅ ако няма X → 5L / 4L / 1L
+            if wid is None:
+
+                m = re.search(
+                    r"=\s*(\d+(?:[.,]\d+)?)\s*L",
+                    customer_material
+                )
+
+                if m:
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    )
+
+            # ✅ резервен вариант
+            if wid is None:
+
+                m = re.search(
+                    r"(\d+(?:[.,]\d+)?)\s*L",
+                    customer_material
+                )
+
+                if m:
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    )
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ FEBI parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 
 # ======================================================
 # ✅ ORLEN (EXCEL)
@@ -2564,6 +2696,11 @@ if uploaded_files:
         # ✅ BRECHMANN
         elif menu == "Brehman":
             df = parse_brechmann_excel(file)
+            
+        # ✅ FEBI
+        elif menu == "FEBI":
+            df = parse_febi_excel(file)
+
 
         # ✅ CHEMPIOIL EXCEL
         elif menu == "Chempioil (FANFARO)" and source_type == "Excel":
