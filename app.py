@@ -2413,10 +2413,18 @@ def parse_febi_excel(file):
 
     try:
 
-        df = pd.read_xml(file)
+        df = pd.read_xml(
+            file,
+            parser="etree"
+        )
+
+        st.write("ROWS:")
+        st.write(len(df))
 
         st.write("COLUMNS:")
         st.write(df.columns.tolist())
+
+        st.write(df.head())
 
         return pd.DataFrame()
 
@@ -2425,7 +2433,6 @@ def parse_febi_excel(file):
         st.error(f"❌ FEBI ERROR: {e}")
 
         return pd.DataFrame()
-
 # ======================================================
 # ✅ ORLEN (EXCEL)
 # ======================================================
