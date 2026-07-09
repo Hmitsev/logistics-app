@@ -172,10 +172,67 @@ suppliers_table = [
 # ✅ обръщаме реда (както искаш)
 suppliers_table = suppliers_table[::-1]
 
-# ✅ правим DataFrame за визуализация
-df_suppliers = pd.DataFrame(suppliers_table, columns=["Supplier", "File"])
+# ✅ Suppliers & File Type (Custom Table)
 
-st.sidebar.dataframe(df_suppliers, use_container_width=True, height=650)
+st.sidebar.markdown("""
+<style>
+.sup-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+}
+
+.sup-table th{
+    background:#d71919;
+    color:white;
+    padding:6px;
+    text-align:center;
+    border:1px solid rgba(255,255,255,0.25);
+}
+
+.sup-table td{
+    padding:5px;
+    border:1px solid rgba(255,255,255,0.15);
+    background:rgba(255,255,255,0.04);
+    color:white;
+}
+
+.sup-table tr:hover td{
+    background:rgba(255,255,255,0.10);
+}
+</style>
+""", unsafe_allow_html=True)
+
+suppliers_html = """
+<table class="sup-table">
+<tr>
+    <th>Supplier</th>
+    <th>File</th>
+</tr>
+<tr><td>FLUKAR</td><td>Excel</td></tr>
+<tr><td>ELROMI RONAX</td><td>Excel</td></tr>
+<tr><td>VALVOLINE</td><td>Excel</td></tr>
+<tr><td>ORLEN</td><td>Excel</td></tr>
+<tr><td>Chempioil (FANFARO)</td><td>Excel or PDF</td></tr>
+<tr><td>AMTRA</td><td>Excel+NewSheet</td></tr>
+<tr><td>FUCHS</td><td>PDF</td></tr>
+<tr><td>CASTROL</td><td>Excel</td></tr>
+<tr><td>MOTUL</td><td>PDF</td></tr>
+<tr><td>NESTE</td><td>Excel</td></tr>
+<tr><td>NISTA</td><td>Excel+NewSheet</td></tr>
+<tr><td>AUTO MEGA</td><td>Excel</td></tr>
+<tr><td>EMINIA</td><td>Excel</td></tr>
+<tr><td>Brehman</td><td>Excel</td></tr>
+<tr><td>Gasoline</td><td>PDF</td></tr>
+<tr><td>FEBI</td><td>Excel+NewFile.Xls</td></tr>
+</table>
+"""
+
+st.sidebar.markdown(
+    suppliers_html,
+    unsafe_allow_html=True
+)
+
 # ✅ RESET при смяна на supplier
 if "prev_supplier" not in st.session_state:
     st.session_state["prev_supplier"] = menu
@@ -183,7 +240,6 @@ if "prev_supplier" not in st.session_state:
 if st.session_state["prev_supplier"] != menu:
     st.session_state["source_type"] = ""
     st.session_state["prev_supplier"] = menu
-
 
 # ✅ заглавие
 st.markdown('<div class="source-title">👇 Choose Source</div>', unsafe_allow_html=True)
