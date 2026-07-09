@@ -2265,7 +2265,7 @@ if uploaded_files:
             
         # ✅ ELROMI
          elif menu == "ELROMI RONAX":
-            df = parse_elromi_excel(file)
+             df = parse_elromi_excel(file)
 
         # ✅ NISTA
         elif menu == "NISTA":
