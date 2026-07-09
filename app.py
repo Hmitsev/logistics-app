@@ -2982,32 +2982,18 @@ if uploaded_files:
             {code: f"{code} ( ! )"}
         )
 
-        st.subheader("📊 Финален отчет")
-        
+    st.subheader("📊 Финален отчет")
+    st.dataframe(report)
 
-    report["тегло"] = pd.to_numeric(
-        report["тегло"],
-        errors="coerce"
-    ).round(2)
+    report = report.rename(columns={
+        "Тарифен код": "Code",
+        "wid": "wid",
+        "Количество": "Broj",
+        "kolichestvo": "colic-v L",
+        "тегло": "teglo"
+    })
 
-    report["kolichestvo"] = pd.to_numeric(
-    report["kolichestvo"],
-    errors="coerce"
-).round(2)
-
-report = report.fillna("")
-
-st.dataframe(report)
-
-report = report.rename(columns={
-    "Тарифен код": "Code",
-    "wid": "wid",
-    "Количество": "Broj",
-    "kolichestvo": "colic-v L",
-    "тегло": "teglo"
-})
-
-from openpyxl.styles import Font
+    from openpyxl.styles import Font
 
     output = io.BytesIO()
 
