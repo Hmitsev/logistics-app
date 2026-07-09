@@ -2411,15 +2411,12 @@ def parse_brechmann_excel(file):
 # ======================================================
 def parse_febi_excel(file):
 
-    st.write("FILE:")
-    st.write(file.name)
-
     try:
 
-        content = file.read(500)
+        df = pd.read_xml(file)
 
-        st.write("FIRST BYTES:")
-        st.write(content)
+        st.write("COLUMNS:")
+        st.write(df.columns.tolist())
 
         return pd.DataFrame()
 
