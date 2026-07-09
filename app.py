@@ -2462,41 +2462,43 @@ def parse_febi_excel(file):
 
                 wid = None
 
-                # 171748 = 29449 X7 (1PC=1L)
-                m = re.search(
-                    r"X\s*(\d+(?:[.,]\d+)?)",
-                    customer_material
-                )
+# =================================================
+# X6 / X7 / X5 + (1PC=1L)
+# винаги е 1 литър
+# =================================================
+if "1PC=1L" in customer_material:
 
-                if m:
-                    wid = float(
-                        m.group(1).replace(",", ".")
-                    )
+    wid = 1
 
-                # 100708 = 1PC = 5L
-                if wid is None:
+# =================================================
+# 100708 = 1PC = 5L
+# =================================================
+if wid is None:
 
-                    m = re.search(
-                        r"=\s*(\d+(?:[.,]\d+)?)\s*L",
-                        customer_material
-                    )
+    m = re.search(
+        r"=\s*(\d+(?:[.,]\d+)?)\s*L",
+        customer_material
+    )
 
-                    if m:
-                        wid = float(
-                            m.group(1).replace(",", ".")
-                        )
+    if m:
+        wid = float(
+            m.group(1).replace(",", ".")
+        )
 
-                if wid is None:
+# =================================================
+# резервен вариант
+# =================================================
+if wid is None:
 
-                    m = re.search(
-                        r"(\d+(?:[.,]\d+)?)\s*L",
-                        customer_material
-                    )
+    m = re.search(
+        r"(\d+(?:[.,]\d+)?)\s*L",
+        customer_material
+    )
 
-                    if m:
-                        wid = float(
-                            m.group(1).replace(",", ".")
-                        )
+    if m:
+        wid = float(
+            m.group(1).replace(",", ".")
+        )
 
                 if wid is None:
                     continue
