@@ -120,13 +120,15 @@ set_bg("background.png")
 
 st.markdown("""
 <style>
+
 .source-title {
     font-size: 23px;
     font-weight: 800;
     color: #ff8c00;
     text-shadow: 0 0 8px rgba(255,140,0,0.5);
+}
 
-/* ✅ Add file малък */
+/* ✅ Add file */
 .add-file {
     display:inline-block;
     background: rgba(255,255,255,0.05);
@@ -141,6 +143,61 @@ st.markdown("""
 button[data-testid="baseButton-secondary"] p {
     opacity: 0;
 }
+
+/* ✅ PREMIUM SUPPLIER DROPDOWN */
+
+div[data-baseweb="select"] {
+
+    background: rgba(255,255,255,0.05) !important;
+
+    border: 2px solid rgba(255,255,255,0.18) !important;
+
+    border-radius: 14px !important;
+
+    min-height: 58px !important;
+
+    font-size: 18px !important;
+
+    font-weight: 700 !important;
+
+    box-shadow:
+        0 0 12px rgba(255,255,255,0.08),
+        inset 0 0 8px rgba(255,255,255,0.03);
+
+    transition: all 0.25s ease;
+}
+
+/* ✅ Hover ефект */
+
+div[data-baseweb="select"]:hover {
+
+    border: 2px solid rgba(255,255,255,0.45) !important;
+
+    box-shadow:
+        0 0 18px rgba(255,255,255,0.15),
+        inset 0 0 10px rgba(255,255,255,0.06);
+}
+
+/* ✅ Текст */
+
+div[data-baseweb="select"] span {
+
+    font-size: 19px !important;
+
+    font-weight: 800 !important;
+
+    color: white !important;
+}
+
+/* ✅ Стрелка */
+
+div[data-baseweb="select"] svg {
+
+    width: 20px !important;
+
+    height: 20px !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
