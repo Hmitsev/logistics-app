@@ -2413,24 +2413,43 @@ def parse_febi_excel(file):
 
     try:
 
-        df = pd.read_xml(
+        # ====================================
+        # Нормален Excel
+        # ====================================
+        df = pd.read_excel(
             file,
-            parser="etree"
+            engine="openpyxl"
         )
 
-        st.write("ROWS:")
-        st.write(len(df))
+        return parse_febi_dataframe(df)
 
-        st.write("COLUMNS:")
-        st.write(df.columns.tolist())
+    except:
 
-        st.write(df.head())
+        pass
 
-        return pd.DataFrame()
+    try:
+
+        # ====================================
+        # XML Spreadsheet 2003
+        # ====================================
+
+        import xml.etree.ElementTree as ET
+
+        file.seek(0)
+
+        tree = ET.parse(file)
+
+        root = tree.getroot()
+
+        st.success("✅ FEBI XML format detected")
+
+        # тук ще обработим XML редовете
 
     except Exception as e:
 
-        st.error(f"❌ FEBI ERROR: {e}")
+        st.error(
+            f"❌ FEBI parser error: {e}"
+        )
 
         return pd.DataFrame()
 # ======================================================
