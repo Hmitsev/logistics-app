@@ -2187,11 +2187,12 @@ def parse_elromi_excel(file):
                 errors="coerce"
             )
 
-            if pd.isna(qty):
-                continue
-
             if pd.isna(unit_weight):
-                continue
+    continue
+
+# ✅ игнорирай всичко под 0.50 кг
+if unit_weight < 0.50:
+    continue
 
             if unit_weight <= 0:
                 continue
