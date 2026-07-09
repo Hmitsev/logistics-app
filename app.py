@@ -1092,58 +1092,87 @@ def parse_fuchs(text):
     })
 
     return df
-    # ======================================================
+ # ======================================================
 # ✅ GASOLINE PDF
 # ======================================================
 def parse_gasoline(text):
 
     rows = []
 
-    pattern = re.compile(
-        r'(\d+)\s+Liter\s+.*?'
-        r'([\d\.,]+)\s+'
-        r'(\d+(?:x\d+)?|\d+)\s*Liter.*?'
-        r'Zolltarifnummer:\s*(\d{8})',
-        re.IGNORECASE | re.DOTALL
-    )
+    blocks = text.split("Zolltarifnummer:")
 
-    for match in pattern.finditer(text):
+    for block in blocks:
 
         try:
 
-            total_liters = float(
-                match.group(1)
+            code_match = re.search(
+                r'(\d{8})',
+                block
             )
 
-            weight = float(
-                match.group(2)
-                .replace(".", "")
-                .replace(",", ".")
-            )
+            if not code_match:
+                continue
 
-            package = match.group(3)
-
-            code = match.group(4)
+            code = code_match.group(1)
 
             if code not in ALLOWED_CODES:
                 continue
 
-            # ===========================
-            # WID
-            # ===========================
-            if "x" in package.lower():
+            liter_match = re.search(
+                r'(\d+)\s*Liter',
+                block,
+                re.IGNORECASE
+            )
+
+            if not liter_match:
+                continue
+
+            total_liters = float(
+                liter_match.group(1)
+            )
+
+            weight_match = re.search(
+                r'(\d[\d\.,]*)\s*\n(?:\s*)?(?:\d+\s*x\s*\d+|\d+x\d+|\d+\s+Liter\s+Fass)',
+                block,
+                re.IGNORECASE
+            )
+
+            if not weight_match:
+                continue
+
+            weight = float(
+                weight_match.group(1)
+                .replace(".", "")
+                .replace(",", ".")
+            )
+
+            package_match = re.search(
+                r'(\d+)\s*x\s*(\d+)\s*Liter',
+                block,
+                re.IGNORECASE
+            )
+
+            if package_match:
 
                 wid = float(
-                    package.lower().split("x")[1]
+                    package_match.group(2)
                 )
 
             else:
 
-                wid = float(package)
+                fass_match = re.search(
+                    r'(\d+)\s*Liter\s*Fass',
+                    block,
+                    re.IGNORECASE
+                )
 
-            # ===========================
-            # BROJ
-            # ===========================
+                if not fass_match:
+                    continue
+
+                wid = float(
+                    fass_match.group(1)
+                )
+
             broj = total_liters / wid
 
             rows.append({
