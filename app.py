@@ -3007,7 +3007,7 @@ report = report.rename(columns={
     "тегло": "teglo"
 })
 
-    from openpyxl.styles import Font
+from openpyxl.styles import Font
 
     output = io.BytesIO()
 
