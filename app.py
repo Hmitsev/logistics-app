@@ -1092,7 +1092,7 @@ def parse_fuchs(text):
     })
 
     return df
- # ======================================================
+# ======================================================
 # ✅ GASOLINE PDF
 # ======================================================
 def parse_gasoline(text):
@@ -1105,19 +1105,29 @@ def parse_gasoline(text):
 
         try:
 
+            # ===============================
+            # CODE
+            # ===============================
             code_match = re.search(
                 r'(\d{8})',
                 block
             )
 
-            if not code_match:
-                continue
+            if code_match:
 
-            code = code_match.group(1)
+                code = code_match.group(1)
 
-            if code not in ALLOWED_CODES:
-                continue
+                if code not in ALLOWED_CODES:
+                    continue
 
+            else:
+
+                # ✅ липсва митнически код
+                code = "00000000"
+
+            # ===============================
+            # TOTAL LITERS
+            # ===============================
             liter_match = re.search(
                 r'(\d+)\s*Liter',
                 block,
@@ -1131,6 +1141,9 @@ def parse_gasoline(text):
                 liter_match.group(1)
             )
 
+            # ===============================
+            # WEIGHT
+            # ===============================
             weight_match = re.search(
                 r'(\d[\d\.,]*)\s*\n(?:\s*)?(?:\d+\s*x\s*\d+|\d+x\d+|\d+\s+Liter\s+Fass)',
                 block,
@@ -1146,6 +1159,9 @@ def parse_gasoline(text):
                 .replace(",", ".")
             )
 
+            # ===============================
+            # PACKAGE
+            # ===============================
             package_match = re.search(
                 r'(\d+)\s*x\s*(\d+)\s*Liter',
                 block,
@@ -1173,6 +1189,9 @@ def parse_gasoline(text):
                     fass_match.group(1)
                 )
 
+            # ===============================
+            # BROJ
+            # ===============================
             broj = total_liters / wid
 
             rows.append({
