@@ -2006,9 +2006,9 @@ def build_final_report(df, supplier):
 
         return pd.DataFrame(rows)
         # ======================================================
-# ✅ ELROMI RONAX
-# ======================================================
-def parse_elromi_excel(file):
+        # ✅ ELROMI RONAX
+        # ======================================================
+    def parse_elromi_excel(file):
 
     xl = pd.ExcelFile(file)
 
