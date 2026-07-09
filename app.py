@@ -2983,6 +2983,7 @@ if uploaded_files:
         )
 
         st.subheader("📊 Финален отчет")
+        
 
     report["тегло"] = pd.to_numeric(
         report["тегло"],
@@ -2995,6 +2996,7 @@ if uploaded_files:
     ).round(2)
 
     st.dataframe(report)
+    report = report.fillna("")
 
     report = report.rename(columns={
         "Тарифен код": "Code",
