@@ -2726,6 +2726,10 @@ if uploaded_files:
         elif menu == "Chempioil (FANFARO)" and source_type == "Excel":
             df = parse_chempioil_excel(file)
 
+         # ✅ GASOLINE
+        elif menu == "GASOLINE":
+            df = parse_gasolin(text)
+            
         # ✅ VALVOLINE
         elif menu == "VALVOLINE":
             df = parse_valvoline_excel(file)
