@@ -2690,8 +2690,8 @@ if uploaded_files:
         ws = writer.sheets["Sheet1"]
 
         red_codes = [
-            "34039900"
-            "34031910"
+            "34039900",
+            "34031910",
             "34031980"
         ]
 
