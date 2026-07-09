@@ -1092,6 +1092,91 @@ def parse_fuchs(text):
     })
 
     return df
+    # ======================================================
+# ✅ GASOLIN PDF
+# ======================================================
+def parse_gasolin(text):
+
+    rows = []
+
+    pattern = re.compile(
+        r'(\d+)\s+Liter\s+.*?'
+        r'([\d\.,]+)\s+'
+        r'(\d+(?:x\d+)?|\d+)\s*Liter.*?'
+        r'Zolltarifnummer:\s*(\d{8})',
+        re.IGNORECASE | re.DOTALL
+    )
+
+    for match in pattern.finditer(text):
+
+        try:
+
+            total_liters = float(
+                match.group(1)
+            )
+
+            weight = float(
+                match.group(2)
+                .replace(".", "")
+                .replace(",", ".")
+            )
+
+            package = match.group(3)
+
+            code = match.group(4)
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            # ===========================
+            # WID
+            # ===========================
+            if "x" in package.lower():
+
+                wid = float(
+                    package.lower().split("x")[1]
+                )
+
+            else:
+
+                wid = float(package)
+
+            # ===========================
+            # BROJ
+            # ===========================
+            broj = total_liters / wid
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": broj,
+                "wid": wid,
+                "kolichestvo": total_liters,
+                "тегло": weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+
+        st.error(
+            "❌ GASOLIN parser не извлече данни"
+        )
+
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 # ======================================================
 # ✅ CHEMPIOIL PDF
 # ======================================================
