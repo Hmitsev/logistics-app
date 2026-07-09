@@ -433,14 +433,52 @@ section[data-testid="stSidebar"] * {
 }
 
 
-/* ✅ SELECT BOX */
+/* ✅ PREMIUM SELECT BOX */
 div[data-baseweb="select"] {
-    background: rgba(255,255,255,0.04) !important;
-    backdrop-filter: blur(8px);
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.25);
+
+    background: rgba(255,255,255,0.06) !important;
+
+    backdrop-filter: blur(10px);
+
+    border-radius: 14px !important;
+
+    border: 2px solid rgba(255,255,255,0.25) !important;
+
+    min-height: 60px !important;
+
+    font-size: 18px !important;
+
+    font-weight: 700 !important;
+
+    box-shadow:
+        0 0 10px rgba(255,255,255,0.08),
+        inset 0 0 6px rgba(255,255,255,0.03);
 
     cursor: pointer !important;
+
+    transition: all .25s ease;
+}
+
+/* ✅ Hover */
+div[data-baseweb="select"]:hover {
+
+    border: 2px solid rgba(255,255,255,0.55) !important;
+
+    box-shadow:
+        0 0 16px rgba(255,255,255,0.18),
+        inset 0 0 8px rgba(255,255,255,0.05);
+}
+
+/* ✅ Текст */
+div[data-baseweb="select"] span {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+}
+
+/* ✅ Стрелка */
+div[data-baseweb="select"] svg {
+    width: 22px !important;
+    height: 22px !important;
 }
 
 
