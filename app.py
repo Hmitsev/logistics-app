@@ -2692,6 +2692,7 @@ if uploaded_files:
         red_codes = [
             "34039900",
             "34031910"
+            "34031980"
         ]
 
         for row in ws.iter_rows(min_row=2):
