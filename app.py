@@ -2006,6 +2006,106 @@ def build_final_report(df, supplier):
 
         return pd.DataFrame(rows)
         # ======================================================
+# ✅ ELROMI RONAX
+# ======================================================
+def parse_elromi_excel(file):
+
+    xl = pd.ExcelFile(file)
+
+    sheet_name = None
+
+    for s in xl.sheet_names:
+
+        if str(s).strip().upper() == "INHALT":
+            sheet_name = s
+            break
+
+    if sheet_name is None:
+
+        if len(xl.sheet_names) > 1:
+            sheet_name = xl.sheet_names[1]
+        else:
+            sheet_name = xl.sheet_names[0]
+
+    df = pd.read_excel(
+        file,
+        sheet_name=sheet_name
+    )
+
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
+    ]
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            code = str(row["tariff"])
+
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            qty = pd.to_numeric(
+                row["Menge"],
+                errors="coerce"
+            )
+
+            unit_weight = pd.to_numeric(
+                row["Gewicht, kg"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(unit_weight):
+                continue
+
+            if unit_weight <= 0:
+                continue
+
+            wid = max(
+                1,
+                round(float(unit_weight))
+            )
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": qty * unit_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ ELROMI parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
+        # ======================================================
 # ✅ AMTRA EXCEL
 # ======================================================
 def parse_amtra_excel(file):
@@ -2262,6 +2362,10 @@ if uploaded_files:
         # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
+            
+        # ✅ ELROMI
+         elif menu == "ELROMI RONAX":
+            df = parse_elromi_excel(file)
 
         # ✅ NISTA
         elif menu == "NISTA":
