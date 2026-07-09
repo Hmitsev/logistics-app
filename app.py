@@ -1099,17 +1099,173 @@ def parse_gasoline(text):
 
     rows = []
 
-    blocks = text.split("Zolltarifnummer:")
+    parts = text.split("Zolltarifnummer:")
 
-    st.write("BLOCKS FOUND:", len(blocks))
+    for i in range(len(parts) - 1):
 
-    for i, block in enumerate(blocks):
+        try:
 
-        st.markdown(f"### BLOCK {i}")
+            block = parts[i]
+            next_block = parts[i + 1]
 
-        st.text(block[:2000])
+            # кодът е в началото на следващия блок
+            code_match = re.search(
+                r'(\d{8})',
+                next_block
+            )
 
-    return pd.DataFrame()
+            if not code_match:
+                continue
+
+            code = code_match.group(1)
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            liter_match = re.search(
+                r'(\d+)\s*Liter',
+                block,
+                re.IGNORECASE
+            )
+
+            if not liter_match:
+                continue
+
+            total_liters = float(
+                liter_match.group(1)
+            )
+
+            weight_match = re.search(
+                r'(\d[\d\.,]*)\s*$',
+                block.strip().split("\n")[-2]
+            )
+
+            if not weight_match:
+                continue
+
+            weight = float(
+                weight_match.group(1)
+                .replace(".", "")
+                .replace(",", ".")
+            )
+
+            package_match = re.search(
+                r'(\d+)\s*x\s*(\d+)\s*Liter',
+                block,
+                re.IGNORECASE
+            )
+
+            if package_match:
+
+                wid = float(
+                    package_match.group(2)
+                )
+
+            else:
+
+                fass_match = re.search(
+                    r'(\d+)\s*Liter\s*Fass',
+                    block,
+                    re.IGNORECASE
+                )
+
+                if not fass_match:
+                    continue
+
+                wid = float(
+                    fass_match.group(1)
+                )
+
+            broj = total_liters / wid
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": broj,
+                "wid": wid,
+                "kolichestvo": total_liters,
+                "тегло": weight
+            })
+
+        except:
+            continue
+
+    # ==========================================
+    # ✅ последен блок без код
+    # ==========================================
+    try:
+
+        last_block = parts[-1]
+
+        liter_match = re.search(
+            r'(\d+)\s*Liter',
+            last_block,
+            re.IGNORECASE
+        )
+
+        package_match = re.search(
+            r'(\d+)\s*x\s*(\d+)\s*Liter',
+            last_block,
+            re.IGNORECASE
+        )
+
+        weight_match = re.search(
+            r'(\d[\d\.,]*)',
+            last_block
+        )
+
+        if (
+            liter_match
+            and package_match
+            and weight_match
+        ):
+
+            total_liters = float(
+                liter_match.group(1)
+            )
+
+            wid = float(
+                package_match.group(2)
+            )
+
+            broj = total_liters / wid
+
+            weight = float(
+                weight_match.group(1)
+                .replace(".", "")
+                .replace(",", ".")
+            )
+
+            rows.append({
+                "Тарифен код": "00000000",
+                "Количество": broj,
+                "wid": wid,
+                "kolichestvo": total_liters,
+                "тегло": weight
+            })
+
+    except:
+        pass
+
+    if not rows:
+
+        st.error(
+            "❌ GASOLINE parser не извлече данни"
+        )
+
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 # ======================================================
 # ✅ CHEMPIOIL PDF
 # ======================================================
