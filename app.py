@@ -2411,142 +2411,30 @@ def parse_brechmann_excel(file):
 # ======================================================
 def parse_febi_excel(file):
 
+    st.write("FILE:")
+    st.write(file.name)
+
     try:
 
-        df = pd.read_excel(
-            file,
-            engine="openpyxl"
+        xl = pd.ExcelFile(file)
+
+        st.write("SHEETS:")
+        st.write(xl.sheet_names)
+
+        df = xl.parse(
+            xl.sheet_names[0]
         )
 
-    except:
+        st.write("COLUMNS:")
+        st.write(df.columns.tolist())
 
-        df = pd.read_excel(file)
-
-    df.columns = [
-        str(c).strip()
-        for c in df.columns
-    ]
-
-    rows = []
-
-    for _, row in df.iterrows():
-
-        try:
-
-            # =============================================
-            # CODE
-            # =============================================
-            code = str(
-                row["HS-Code"]
-            )
-
-            code = re.sub(
-                r"\D",
-                "",
-                code
-            )[:8]
-
-            if code not in ALLOWED_CODES:
-                continue
-
-            # =============================================
-            # BROJ
-            # =============================================
-            qty = pd.to_numeric(
-                row["Quantity"],
-                errors="coerce"
-            )
-
-            if pd.isna(qty):
-                continue
-
-            # =============================================
-            # TEGLO
-            # =============================================
-            net_weight = pd.to_numeric(
-                row["Net weight"],
-                errors="coerce"
-            )
-
-            if pd.isna(net_weight):
-                continue
-
-            # =============================================
-            # WID
-            # =============================================
-            customer_material = str(
-                row["Customer material"]
-            ).upper()
-
-            wid = None
-
-            # ✅ X7 / X6 / X5 ...
-            m = re.search(
-                r"X\s*(\d+(?:[.,]\d+)?)",
-                customer_material
-            )
-
-            if m:
-                wid = float(
-                    m.group(1).replace(",", ".")
-                )
-
-            # ✅ = 5L / = 4L / = 1L
-            if wid is None:
-
-                m = re.search(
-                    r"=\s*(\d+(?:[.,]\d+)?)\s*L",
-                    customer_material
-                )
-
-                if m:
-                    wid = float(
-                        m.group(1).replace(",", ".")
-                    )
-
-            # ✅ резервен вариант
-            if wid is None:
-
-                m = re.search(
-                    r"(\d+(?:[.,]\d+)?)\s*L",
-                    customer_material
-                )
-
-                if m:
-                    wid = float(
-                        m.group(1).replace(",", ".")
-                    )
-
-            if wid is None:
-                continue
-
-            rows.append({
-                "Тарифен код": code,
-                "Количество": qty,
-                "wid": wid,
-                "kolichestvo": qty * wid,
-                "тегло": net_weight
-            })
-
-        except:
-            continue
-
-    if not rows:
-        st.error("❌ FEBI parser не извлече данни")
         return pd.DataFrame()
 
-    df_out = pd.DataFrame(rows)
+    except Exception as e:
 
-    df_out = df_out.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
+        st.error(f"❌ FEBI ERROR: {e}")
 
-    return df_out
+        return pd.DataFrame()
 
 # ======================================================
 # ✅ ORLEN (EXCEL)
