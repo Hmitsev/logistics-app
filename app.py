@@ -1101,130 +1101,15 @@ def parse_gasoline(text):
 
     blocks = text.split("Zolltarifnummer:")
 
-    for block in blocks:
+    st.write("BLOCKS FOUND:", len(blocks))
 
-        try:
+    for i, block in enumerate(blocks):
 
-            # ===============================
-            # CODE
-            # ===============================
-            code_match = re.search(
-                r'(\d{8})',
-                block
-            )
+        st.markdown(f"### BLOCK {i}")
 
-            if code_match:
+        st.text(block[:2000])
 
-                code = code_match.group(1)
-
-                if code not in ALLOWED_CODES:
-                    continue
-
-            else:
-
-                # ✅ липсва митнически код
-                code = "00000000"
-
-            # ===============================
-            # TOTAL LITERS
-            # ===============================
-            liter_match = re.search(
-                r'(\d+)\s*Liter',
-                block,
-                re.IGNORECASE
-            )
-
-            if not liter_match:
-                continue
-
-            total_liters = float(
-                liter_match.group(1)
-            )
-
-            # ===============================
-            # WEIGHT
-            # ===============================
-            weight_match = re.search(
-                r'(\d[\d\.,]*)\s*\n(?:\s*)?(?:\d+\s*x\s*\d+|\d+x\d+|\d+\s+Liter\s+Fass)',
-                block,
-                re.IGNORECASE
-            )
-
-            if not weight_match:
-                continue
-
-            weight = float(
-                weight_match.group(1)
-                .replace(".", "")
-                .replace(",", ".")
-            )
-
-            # ===============================
-            # PACKAGE
-            # ===============================
-            package_match = re.search(
-                r'(\d+)\s*x\s*(\d+)\s*Liter',
-                block,
-                re.IGNORECASE
-            )
-
-            if package_match:
-
-                wid = float(
-                    package_match.group(2)
-                )
-
-            else:
-
-                fass_match = re.search(
-                    r'(\d+)\s*Liter\s*Fass',
-                    block,
-                    re.IGNORECASE
-                )
-
-                if not fass_match:
-                    continue
-
-                wid = float(
-                    fass_match.group(1)
-                )
-
-            # ===============================
-            # BROJ
-            # ===============================
-            broj = total_liters / wid
-
-            rows.append({
-                "Тарифен код": code,
-                "Количество": broj,
-                "wid": wid,
-                "kolichestvo": total_liters,
-                "тегло": weight
-            })
-
-        except:
-            continue
-
-    if not rows:
-
-        st.error(
-            "❌ GASOLINE parser не извлече данни"
-        )
-
-        return pd.DataFrame()
-
-    df_out = pd.DataFrame(rows)
-
-    df_out = df_out.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return df_out
+    return pd.DataFrame()
 # ======================================================
 # ✅ CHEMPIOIL PDF
 # ======================================================
