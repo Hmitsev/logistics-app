@@ -2406,12 +2406,24 @@ def parse_brechmann_excel(file):
     )
 
     return df_out
-    # ======================================================
+ # ======================================================
 # ✅ FEBI EXCEL
 # ======================================================
 def parse_febi_excel(file):
 
-    df = pd.read_excel(file)
+    if str(file.name).lower().endswith(".xls"):
+
+        df = pd.read_excel(
+            file,
+            engine="xlrd"
+        )
+
+    else:
+
+        df = pd.read_excel(
+            file,
+            engine="openpyxl"
+        )
 
     df.columns = [
         str(c).strip()
@@ -2424,9 +2436,6 @@ def parse_febi_excel(file):
 
         try:
 
-            # =============================================
-            # CODE
-            # =============================================
             code = str(
                 row["HS-Code"]
             )
@@ -2440,9 +2449,6 @@ def parse_febi_excel(file):
             if code not in ALLOWED_CODES:
                 continue
 
-            # =============================================
-            # BROJ
-            # =============================================
             qty = pd.to_numeric(
                 row["Quantity"],
                 errors="coerce"
@@ -2451,9 +2457,6 @@ def parse_febi_excel(file):
             if pd.isna(qty):
                 continue
 
-            # =============================================
-            # TEGLO
-            # =============================================
             net_weight = pd.to_numeric(
                 row["Net weight"],
                 errors="coerce"
@@ -2462,16 +2465,12 @@ def parse_febi_excel(file):
             if pd.isna(net_weight):
                 continue
 
-            # =============================================
-            # WID
-            # =============================================
             customer_material = str(
                 row["Customer material"]
             ).upper()
 
             wid = None
 
-            # ✅ първо X7 / X6 / X5 ...
             m = re.search(
                 r"X\s*(\d+(?:[.,]\d+)?)",
                 customer_material
@@ -2482,7 +2481,6 @@ def parse_febi_excel(file):
                     m.group(1).replace(",", ".")
                 )
 
-            # ✅ ако няма X → 5L / 4L / 1L
             if wid is None:
 
                 m = re.search(
@@ -2495,7 +2493,6 @@ def parse_febi_excel(file):
                         m.group(1).replace(",", ".")
                     )
 
-            # ✅ резервен вариант
             if wid is None:
 
                 m = re.search(
