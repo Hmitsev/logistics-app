@@ -2229,12 +2229,40 @@ def parse_elromi_excel(file):
     })
 
     return df_out
-    # ======================================================
+ # ======================================================
 # ✅ BRECHMANN
 # ======================================================
 def parse_brechmann_excel(file):
 
-    df = pd.read_excel(file)
+    # търси реда с истинските заглавия
+    raw = pd.read_excel(
+        file,
+        header=None
+    )
+
+    header_row = None
+
+    for idx in range(len(raw)):
+
+        row_text = " ".join(
+            [str(x) for x in raw.iloc[idx].tolist()]
+        )
+
+        if (
+            "HS Code" in row_text
+            and "Qty" in row_text
+        ):
+            header_row = idx
+            break
+
+    if header_row is None:
+        st.error("❌ Не намерих header на BRECHMANN")
+        return pd.DataFrame()
+
+    df = pd.read_excel(
+        file,
+        header=header_row
+    )
 
     df.columns = [
         str(c).strip()
@@ -2247,7 +2275,12 @@ def parse_brechmann_excel(file):
 
         try:
 
-            code = str(row["HS Code"])
+            # -------------------------------------------------
+            # CODE
+            # -------------------------------------------------
+            code = str(
+                row.get("HS Code", "")
+            )
 
             code = re.sub(
                 r"\D",
@@ -2255,31 +2288,47 @@ def parse_brechmann_excel(file):
                 code
             )[:8]
 
+            if not code:
+                continue
+
             if code not in ALLOWED_CODES:
                 continue
 
+            # -------------------------------------------------
+            # BROJ
+            # -------------------------------------------------
             qty = pd.to_numeric(
-                row["Qty"],
+                row.get("Qty"),
                 errors="coerce"
             )
-
-            net_weight = pd.to_numeric(
-                row["Net Weight"],
-                errors="coerce"
-            )
-
-            package = str(
-                row["Gebindegröße Öl"]
-            ).upper()
 
             if pd.isna(qty):
                 continue
 
+            # -------------------------------------------------
+            # NET WEIGHT
+            # -------------------------------------------------
+            net_weight = pd.to_numeric(
+                row.get("Net Weight"),
+                errors="coerce"
+            )
+
             if pd.isna(net_weight):
-                continue
+                net_weight = 0
+
+            # -------------------------------------------------
+            # WID
+            # -------------------------------------------------
+            package = str(
+                row.get(
+                    "Gebindegröße Öl",
+                    ""
+                )
+            ).upper()
 
             wid = None
 
+            # 12x1L -> 1
             m = re.search(
                 r'X\s*(\d+(?:[.,]\d+)?)\s*L',
                 package
@@ -2290,6 +2339,7 @@ def parse_brechmann_excel(file):
                     m.group(1).replace(",", ".")
                 )
 
+            # 4x20KG -> 20
             if wid is None:
 
                 m = re.search(
@@ -2302,6 +2352,7 @@ def parse_brechmann_excel(file):
                         m.group(1).replace(",", ".")
                     )
 
+            # 12x500G -> 0.5
             if wid is None:
 
                 m = re.search(
@@ -2313,12 +2364,16 @@ def parse_brechmann_excel(file):
                     wid = (
                         float(
                             m.group(1).replace(",", ".")
-                        ) / 1000
+                        )
+                        / 1000
                     )
 
             if wid is None:
                 continue
 
+            # -------------------------------------------------
+            # REPORT ROW
+            # -------------------------------------------------
             rows.append({
                 "Тарифен код": code,
                 "Количество": qty,
@@ -2327,26 +2382,30 @@ def parse_brechmann_excel(file):
                 "тегло": qty * net_weight
             })
 
-        except:
+        except Exception:
             continue
 
     if not rows:
-        st.error("❌ BRECHMANN parser не извлече данни")
+        st.error(
+            "❌ BRECHMANN parser не извлече данни"
+        )
         return pd.DataFrame()
 
     df_out = pd.DataFrame(rows)
 
-    df_out = df_out.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
+    df_out = (
+        df_out.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        )
+        .agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": "sum"
+        })
+    )
 
     return df_out
-
 
 # ======================================================
 # ✅ ORLEN (EXCEL)
