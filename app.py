@@ -2008,7 +2008,7 @@ def build_final_report(df, supplier):
         # ======================================================
 # ✅ AMTRA EXCEL
 # ======================================================
-def parse_amtra_excel(file):
+def parse_AMTRA_excel(file):
 
     raw = pd.read_excel(
         file,
