@@ -1093,7 +1093,7 @@ def parse_fuchs(text):
 
     return df
     # ======================================================
-# ✅ GASOLIN PDF
+# ✅ GASOLINE PDF
 # ======================================================
 def parse_gasolin(text):
 
