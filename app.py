@@ -3136,6 +3136,10 @@ if uploaded_files:
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
+    report["тегло"] = report["тегло"].apply(
+    lambda x: int(x) if pd.notna(x) and float(x).is_integer() else x
+)
+
     report = report.rename(columns={
         "Тарифен код": "Code",
         "wid": "wid",
