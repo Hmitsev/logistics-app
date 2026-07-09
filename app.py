@@ -2991,20 +2991,21 @@ if uploaded_files:
     ).round(2)
 
     report["kolichestvo"] = pd.to_numeric(
-        report["kolichestvo"],
-        errors="coerce"
-    ).round(2)
+    report["kolichestvo"],
+    errors="coerce"
+).round(2)
 
-    st.dataframe(report)
-    report = report.fillna("")
+report = report.fillna("")
 
-    report = report.rename(columns={
-        "Тарифен код": "Code",
-        "wid": "wid",
-        "Количество": "Broj",
-        "kolichestvo": "colic-v L",
-        "тегло": "teglo"
-    })
+st.dataframe(report)
+
+report = report.rename(columns={
+    "Тарифен код": "Code",
+    "wid": "wid",
+    "Количество": "Broj",
+    "kolichestvo": "colic-v L",
+    "тегло": "teglo"
+})
 
     from openpyxl.styles import Font
 
