@@ -2411,124 +2411,6 @@ def parse_brechmann_excel(file):
 # ======================================================
 def parse_febi_excel(file):
 
-    # ==================================================
-    # помощна функция
-    # ==================================================
-    def build_rows(df):
-
-        df.columns = [
-            str(c).strip()
-            for c in df.columns
-        ]
-
-        rows = []
-
-        for _, row in df.iterrows():
-
-            try:
-
-                code = str(
-                    row["HS-Code"]
-                )
-
-                code = re.sub(
-                    r"\D",
-                    "",
-                    code
-                )[:8]
-
-                if code not in ALLOWED_CODES:
-                    continue
-
-                qty = pd.to_numeric(
-                    row["Quantity"],
-                    errors="coerce"
-                )
-
-                if pd.isna(qty):
-                    continue
-
-                net_weight = pd.to_numeric(
-                    row["Net weight"],
-                    errors="coerce"
-                )
-
-                if pd.isna(net_weight):
-                    continue
-
-                                customer_material = str(
-                    row["Customer material"]
-                ).upper()
-
-                wid = None
-
-                # ✅ X6 / X7 / X5 + (1PC=1L)
-                if "1PC=1L" in customer_material:
-
-                    wid = 1
-
-                # ✅ = 5L
-                if wid is None:
-
-                    m = re.search(
-                        r"=\s*(\d+(?:[.,]\d+)?)\s*L",
-                        customer_material
-                    )
-
-                    if m:
-                        wid = float(
-                            m.group(1).replace(",", ".")
-                        )
-
-                # ✅ резервен вариант
-                if wid is None:
-
-                    m = re.search(
-                        r"(\d+(?:[.,]\d+)?)\s*L",
-                        customer_material
-                    )
-
-                    if m:
-                        wid = float(
-                            m.group(1).replace(",", ".")
-                        )
-
-                if wid is None:
-                    continue
-
-                if wid is None:
-                    continue
-
-                rows.append({
-                    "Тарифен код": code,
-                    "Количество": qty,
-                    "wid": wid,
-                    "kolichestvo": qty * wid,
-                    "тегло": net_weight
-                })
-
-            except:
-                continue
-
-        if not rows:
-            return pd.DataFrame()
-
-        df_out = pd.DataFrame(rows)
-
-        df_out = df_out.groupby(
-            ["Тарифен код", "wid"],
-            as_index=False
-        ).agg({
-            "Количество": "sum",
-            "kolichestvo": "sum",
-            "тегло": "sum"
-        })
-
-        return df_out
-
-    # ==================================================
-    # 1. Нормален Excel
-    # ==================================================
     try:
 
         df = pd.read_excel(
@@ -2536,128 +2418,133 @@ def parse_febi_excel(file):
             engine="openpyxl"
         )
 
-        result = build_rows(df)
-
-        if not result.empty:
-            return result
-
     except:
-        pass
-
-    # ==================================================
-    # 2. XML Spreadsheet 2003
-    # ==================================================
-    try:
-
-        import xml.etree.ElementTree as ET
-
-        file.seek(0)
-
-        tree = ET.parse(file)
-        root = tree.getroot()
-
-        ns = {
-            "ss":
-            "urn:schemas-microsoft-com:office:spreadsheet"
-        }
-
-        rows_xml = root.findall(
-            ".//ss:Worksheet/ss:Table/ss:Row",
-            ns
-        )
-
-        all_rows = []
-
-        for row in rows_xml:
-
-            values = []
-
-            cells = row.findall(
-                "ss:Cell",
-                ns
-            )
-
-            for cell in cells:
-
-                data = cell.find(
-                    "ss:Data",
-                    ns
-                )
-
-                if data is not None:
-                    values.append(
-                        str(data.text)
-                        if data.text is not None
-                        else ""
-                    )
-                else:
-                    values.append("")
-
-            all_rows.append(values)
-
-        header_row = None
-
-        for i, r in enumerate(all_rows):
-
-            txt = " ".join(
-                str(x)
-                for x in r
-            )
-
-            if (
-                "HS-Code" in txt
-                and
-                "Customer material" in txt
-            ):
-                header_row = i
-                break
-
-        if header_row is None:
-
-            st.error(
-                "❌ FEBI header не е намерен"
-            )
-
-            return pd.DataFrame()
-
-        headers = all_rows[header_row]
-
-        data = all_rows[
-            header_row + 1:
-        ]
-
-        max_len = len(headers)
-
-        cleaned = [
-            row[:max_len] +
-            [""] * max(
-                0,
-                max_len - len(row)
-            )
-            for row in data
-        ]
-
-        df = pd.DataFrame(
-            cleaned,
-            columns=headers
-        )
-
-        result = build_rows(df)
-
-        if not result.empty:
-            return result
-
-    except Exception as e:
 
         st.error(
-            f"❌ FEBI XML error: {e}"
+            "❌ FEBI файлът трябва да бъде записан като XLSX"
         )
 
-    st.error(
-        "❌ FEBI parser не извлече данни"
-    )
+        return pd.DataFrame()
 
-    return pd.DataFrame()
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
+    ]
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            code = str(
+                row["HS-Code"]
+            )
+
+            code = re.sub(
+                r"\D",
+                "",
+                code
+            )[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            qty = pd.to_numeric(
+                row["Quantity"],
+                errors="coerce"
+            )
+
+            if pd.isna(qty):
+                continue
+
+            net_weight = pd.to_numeric(
+                row["Net weight"],
+                errors="coerce"
+            )
+
+            if pd.isna(net_weight):
+                continue
+
+            customer_material = str(
+                row["Customer material"]
+            ).upper()
+
+            wid = None
+
+            # ==========================================
+            # ✅ X6 / X7 / X5 + (1PC=1L)
+            # ==========================================
+            if "1PC=1L" in customer_material:
+
+                wid = 1
+
+            # ==========================================
+            # ✅ = 5L
+            # ==========================================
+            if wid is None:
+
+                m = re.search(
+                    r"=\s*(\d+(?:[.,]\d+)?)\s*L",
+                    customer_material
+                )
+
+                if m:
+
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    )
+
+            # ==========================================
+            # ✅ резервен вариант
+            # ==========================================
+            if wid is None:
+
+                m = re.search(
+                    r"(\d+(?:[.,]\d+)?)\s*L",
+                    customer_material
+                )
+
+                if m:
+
+                    wid = float(
+                        m.group(1).replace(",", ".")
+                    )
+
+            if wid is None:
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+
+        st.error(
+            "❌ FEBI parser не извлече данни"
+        )
+
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 # ======================================================
 # ✅ ORLEN (EXCEL)
 # ======================================================
