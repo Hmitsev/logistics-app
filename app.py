@@ -1099,59 +1099,42 @@ def parse_gasoline(text):
 
     rows = []
 
-    parts = text.split("Zolltarifnummer:")
+    # ==========================================
+    # ✅ нормалните редове с Zolltarifnummer
+    # ==========================================
 
-    for i in range(len(parts) - 1):
+    pattern = re.compile(
+        r'(\d+)\s*Liter.*?'
+        r'([\d\.,]+)\s*'
+        r'(\d+\s*x\s*\d+|\d+x\d+|\d+\s*Liter\s*Fass).*?'
+        r'Zolltarifnummer:\s*(\d{8})',
+        re.IGNORECASE | re.DOTALL
+    )
+
+    for match in pattern.finditer(text):
 
         try:
 
-            block = parts[i]
-            next_block = parts[i + 1]
-
-            # кодът е в началото на следващия блок
-            code_match = re.search(
-                r'(\d{8})',
-                next_block
-            )
-
-            if not code_match:
-                continue
-
-            code = code_match.group(1)
-
-            if code not in ALLOWED_CODES:
-                continue
-
-            liter_match = re.search(
-                r'(\d+)\s*Liter',
-                block,
-                re.IGNORECASE
-            )
-
-            if not liter_match:
-                continue
-
             total_liters = float(
-                liter_match.group(1)
+                match.group(1)
             )
-
-            weight_match = re.search(
-                r'(\d[\d\.,]*)\s*$',
-                block.strip().split("\n")[-2]
-            )
-
-            if not weight_match:
-                continue
 
             weight = float(
-                weight_match.group(1)
+                match.group(2)
                 .replace(".", "")
                 .replace(",", ".")
             )
 
+            package = match.group(3)
+
+            code = match.group(4)
+
+            if code not in ALLOWED_CODES:
+                continue
+
             package_match = re.search(
-                r'(\d+)\s*x\s*(\d+)\s*Liter',
-                block,
+                r'(\d+)\s*x\s*(\d+)',
+                package,
                 re.IGNORECASE
             )
 
@@ -1165,7 +1148,7 @@ def parse_gasoline(text):
 
                 fass_match = re.search(
                     r'(\d+)\s*Liter\s*Fass',
-                    block,
+                    package,
                     re.IGNORECASE
                 )
 
@@ -1190,50 +1173,36 @@ def parse_gasoline(text):
             continue
 
     # ==========================================
-    # ✅ последен блок без код
+    # ✅ KIA БЕЗ МИТНИЧЕСКИ КОД
     # ==========================================
-    try:
 
-        last_block = parts[-1]
+    kia_match = re.search(
+        r'(\d+)\s*Liter.*?KIA.*?'
+        r'([\d\.,]+).*?'
+        r'(\d+)\s*x\s*(\d+)\s*Liter',
+        text,
+        re.IGNORECASE | re.DOTALL
+    )
 
-        liter_match = re.search(
-            r'(\d+)\s*Liter',
-            last_block,
-            re.IGNORECASE
-        )
+    if kia_match:
 
-        package_match = re.search(
-            r'(\d+)\s*x\s*(\d+)\s*Liter',
-            last_block,
-            re.IGNORECASE
-        )
-
-        weight_match = re.search(
-            r'(\d[\d\.,]*)',
-            last_block
-        )
-
-        if (
-            liter_match
-            and package_match
-            and weight_match
-        ):
+        try:
 
             total_liters = float(
-                liter_match.group(1)
+                kia_match.group(1)
             )
-
-            wid = float(
-                package_match.group(2)
-            )
-
-            broj = total_liters / wid
 
             weight = float(
-                weight_match.group(1)
+                kia_match.group(2)
                 .replace(".", "")
                 .replace(",", ".")
             )
+
+            wid = float(
+                kia_match.group(4)
+            )
+
+            broj = total_liters / wid
 
             rows.append({
                 "Тарифен код": "00000000",
@@ -1243,8 +1212,8 @@ def parse_gasoline(text):
                 "тегло": weight
             })
 
-    except:
-        pass
+        except:
+            pass
 
     if not rows:
 
