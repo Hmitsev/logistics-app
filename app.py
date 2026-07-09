@@ -146,7 +146,7 @@ button[data-testid="baseButton-secondary"] p {
 
 
 # ✅ SIDEBAR
-menu = st.sidebar.selectbox("Suppliers", ["CASTROL & NESTE", "MOTUL", "FLUKAR", "GASOLIN", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "ELROMI RONAX","NISTA", "AMTRA" , "AUTO MEGA" ,"EMINIA" ,"Brehman"])
+menu = st.sidebar.selectbox("Suppliers", ["CASTROL & NESTE", "MOTUL", "FLUKAR", "GASOLINE", "VALVOLINE", "ORLEN", "Chempioil (FANFARO)", "FUCHS", "FEBI", "ELROMI RONAX","NISTA", "AMTRA" , "AUTO MEGA" ,"EMINIA" ,"Brehman"])
 # ✅ статичен списък (като таблица в sidebar)
 st.sidebar.markdown("### 📋 Suppliers & File type")
 
@@ -2776,6 +2776,7 @@ if uploaded_files:
         # ✅ FLUKAR
         elif menu == "FLUKAR":
             df = parse_flukar_excel(file)
+
         # ✅ ELROMI
         elif menu == "ELROMI RONAX":
             df = parse_elromi_excel(file)
@@ -2791,30 +2792,27 @@ if uploaded_files:
         # ✅ AUTO MEGA
         elif menu == "AUTO MEGA":
             df = parse_auto_mega_excel(file)
-         # ✅ AMTRA
+
+        # ✅ AMTRA
         elif menu == "AMTRA":
             df = parse_amtra_excel(file)
+
         # ✅ EMINIA
         elif menu == "EMINIA":
             df = parse_eminia_excel(file)
-            
+
         # ✅ BRECHMANN
         elif menu == "Brehman":
             df = parse_brechmann_excel(file)
-            
+
         # ✅ FEBI
         elif menu == "FEBI":
             df = parse_febi_excel(file)
-
 
         # ✅ CHEMPIOIL EXCEL
         elif menu == "Chempioil (FANFARO)" and source_type == "Excel":
             df = parse_chempioil_excel(file)
 
-         # ✅ GASOLINE
-        elif menu == "GASOLINE":
-            df = parse_gasolin(text)
-            
         # ✅ VALVOLINE
         elif menu == "VALVOLINE":
             df = parse_valvoline_excel(file)
@@ -2833,13 +2831,24 @@ if uploaded_files:
                 if t:
                     text += t + "\n"
 
+            # ✅ FUCHS
             if menu == "FUCHS":
+
                 df = parse_fuchs(text)
 
+            # ✅ CHEMPIOIL PDF
             elif menu == "Chempioil (FANFARO)":
+
                 df = parse_chempioil_pdf(text)
 
+            # ✅ GASOLIN
+            elif menu == "GASOLIN":
+
+                df = parse_gasolin(text)
+
+            # ✅ MOTUL + останалите PDF
             else:
+
                 df = parse_motul(text)
 
         else:
