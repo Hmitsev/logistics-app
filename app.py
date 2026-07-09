@@ -2005,6 +2005,129 @@ def build_final_report(df, supplier):
         })
 
         return pd.DataFrame(rows)
+        # ======================================================
+# ✅ AMTRA EXCEL
+# ======================================================
+def parse_amtra_excel(file):
+
+    raw = pd.read_excel(
+        file,
+        sheet_name=1,
+        header=None
+    )
+
+    header_row = None
+
+    for i in range(len(raw)):
+
+        row_text = " ".join(
+            str(x)
+            for x in raw.iloc[i]
+            if pd.notna(x)
+        ).upper()
+
+        if (
+            "PRODUCT NAME" in row_text
+            and
+            "CODE CN" in row_text
+        ):
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ AMTRA header не е намерен")
+        return pd.DataFrame()
+
+    df = pd.read_excel(
+        file,
+        sheet_name=1,
+        header=header_row
+    )
+
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
+    ]
+
+    rows = []
+
+    for _, row in df.iterrows():
+
+        try:
+
+            description = str(df.iloc[_ , 2])
+            qty = pd.to_numeric(df.iloc[_ , 3], errors="coerce")
+            code = str(df.iloc[_ , 6])
+            net_weight = pd.to_numeric(df.iloc[_ , 9], errors="coerce")
+
+            code = re.sub(r"\D", "", code)[:8]
+
+            if code not in ALLOWED_CODES:
+                continue
+
+            txt = re.sub(
+                r"\([^)]*\)",
+                "",
+                description
+            ).upper()
+
+            wid = None
+
+            m = re.search(r"(\d+(?:[.,]\d+)?)\s*ML", txt)
+            if m:
+                wid = float(m.group(1).replace(",", ".")) / 1000
+
+            if wid is None:
+                m = re.search(r"(\d+(?:[.,]\d+)?)\s*L\b", txt)
+                if m:
+                    wid = float(m.group(1).replace(",", "."))
+
+            if wid is None:
+                m = re.search(r"(\d+(?:[.,]\d+)?)\s*KG", txt)
+                if m:
+                    wid = float(m.group(1).replace(",", "."))
+
+            if wid is None:
+                m = re.search(r"(\d+(?:[.,]\d+)?)\s*(?:GR|G)\b", txt)
+                if m:
+                    wid = float(m.group(1).replace(",", ".")) / 1000
+
+            if wid is None:
+                continue
+
+            if pd.isna(qty):
+                continue
+
+            if pd.isna(net_weight):
+                continue
+
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": net_weight
+            })
+
+        except:
+            continue
+
+    if not rows:
+        st.error("❌ AMTRA parser не извлече данни")
+        return pd.DataFrame()
+
+    df_out = pd.DataFrame(rows)
+
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return df_out
 
 
 # ======================================================
@@ -2151,7 +2274,9 @@ if uploaded_files:
         # ✅ AUTO MEGA
         elif menu == "AUTO MEGA":
             df = parse_auto_mega_excel(file)
-
+         # ✅ AMTRA
+        elif menu == "AMTRA":
+            df = parse_auto_AMTRA_excel(file)
         # ✅ EMINIA
         elif menu == "EMINIA":
             df = parse_eminia_excel(file)
