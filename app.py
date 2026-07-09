@@ -2008,7 +2008,7 @@ def build_final_report(df, supplier):
         # ======================================================
 # ✅ AMTRA EXCEL
 # ======================================================
-def parse_AMTRA_excel(file):
+def parse_amtra_excel(file):
 
     raw = pd.read_excel(
         file,
@@ -2276,7 +2276,7 @@ if uploaded_files:
             df = parse_auto_mega_excel(file)
          # ✅ AMTRA
         elif menu == "AMTRA":
-            df = parse_auto_AMTRA_excel(file)
+            df = parse_auto_amtra_excel(file)
         # ✅ EMINIA
         elif menu == "EMINIA":
             df = parse_eminia_excel(file)
