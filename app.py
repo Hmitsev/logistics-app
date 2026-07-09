@@ -1097,12 +1097,6 @@ def parse_fuchs(text):
 # ======================================================
 def parse_gasoline(text):
 
-    st.write("✅ GASOLINE PARSER")
-
-    st.text(text[:5000])
-
-    rows = []
-
     rows = []
 
     pattern = re.compile(
