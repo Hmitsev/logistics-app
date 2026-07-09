@@ -2982,7 +2982,18 @@ if uploaded_files:
             {code: f"{code} ( ! )"}
         )
 
-    st.subheader("📊 Финален отчет")
+        st.subheader("📊 Финален отчет")
+
+    report["тегло"] = pd.to_numeric(
+        report["тегло"],
+        errors="coerce"
+    ).round(2)
+
+    report["kolichestvo"] = pd.to_numeric(
+        report["kolichestvo"],
+        errors="coerce"
+    ).round(2)
+
     st.dataframe(report)
 
     report = report.rename(columns={
