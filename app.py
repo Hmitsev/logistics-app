@@ -3038,6 +3038,25 @@ if uploaded_files:
             {code: f"{code} ( ! )"}
         )
 
+    # ✅ ⬆️5 кодове
+    arrow_codes = [
+        "34031910",
+        "34039900",
+        "34031980"
+    ]
+
+    for code in arrow_codes:
+
+        report["Тарифен код"] = report["Тарифен код"].str.replace(
+            f"{code} -",
+            f"{code} ⬆️5 -",
+            regex=False
+        )
+
+        report["Тарифен код"] = report["Тарифен код"].replace(
+            {code: f"{code} ⬆️5"}
+        )
+
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
