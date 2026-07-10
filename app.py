@@ -1721,7 +1721,7 @@ def parse_valvoline_excel(file):
                     packaging
                 )
 
-                # ✅ ако липсва L/KG/G в Packaging
+                # ✅ fallback към Description
                 if not case_match:
 
                     case_match = re.search(
@@ -1759,8 +1759,9 @@ def parse_valvoline_excel(file):
 
             else:
 
+                # ✅ нормален Packaging
                 m = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*L',
+                    r'(\d+(?:[.,]\d+)?)\s*(L|KG|G)',
                     packaging
                 )
 
@@ -1771,11 +1772,20 @@ def parse_valvoline_excel(file):
                         .replace(",", ".")
                     )
 
-                else:
+                    unit_type = m.group(2)
+
+                    if unit_type == "G":
+                        wid = wid / 1000
+
+                # ✅ ако Packaging е само число
+                elif re.fullmatch(
+                    r'\d+(?:[.,]\d+)?',
+                    packaging.strip()
+                ):
 
                     m = re.search(
-                        r'(\d+(?:[.,]\d+)?)\s*KG',
-                        packaging
+                        r'(\d+(?:[.,]\d+)?)\s*(L|KG|G)',
+                        description
                     )
 
                     if m:
@@ -1785,21 +1795,10 @@ def parse_valvoline_excel(file):
                             .replace(",", ".")
                         )
 
-                    else:
+                        unit_type = m.group(2)
 
-                        m = re.search(
-                            r'(\d+(?:[.,]\d+)?)\s*G',
-                            packaging
-                        )
-
-                        if m:
-
-                            wid = (
-                                float(
-                                    m.group(1)
-                                    .replace(",", ".")
-                                ) / 1000
-                            )
+                        if unit_type == "G":
+                            wid = wid / 1000
 
                 if wid is None:
                     continue
