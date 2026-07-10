@@ -3013,12 +3013,12 @@ if uploaded_files:
     )
 
     report["Тарифен код"] = report["Тарифен код"].str.replace(
-        "38119000",
-        "38119000 - EMCS",
-        regex=False
-    )
+    "38119000",
+    "38119000 - EMCS",
+    regex=False
+)
 
-        special_codes = [
+special_codes = [
         "38112100",
         "38249992",
         "27101225",
