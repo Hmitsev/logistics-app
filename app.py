@@ -3025,7 +3025,6 @@ if uploaded_files:
         "38140090",
         "38249996"
     ]
-
     for code in special_codes:
 
     report["Тарифен код"] = report["Тарифен код"].str.replace(
