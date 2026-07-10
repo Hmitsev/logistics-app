@@ -3018,43 +3018,44 @@ if uploaded_files:
         regex=False
     )
 
-    special_codes = [
+        special_codes = [
         "38112100",
         "38249992",
         "27101225",
         "38140090",
         "38249996"
     ]
+
     for code in special_codes:
 
-    report["Тарифен код"] = report["Тарифен код"].str.replace(
-        f"{code} -",
-        f"{code} - ( ! )",
-        regex=False
-    )
+        report["Тарифен код"] = report["Тарифен код"].str.replace(
+            f"{code} -",
+            f"{code} - ( ! )",
+            regex=False
+        )
 
-    report["Тарифен код"] = report["Тарифен код"].replace(
-        {code: f"{code} ( ! )"}
-    )
+        report["Тарифен код"] = report["Тарифен код"].replace(
+            {code: f"{code} ( ! )"}
+        )
 
-# ✅ ⬆️5 маркировка
-arrow_codes = [
-    "34031910",
-    "34039900",
-    "34031980"
-]
+    # ✅ ⬆️5 маркировка
+    arrow_codes = [
+        "34031910",
+        "34039900",
+        "34031980"
+    ]
 
-for code in arrow_codes:
+    for code in arrow_codes:
 
-    report["Тарифен код"] = report["Тарифен код"].str.replace(
-        f"{code} -",
-        f"{code} ⬆️5 -",
-        regex=False
-    )
+        report["Тарифен код"] = report["Тарифен код"].str.replace(
+            f"{code} -",
+            f"{code} ⬆️5 -",
+            regex=False
+        )
 
-    report["Тарифен код"] = report["Тарифен код"].replace(
-        {code: f"{code} ⬆️5"}
-    )
+        report["Тарифен код"] = report["Тарифен код"].replace(
+            {code: f"{code} ⬆️5"}
+        )
 
     st.subheader("📊 Финален отчет")
     st.dataframe(report)
@@ -3084,17 +3085,17 @@ for code in arrow_codes:
         ws = writer.sheets["Sheet1"]
 
         red_codes = [
-    "34039900",
-    "34031910",
-    "34031980",
+            "34039900",
+            "34031910",
+            "34031980",
 
-    # ✅ кодове с ( ! )
-    "38112100",
-    "38249992",
-    "27101225",
-    "38140090",
-    "38249996"
-]
+            # ✅ кодове с ( ! )
+            "38112100",
+            "38249992",
+            "27101225",
+            "38140090",
+            "38249996"
+        ]
 
         for row in ws.iter_rows(min_row=2):
 
