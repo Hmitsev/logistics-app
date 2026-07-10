@@ -1162,7 +1162,7 @@ def parse_gasoline(text):
     pattern = re.compile(
         r'(\d+)\s*Liter.*?'
         r'([\d\.,]+)\s*'
-        r'(\d+\s*x\s*\d+|\d+x\d+|\d+\s*Liter\s*Fass).*?'
+        r'(\d+\s*x\s*\d+|\d+x\d+|\d+\s*Liter\s*Fass|\d+\s*Liter\s*Kanne).*?'
         r'Zolltarifnummer:\s*(\d{8})',
         re.IGNORECASE | re.DOTALL
     )
@@ -1197,17 +1197,17 @@ def parse_gasoline(text):
 
             else:
 
-                fass_match = re.search(
-                    r'(\d+)\s*Liter\s*Fass',
+                container_match = re.search(
+                    r'(\d+)\s*Liter\s*(?:Fass|Kanne)',
                     package,
                     re.IGNORECASE
                 )
 
-                if not fass_match:
+                if not container_match:
                     continue
 
                 wid = float(
-                    fass_match.group(1)
+                    container_match.group(1)
                 )
 
             rows.append({
