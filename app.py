@@ -1676,6 +1676,10 @@ def parse_valvoline_excel(file):
                 row["Packaging"]
             ).upper()
 
+            description = str(
+                row["Description"]
+            ).upper()
+
             uom = str(
                 row["UoM"]
             ).strip().lower()
@@ -1713,9 +1717,17 @@ def parse_valvoline_excel(file):
             if uom == "case":
 
                 case_match = re.search(
-                    r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(?:L|KG|G)?',
+                    r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(L|KG|G)',
                     packaging
                 )
+
+                # ✅ ако липсва L/KG/G в Packaging
+                if not case_match:
+
+                    case_match = re.search(
+                        r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(L|KG|G)',
+                        description
+                    )
 
                 if case_match:
 
@@ -1728,8 +1740,9 @@ def parse_valvoline_excel(file):
                         .replace(",", ".")
                     )
 
-                    # ✅ G
-                    if "G" in packaging and "KG" not in packaging:
+                    unit_type = case_match.group(3)
+
+                    if unit_type == "G":
                         wid = wid / 1000
 
                     broj = packages * units_per_case
