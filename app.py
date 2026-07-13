@@ -50,7 +50,7 @@ def set_login_bg(image_file):
             <style>
             .stApp {{
                 background-image: url("data:image/png;base64,{encoded}");
-                background-size: 90% auto;
+                background-size: 70% auto;
                 background-position: center top;
                 background-repeat: no-repeat;
                 background-color: #050505;
