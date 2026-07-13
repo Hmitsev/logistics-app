@@ -110,7 +110,6 @@ def check_login():
                 color:white;
                 white-space:nowrap;
             ">
-                CustomsFlow
             </div>
             """, unsafe_allow_html=True)
 
