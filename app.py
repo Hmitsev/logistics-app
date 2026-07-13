@@ -8,24 +8,29 @@ import base64
 # ======================================================
 # ✅ BACKGROUND FUNCTION
 # ======================================================
-def set_bg(image_file):
+def set_login_bg(image_file):
+
     try:
+
         with open(image_file, "rb") as f:
-            encoded = base64.b64encode(f.read()).decode()
+            encoded = base64.b64encode(
+                f.read()
+            ).decode()
 
         st.markdown(
             f"""
             <style>
             .stApp {{
                 background-image: url("data:image/png;base64,{encoded}");
-                background-position: center center;
+                background-size: 100% 100%;
+                background-position: center;
                 background-repeat: no-repeat;
-                background-color: black;
             }}
             </style>
             """,
             unsafe_allow_html=True
         )
+
     except:
         pass
 # ======================================================
