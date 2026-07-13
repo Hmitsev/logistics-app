@@ -3173,5 +3173,5 @@ if uploaded_files:
 else:
 
     st.markdown(
-        "**⬆️ Качи файл, за да генерираш отчет**"
+        "**⬆️ Upload a file to generate a report**"
     )
