@@ -6,8 +6,36 @@ import io
 import base64
 
 # ======================================================
-# ✅ BACKGROUND FUNCTION
+# ✅ BACKGROUND FUNCTIONS
 # ======================================================
+
+def set_bg(image_file):
+
+    try:
+
+        with open(image_file, "rb") as f:
+            encoded = base64.b64encode(
+                f.read()
+            ).decode()
+
+        st.markdown(
+            f"""
+            <style>
+            .stApp {{
+                background-image: url("data:image/png;base64,{encoded}");
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
+    except:
+        pass
+
+
 def set_login_bg(image_file):
 
     try:
@@ -23,8 +51,9 @@ def set_login_bg(image_file):
             .stApp {{
                 background-image: url("data:image/png;base64,{encoded}");
                 background-size: 100% 100%;
-                background-position: center;
+                background-position: center center;
                 background-repeat: no-repeat;
+                background-color: black;
             }}
             </style>
             """,
