@@ -122,7 +122,7 @@ def check_login():
 
         # ✅ Login title
         st.markdown(
-            "<h1 style='text-align:center; color:white;'>🔐 Welcome to the Customs Inter Cars app</h1>",
+            "<h1 style='text-align:center; color:white;'>🔐Welcome to the Customs Inter Cars app</h1>",
             unsafe_allow_html=True
         )
 
