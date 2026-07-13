@@ -18,8 +18,9 @@ def set_bg(image_file):
             <style>
             .stApp {{
                 background-image: url("data:image/png;base64,{encoded}");
-                background-size: cover;
-                background-position: center;
+                background-position: center center;
+                background-repeat: no-repeat;
+                background-color: black;
             }}
             </style>
             """,
