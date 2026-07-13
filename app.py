@@ -122,16 +122,16 @@ def check_login():
 
         # ✅ Login title
         st.markdown(
-            "<h1 style='text-align:center; color:white;'>🔐 Enter</h1>",
+            "<h1 style='text-align:center; color:white;'>🔐 Entery</h1>",
             unsafe_allow_html=True
         )
 
         # ✅ Inputs
-        username = st.text_input("Потребител")
-        password = st.text_input("Парола", type="password")
+        username = st.text_input("User name:")
+        password = st.text_input("password", type="password")
 
         # ✅ Button
-        if st.button("Вход"):
+        if st.button("Log In"):
             if username == "mitnica" and password == "Intercars2026":
                 st.session_state["logged_in"] = True
                 st.rerun()
