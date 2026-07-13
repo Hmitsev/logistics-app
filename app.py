@@ -3103,7 +3103,7 @@ if uploaded_files:
             {code: f"{code} ⬆️5"}
         )
 
-    st.subheader("📊 Финален отчет")
+    st.subheader("📊 Final Report")
     st.dataframe(report)
 
     report = report.rename(columns={
@@ -3163,7 +3163,7 @@ if uploaded_files:
     output.seek(0)
 
     st.download_button(
-        label="📥 Изтегли Excel",
+        label="📥 Download Excel",
         data=output,
         file_name="final_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
