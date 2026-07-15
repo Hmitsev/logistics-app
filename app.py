@@ -2129,127 +2129,134 @@ def parse_flukar_excel(file):
 from decimal import Decimal, ROUND_HALF_UP
 
 # ======================================================
-# ✅ FLUKAR (EXCEL ONLY ✅)
+# ✅ FINAL REPORT (FIXED)
 # ======================================================
-def parse_flukar_excel(file):
+from decimal import Decimal, ROUND_HALF_UP
 
-    df_raw = pd.read_excel(file, header=None)
+def build_final_report(df, supplier):
 
-    header_row = None
+    # ✅ FLUKAR логика
+    if supplier == "FLUKAR":
 
-    # ✅ намираме header ред
-    for i in range(len(df_raw)):
+        grouped = df.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        ).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": list
+        })
 
-        row = df_raw.iloc[i]
+        rows = []
 
-        if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
-            header_row = i
-            break
+        for code, group in grouped.groupby("Тарифен код"):
 
-    if header_row is None:
-        st.error("❌ Не може да се намери header ред (CN code)")
-        return pd.DataFrame()
+            for _, r in group.iterrows():
 
-    df = pd.read_excel(file, header=header_row)
+                precise_sum = sum(Decimal(str(x)) for x in r["тегло"])
 
-    df.columns = df.columns.astype(str).str.strip()
+                rounded = float(
+                    precise_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                )
 
-    result = pd.DataFrame()
+                rows.append({
+                    "Тарифен код": r["Тарифен код"],
+                    "wid": r["wid"],
+                    "Количество": r["Количество"],
+                    "kolichestvo": r["kolichestvo"],
+                    "тегло": rounded
+                })
 
-    for col in df.columns:
+            code_sum = sum(
+                Decimal(str(x))
+                for sublist in group["тегло"]
+                for x in sublist
+            )
 
-        c = col.lower()
+            code_rounded = float(
+                code_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+            )
 
-        if "cn" in c:
-            result["Тарифен код"] = df[col]
+            rows.append({
+                "Тарифен код": str(code) + " -",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": sum(group["kolichestvo"]),
+                "тегло": code_rounded
+            })
 
-        elif "quantity" in c or "pcs" in c or "колич" in c:
-            result["Количество"] = df[col]
+            rows.append({
+                "Тарифен код": "",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": "",
+                "тегло": ""
+            })
 
-        elif "capacity" in c or "package" in c:
-            if "wid" not in result.columns:
-                result["wid"] = df[col]
-
-        elif "liter" in c:
-            result["kolichestvo"] = df[col]
-
-        elif "nett" in c or "net" in c or "тегло" in c:
-            result["тегло"] = df[col]
-
-    required = [
-        "Тарифен код",
-        "Количество",
-        "wid",
-        "тегло"
-    ]
-
-    for col in required:
-
-        if col not in result.columns:
-            st.error(f"❌ Липсва колона: {col}")
-            return pd.DataFrame()
-
-    result = result.dropna(
-        subset=["Тарифен код"]
-    )
-
-    result["Тарифен код"] = (
-        result["Тарифен код"]
-        .astype(str)
-        .str.replace(r"\D", "", regex=True)
-        .str[:8]
-    )
-
-    result = result[
-        result["Тарифен код"].isin(ALLOWED_CODES)
-    ]
-
-    result["Количество"] = pd.to_numeric(
-        result["Количество"],
-        errors="coerce"
-    )
-
-    result["wid"] = pd.to_numeric(
-        result["wid"],
-        errors="coerce"
-    )
-
-    result["тегло"] = pd.to_numeric(
-        result["тегло"],
-        errors="coerce"
-    )
-
-    if "kolichestvo" not in result.columns:
-
-        result["kolichestvo"] = (
-            result["Количество"] * result["wid"]
+        total_sum = sum(
+            Decimal(str(x))
+            for sublist in grouped["тегло"]
+            for x in sublist
         )
 
+        total_rounded = float(
+            total_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        )
+
+        rows.append({
+            "Тарифен код": "GRAND TOTAL",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": grouped["kolichestvo"].sum(),
+            "тегло": total_rounded
+        })
+
+        return pd.DataFrame(rows)
+
+    # ✅ ✅ ВСИЧКИ ДРУГИ (MOTUL, NESTE, CASTROL)
     else:
 
-        result["kolichestvo"] = pd.to_numeric(
-            result["kolichestvo"],
-            errors="coerce"
-        )
+        grouped = df.groupby(
+            ["Тарифен код", "wid"],
+            as_index=False
+        ).agg({
+            "Количество": "sum",
+            "kolichestvo": "sum",
+            "тегло": "sum"
+        })
 
-    result = result.dropna(
-        subset=[
-            "Количество",
-            "wid",
-            "тегло"
-        ]
-    )
+        rows = []
 
-    result = result.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
+        for code, group in grouped.groupby("Тарифен код"):
 
-    return result
+            for _, r in group.iterrows():
+                rows.append(r.to_dict())
+
+            rows.append({
+                "Тарифен код": str(code) + " -",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": group["kolichestvo"].sum(),
+                "тегло": group["тегло"].sum()
+            })
+
+            rows.append({
+                "Тарифен код": "",
+                "wid": "",
+                "Количество": "",
+                "kolichestvo": "",
+                "тегло": ""
+            })
+
+        rows.append({
+            "Тарифен код": "GRAND TOTAL",
+            "wid": "",
+            "Количество": "",
+            "kolichestvo": grouped["kolichestvo"].sum(),
+            "тегло": grouped["тегло"].sum()
+        })
+
+        return pd.DataFrame(rows)
         # ======================================================
 # ✅ AMTRA EXCEL
 # ======================================================
