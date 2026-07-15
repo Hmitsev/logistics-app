@@ -2043,8 +2043,214 @@ def parse_eminia_excel(file):
     })
 
     return df_out
+  
+# ======================================================
+# ✅ FLUKAR (EXCEL ONLY ✅)
+# ======================================================
+def parse_flukar_excel(file):
+
+    df_raw = pd.read_excel(file, header=None)
+
+    header_row = None
+
+    # ✅ намираме header ред
+    for i in range(len(df_raw)):
+        row = df_raw.iloc[i]
+
+        if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ Не може да се намери header ред (CN code)")
+        return pd.DataFrame()
+
+    df = pd.read_excel(file, header=header_row)
+    df.columns = df.columns.astype(str).str.strip()
+
+    # ✅ извличаме само нужните колони
+    result = pd.DataFrame()
+
+    for col in df.columns:
+        c = col.lower()
+
+        if "cn" in c:
+            result["Тарифен код"] = df[col]
+
+        elif "quantity" in c or "pcs" in c or "колич" in c:
+            result["Количество"] = df[col]
+
+        elif "capacity" in c or "package" in c:
+            if "wid" not in result.columns:
+                result["wid"] = df[col]
+
+        elif "liter" in c:
+            result["kolichestvo"] = df[col]
+
+        elif "nett" in c or "net" in c or "тегло" in c:
+            result["тегло"] = df[col]
+
+    # ✅ проверки
+    required = ["Тарифен код", "Количество", "wid", "тегло"]
+
+    for col in required:
+        if col not in result.columns:
+            st.error(f"❌ Липсва колона: {col}")
+            return pd.DataFrame()
+
+    # ✅ cleaning
+    result = result.dropna(subset=["Тарифен код"])
+
+    result["Количество"] = pd.to_numeric(result["Количество"], errors="coerce")
+    result["wid"] = pd.to_numeric(result["wid"], errors="coerce")
+    result["тегло"] = pd.to_numeric(result["тегло"], errors="coerce")
+
+    if "kolichestvo" not in result.columns:
+        result["kolichestvo"] = result["Количество"] * result["wid"]
+    else:
+        result["kolichestvo"] = pd.to_numeric(result["kolichestvo"], errors="coerce")
+
+    # ✅ ✅ 🔥 ВАЖНО — ROUND САМО НА ТЕГЛО (като FLUKAR)
+
+    result = result.dropna(subset=["Количество", "wid", "тегло"])
+
+    # ✅ group
+    result = result.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return result
+
+from decimal import Decimal, ROUND_HALF_UP
 
 # ======================================================
+# ✅ FLUKAR (EXCEL ONLY ✅)
+# ======================================================
+def parse_flukar_excel(file):
+
+    df_raw = pd.read_excel(file, header=None)
+
+    header_row = None
+
+    # ✅ намираме header ред
+    for i in range(len(df_raw)):
+
+        row = df_raw.iloc[i]
+
+        if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
+            header_row = i
+            break
+
+    if header_row is None:
+        st.error("❌ Не може да се намери header ред (CN code)")
+        return pd.DataFrame()
+
+    df = pd.read_excel(file, header=header_row)
+
+    df.columns = df.columns.astype(str).str.strip()
+
+    result = pd.DataFrame()
+
+    for col in df.columns:
+
+        c = col.lower()
+
+        if "cn" in c:
+            result["Тарифен код"] = df[col]
+
+        elif "quantity" in c or "pcs" in c or "колич" in c:
+            result["Количество"] = df[col]
+
+        elif "capacity" in c or "package" in c:
+            if "wid" not in result.columns:
+                result["wid"] = df[col]
+
+        elif "liter" in c:
+            result["kolichestvo"] = df[col]
+
+        elif "nett" in c or "net" in c or "тегло" in c:
+            result["тегло"] = df[col]
+
+    required = [
+        "Тарифен код",
+        "Количество",
+        "wid",
+        "тегло"
+    ]
+
+    for col in required:
+
+        if col not in result.columns:
+            st.error(f"❌ Липсва колона: {col}")
+            return pd.DataFrame()
+
+    result = result.dropna(
+        subset=["Тарифен код"]
+    )
+
+    result["Тарифен код"] = (
+        result["Тарифен код"]
+        .astype(str)
+        .str.replace(r"\D", "", regex=True)
+        .str[:8]
+    )
+
+    result = result[
+        result["Тарифен код"].isin(ALLOWED_CODES)
+    ]
+
+    result["Количество"] = pd.to_numeric(
+        result["Количество"],
+        errors="coerce"
+    )
+
+    result["wid"] = pd.to_numeric(
+        result["wid"],
+        errors="coerce"
+    )
+
+    result["тегло"] = pd.to_numeric(
+        result["тегло"],
+        errors="coerce"
+    )
+
+    if "kolichestvo" not in result.columns:
+
+        result["kolichestvo"] = (
+            result["Количество"] * result["wid"]
+        )
+
+    else:
+
+        result["kolichestvo"] = pd.to_numeric(
+            result["kolichestvo"],
+            errors="coerce"
+        )
+
+    result = result.dropna(
+        subset=[
+            "Количество",
+            "wid",
+            "тегло"
+        ]
+    )
+
+    result = result.groupby(
+        ["Тарифен код", "wid"],
+        as_index=False
+    ).agg({
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
+    })
+
+    return result
+        # ======================================================
 # ✅ AMTRA EXCEL
 # ======================================================
 def parse_amtra_excel(file):
@@ -2712,128 +2918,6 @@ def parse_orlen_excel(file):
     })
 
     return df
-    # ======================================================
-# ✅ FLUKAR (EXCEL ONLY ✅)
-# ======================================================
-def parse_flukar_excel(file):
-
-    df_raw = pd.read_excel(file, header=None)
-
-    header_row = None
-
-    # ✅ намираме header ред
-    for i in range(len(df_raw)):
-
-        row = df_raw.iloc[i]
-
-        if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
-            header_row = i
-            break
-
-    if header_row is None:
-        st.error("❌ Не може да се намери header ред (CN code)")
-        return pd.DataFrame()
-
-    df = pd.read_excel(file, header=header_row)
-
-    df.columns = df.columns.astype(str).str.strip()
-
-    result = pd.DataFrame()
-
-    for col in df.columns:
-
-        c = col.lower()
-
-        if "cn" in c:
-            result["Тарифен код"] = df[col]
-
-        elif "quantity" in c or "pcs" in c or "колич" in c:
-            result["Количество"] = df[col]
-
-        elif "capacity" in c or "package" in c:
-            if "wid" not in result.columns:
-                result["wid"] = df[col]
-
-        elif "liter" in c:
-            result["kolichestvo"] = df[col]
-
-        elif "nett" in c or "net" in c or "тегло" in c:
-            result["тегло"] = df[col]
-
-    required = [
-        "Тарифен код",
-        "Количество",
-        "wid",
-        "тегло"
-    ]
-
-    for col in required:
-
-        if col not in result.columns:
-            st.error(f"❌ Липсва колона: {col}")
-            return pd.DataFrame()
-
-    result = result.dropna(
-        subset=["Тарифен код"]
-    )
-
-    result["Тарифен код"] = (
-        result["Тарифен код"]
-        .astype(str)
-        .str.replace(r"\D", "", regex=True)
-        .str[:8]
-    )
-
-    result = result[
-        result["Тарифен код"].isin(ALLOWED_CODES)
-    ]
-
-    result["Количество"] = pd.to_numeric(
-        result["Количество"],
-        errors="coerce"
-    )
-
-    result["wid"] = pd.to_numeric(
-        result["wid"],
-        errors="coerce"
-    )
-
-    result["тегло"] = pd.to_numeric(
-        result["тегло"],
-        errors="coerce"
-    )
-
-    if "kolichestvo" not in result.columns:
-
-        result["kolichestvo"] = (
-            result["Количество"] * result["wid"]
-        )
-
-    else:
-
-        result["kolichestvo"] = pd.to_numeric(
-            result["kolichestvo"],
-            errors="coerce"
-        )
-
-    result = result.dropna(
-        subset=[
-            "Количество",
-            "wid",
-            "тегло"
-        ]
-    )
-
-    result = result.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return result
 # ======================================================
 # ✅ PROCESS
 # ======================================================
@@ -2997,8 +3081,7 @@ if uploaded_files:
     arrow_codes = [
         "34031910",
         "34039900",
-        "34031980",
-        "27101999"
+        "34031980"
     ]
 
     for code in arrow_codes:
@@ -3013,7 +3096,7 @@ if uploaded_files:
             {code: f"{code} ⬆️5"}
         )
 
-    st.subheader("📊 Final Report")
+    st.subheader("📊 Финален отчет")
     st.dataframe(report)
 
     report = report.rename(columns={
@@ -3044,7 +3127,6 @@ if uploaded_files:
     "34039900",
     "34031910",
     "34031980",
-    "27101999",
 
     # ✅ кодове с ( ! )
     "38112100",
@@ -3074,7 +3156,7 @@ if uploaded_files:
     output.seek(0)
 
     st.download_button(
-        label="📥 Download Excel",
+        label="📥 Изтегли Excel",
         data=output,
         file_name="final_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
