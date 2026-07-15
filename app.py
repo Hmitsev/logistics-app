@@ -2043,8 +2043,7 @@ def parse_eminia_excel(file):
     })
 
     return df_out
-  
-# ======================================================
+    # ======================================================
 # ✅ FINAL REPORT (NO ROUNDING FOR FLUKAR)
 # ======================================================
 from decimal import Decimal
@@ -2182,6 +2181,7 @@ def build_final_report(df, supplier):
         })
 
         return pd.DataFrame(rows)
+        
 # ======================================================
 # ✅ AMTRA EXCEL
 # ======================================================
