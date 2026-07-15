@@ -2727,64 +2727,133 @@ def parse_febi_excel(file):
             if pd.isna(net_weight):
                 continue
 
-            customer_material = str(
-                row["Customer material"]
+            description = str(
+                row.get("Description", "")
             ).upper()
 
-            wid = None
-            real_qty = qty
+            customer_material = str(
+                row.get("Customer material", "")
+            ).upper()
 
-            # ==========================================
-            # ✅ X6 / X7 / X8 + (1PC=1L)
-            # ==========================================
-            if "1PC=1L" in customer_material:
+            # ✅ ВАЖНО:
+            # нормализира латинско X, кирилско Х и символ ×
+            customer_material = (
+                customer_material
+                .replace("Х", "X")
+                .replace("×", "X")
+                .replace(",", ".")
+            )
+
+            wid = None
+            real_qty = float(qty)
+
+            # ==================================================
+            # ✅ CASE 1:
+            # X6 / X7 / X8 / X12 и т.н.
+            #
+            # Това означава:
+            # 1 кашон/комплект съдържа X броя по 1L
+            #
+            # Пример:
+            # Quantity 8 + X6 = 48 бр. по 1L
+            # ==================================================
+            x_pack_match = re.search(
+                r"\bX\s*(\d+)\b",
+                customer_material
+            )
+
+            if x_pack_match:
+
+                multiplier = int(
+                    x_pack_match.group(1)
+                )
 
                 wid = 1
 
-                m = re.search(
-                    r"X\s*(\d+)",
-                    customer_material
-                )
+                real_qty = float(qty) * multiplier
 
-                if m:
-
-                    multiplier = int(
-                        m.group(1)
-                    )
-
-                    real_qty = qty * multiplier
-
-            # ==========================================
-            # ✅ 1PC = 5L
-            # ==========================================
+            # ==================================================
+            # ✅ CASE 2:
+            # 1PC=1L или 1PC = 5L
+            #
+            # Ако няма X6/X7/X8, тогава хващаме директно = 1L / = 5L
+            # ==================================================
             if wid is None:
 
-                m = re.search(
-                    r"=\s*(\d+(?:[.,]\d+)?)\s*L",
+                pc_match = re.search(
+                    r"=\s*(\d+(?:\.\d+)?)\s*L",
                     customer_material
                 )
 
-                if m:
+                if pc_match:
 
                     wid = float(
-                        m.group(1).replace(",", ".")
+                        pc_match.group(1)
                     )
 
-            # ==========================================
-            # ✅ резервен вариант
-            # ==========================================
+                    real_qty = float(qty)
+
+            # ==================================================
+            # ✅ CASE 3:
+            # директно написано 1L / 4L / 5L
+            #
+            # Пример:
+            # Customer material = 4l
+            # Quantity = 8
+            # => 8 бр. x 4L
+            # ==================================================
             if wid is None:
 
-                m = re.search(
-                    r"(\d+(?:[.,]\d+)?)\s*L",
+                liter_match = re.search(
+                    r"\b(\d+(?:\.\d+)?)\s*L\b",
                     customer_material
                 )
 
-                if m:
+                if liter_match:
 
                     wid = float(
-                        m.group(1).replace(",", ".")
+                        liter_match.group(1)
                     )
+
+                    real_qty = float(qty)
+
+            # ==================================================
+            # ✅ CASE 4:
+            # KG
+            # ==================================================
+            if wid is None:
+
+                kg_match = re.search(
+                    r"\b(\d+(?:\.\d+)?)\s*KG\b",
+                    customer_material
+                )
+
+                if kg_match:
+
+                    wid = float(
+                        kg_match.group(1)
+                    )
+
+                    real_qty = float(qty)
+
+            # ==================================================
+            # ✅ CASE 5:
+            # G / GR
+            # ==================================================
+            if wid is None:
+
+                g_match = re.search(
+                    r"\b(\d+(?:\.\d+)?)\s*(?:G|GR)\b",
+                    customer_material
+                )
+
+                if g_match:
+
+                    wid = float(
+                        g_match.group(1)
+                    ) / 1000
+
+                    real_qty = float(qty)
 
             if wid is None:
                 continue
@@ -2794,10 +2863,11 @@ def parse_febi_excel(file):
                 "Количество": real_qty,
                 "wid": wid,
                 "kolichestvo": real_qty * wid,
-                "тегло": net_weight
+                "тегло": float(net_weight)
             })
 
         except:
+
             continue
 
     if not rows:
@@ -2820,6 +2890,7 @@ def parse_febi_excel(file):
     })
 
     return df_out
+
 # ======================================================
 # ✅ ORLEN (EXCEL)
 # ======================================================
