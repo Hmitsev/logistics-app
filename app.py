@@ -2126,16 +2126,32 @@ def parse_flukar_excel(file):
 
     return result
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 # ======================================================
-# ✅ FINAL REPORT (FIXED)
+# ✅ FINAL REPORT (NO ROUNDING FOR FLUKAR)
 # ======================================================
-from decimal import Decimal, ROUND_HALF_UP
-
 def build_final_report(df, supplier):
 
-    # ✅ FLUKAR логика
+    def precise_sum(values):
+
+        total = Decimal("0")
+
+        for x in values:
+
+            try:
+
+                if pd.notna(x) and str(x).strip() != "":
+                    total += Decimal(str(x))
+
+            except:
+                continue
+
+        return total
+
+    # ==================================================
+    # ✅ FLUKAR
+    # ==================================================
     if supplier == "FLUKAR":
 
         grouped = df.groupby(
@@ -2153,10 +2169,8 @@ def build_final_report(df, supplier):
 
             for _, r in group.iterrows():
 
-                precise_sum = sum(Decimal(str(x)) for x in r["тегло"])
-
-                rounded = float(
-                    precise_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                weight_sum = precise_sum(
+                    r["тегло"]
                 )
 
                 rows.append({
@@ -2164,25 +2178,21 @@ def build_final_report(df, supplier):
                     "wid": r["wid"],
                     "Количество": r["Количество"],
                     "kolichestvo": r["kolichestvo"],
-                    "тегло": rounded
+                    "тегло": float(weight_sum)
                 })
 
-            code_sum = sum(
-                Decimal(str(x))
+            code_sum = precise_sum(
+                x
                 for sublist in group["тегло"]
                 for x in sublist
-            )
-
-            code_rounded = float(
-                code_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
             )
 
             rows.append({
                 "Тарифен код": str(code) + " -",
                 "wid": "",
                 "Количество": "",
-                "kolichestvo": sum(group["kolichestvo"]),
-                "тегло": code_rounded
+                "kolichestvo": group["kolichestvo"].sum(),
+                "тегло": float(code_sum)
             })
 
             rows.append({
@@ -2193,14 +2203,10 @@ def build_final_report(df, supplier):
                 "тегло": ""
             })
 
-        total_sum = sum(
-            Decimal(str(x))
+        total_sum = precise_sum(
+            x
             for sublist in grouped["тегло"]
             for x in sublist
-        )
-
-        total_rounded = float(
-            total_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         )
 
         rows.append({
@@ -2208,12 +2214,14 @@ def build_final_report(df, supplier):
             "wid": "",
             "Количество": "",
             "kolichestvo": grouped["kolichestvo"].sum(),
-            "тегло": total_rounded
+            "тегло": float(total_sum)
         })
 
         return pd.DataFrame(rows)
 
-    # ✅ ✅ ВСИЧКИ ДРУГИ (MOTUL, NESTE, CASTROL)
+    # ==================================================
+    # ✅ ВСИЧКИ ОСТАНАЛИ ДОСТАВЧИЦИ
+    # ==================================================
     else:
 
         grouped = df.groupby(
@@ -2257,7 +2265,8 @@ def build_final_report(df, supplier):
         })
 
         return pd.DataFrame(rows)
-        # ======================================================
+
+# ======================================================
 # ✅ AMTRA EXCEL
 # ======================================================
 def parse_amtra_excel(file):
