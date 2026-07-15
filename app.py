@@ -2045,97 +2045,29 @@ def parse_eminia_excel(file):
     return df_out
   
 # ======================================================
-# ✅ FLUKAR (EXCEL ONLY ✅)
+# ✅ FINAL REPORT (NO ROUNDING FOR FLUKAR)
 # ======================================================
-def parse_flukar_excel(file):
-
-    df_raw = pd.read_excel(file, header=None)
-
-    header_row = None
-
-    # ✅ намираме header ред
-    for i in range(len(df_raw)):
-        row = df_raw.iloc[i]
-
-        if any("cn" in str(cell).lower() for cell in row if pd.notna(cell)):
-            header_row = i
-            break
-
-    if header_row is None:
-        st.error("❌ Не може да се намери header ред (CN code)")
-        return pd.DataFrame()
-
-    df = pd.read_excel(file, header=header_row)
-    df.columns = df.columns.astype(str).str.strip()
-
-    # ✅ извличаме само нужните колони
-    result = pd.DataFrame()
-
-    for col in df.columns:
-        c = col.lower()
-
-        if "cn" in c:
-            result["Тарифен код"] = df[col]
-
-        elif "quantity" in c or "pcs" in c or "колич" in c:
-            result["Количество"] = df[col]
-
-        elif "capacity" in c or "package" in c:
-            if "wid" not in result.columns:
-                result["wid"] = df[col]
-
-        elif "liter" in c:
-            result["kolichestvo"] = df[col]
-
-        elif "nett" in c or "net" in c or "тегло" in c:
-            result["тегло"] = df[col]
-
-    # ✅ проверки
-    required = ["Тарифен код", "Количество", "wid", "тегло"]
-
-    for col in required:
-        if col not in result.columns:
-            st.error(f"❌ Липсва колона: {col}")
-            return pd.DataFrame()
-
-    # ✅ cleaning
-    result = result.dropna(subset=["Тарифен код"])
-
-    result["Количество"] = pd.to_numeric(result["Количество"], errors="coerce")
-    result["wid"] = pd.to_numeric(result["wid"], errors="coerce")
-    result["тегло"] = pd.to_numeric(result["тегло"], errors="coerce")
-
-    if "kolichestvo" not in result.columns:
-        result["kolichestvo"] = result["Количество"] * result["wid"]
-    else:
-        result["kolichestvo"] = pd.to_numeric(result["kolichestvo"], errors="coerce")
-
-    # ✅ ✅ 🔥 ВАЖНО — ROUND САМО НА ТЕГЛО (като FLUKAR)
-
-    result = result.dropna(subset=["Количество", "wid", "тегло"])
-
-    # ✅ group
-    result = result.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
-    ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
-    })
-
-    return result
-
-from decimal import Decimal, ROUND_HALF_UP
-
-# ======================================================
-# ✅ FINAL REPORT (FIXED)
-# ======================================================
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 def build_final_report(df, supplier):
 
-    # ✅ FLUKAR логика
+    def precise_sum(values):
+
+        total = Decimal("0")
+
+        for x in values:
+
+            try:
+
+                if pd.notna(x) and str(x).strip() != "":
+                    total += Decimal(str(x))
+
+            except:
+                continue
+
+        return total
+
+    # ✅ FLUKAR логика - БЕЗ закръгляне
     if supplier == "FLUKAR":
 
         grouped = df.groupby(
@@ -2153,10 +2085,8 @@ def build_final_report(df, supplier):
 
             for _, r in group.iterrows():
 
-                precise_sum = sum(Decimal(str(x)) for x in r["тегло"])
-
-                rounded = float(
-                    precise_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                precise_weight = precise_sum(
+                    r["тегло"]
                 )
 
                 rows.append({
@@ -2164,25 +2094,21 @@ def build_final_report(df, supplier):
                     "wid": r["wid"],
                     "Количество": r["Количество"],
                     "kolichestvo": r["kolichestvo"],
-                    "тегло": rounded
+                    "тегло": precise_weight
                 })
 
-            code_sum = sum(
-                Decimal(str(x))
+            code_sum = precise_sum(
+                x
                 for sublist in group["тегло"]
                 for x in sublist
-            )
-
-            code_rounded = float(
-                code_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
             )
 
             rows.append({
                 "Тарифен код": str(code) + " -",
                 "wid": "",
                 "Количество": "",
-                "kolichestvo": sum(group["kolichestvo"]),
-                "тегло": code_rounded
+                "kolichestvo": group["kolichestvo"].sum(),
+                "тегло": code_sum
             })
 
             rows.append({
@@ -2193,14 +2119,10 @@ def build_final_report(df, supplier):
                 "тегло": ""
             })
 
-        total_sum = sum(
-            Decimal(str(x))
+        total_sum = precise_sum(
+            x
             for sublist in grouped["тегло"]
             for x in sublist
-        )
-
-        total_rounded = float(
-            total_sum.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         )
 
         rows.append({
@@ -2208,12 +2130,12 @@ def build_final_report(df, supplier):
             "wid": "",
             "Количество": "",
             "kolichestvo": grouped["kolichestvo"].sum(),
-            "тегло": total_rounded
+            "тегло": total_sum
         })
 
         return pd.DataFrame(rows)
 
-    # ✅ ✅ ВСИЧКИ ДРУГИ (MOTUL, NESTE, CASTROL)
+    # ✅ ВСИЧКИ ДРУГИ ДОСТАВЧИЦИ
     else:
 
         grouped = df.groupby(
@@ -2230,7 +2152,10 @@ def build_final_report(df, supplier):
         for code, group in grouped.groupby("Тарифен код"):
 
             for _, r in group.iterrows():
-                rows.append(r.to_dict())
+
+                rows.append(
+                    r.to_dict()
+                )
 
             rows.append({
                 "Тарифен код": str(code) + " -",
