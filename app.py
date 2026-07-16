@@ -1017,8 +1017,8 @@ def parse_auto_mega_excel(file):
     })
 
     return df_out
-    # ======================================================
-# ✅ FUCHS PDF
+# ======================================================
+# ✅ FUCHS PDF - FIXED ML / M / SMALL PACKAGES
 # ======================================================
 def parse_fuchs(text):
 
@@ -1026,11 +1026,85 @@ def parse_fuchs(text):
 
     current_code = None
     current_wid = None
-
     current_qty = 0
     current_net = 0
 
     lines = text.split("\n")
+
+    def extract_fuchs_wid(line):
+
+        txt = (
+            str(line)
+            .upper()
+            .replace(",", ".")
+            .replace("  ", " ")
+        )
+
+        # ==================================================
+        # ✅ 500ML / 250ML / 125ML
+        # ==================================================
+        m = re.search(
+            r"\b(\d+(?:\.\d+)?)\s*ML\b",
+            txt
+        )
+
+        if m:
+            return float(m.group(1)) / 1000
+
+        # ==================================================
+        # ✅ FUCHS често пише 500M AER или 125M PLA
+        # Това означава ML, не литри.
+        # Пример:
+        # 500M AER = 0.5L
+        # 125M PLA = 0.125L
+        # ==================================================
+        m = re.search(
+            r"\b(\d+(?:\.\d+)?)\s*M\b",
+            txt
+        )
+
+        if m:
+
+            value = float(m.group(1))
+
+            # защитa: само малки опаковки до 1000 ml
+            if value <= 1000:
+                return value / 1000
+
+        # ==================================================
+        # ✅ 1L / 4L / 5L / 20L / 60L / 205L
+        # ==================================================
+        m = re.search(
+            r"\b(\d+(?:\.\d+)?)\s*L\b",
+            txt
+        )
+
+        if m:
+            return float(m.group(1))
+
+        # ==================================================
+        # ✅ KG
+        # ==================================================
+        m = re.search(
+            r"\b(\d+(?:\.\d+)?)\s*KG\b",
+            txt
+        )
+
+        if m:
+            return float(m.group(1))
+
+        # ==================================================
+        # ✅ G / GR
+        # ==================================================
+        m = re.search(
+            r"\b(\d+(?:\.\d+)?)\s*(?:G|GR)\b",
+            txt
+        )
+
+        if m:
+            return float(m.group(1)) / 1000
+
+        return None
 
     def flush_article():
 
@@ -1045,10 +1119,10 @@ def parse_fuchs(text):
             and current_qty > 0
         ):
 
-            if current_wid < 1:
-                kolichestvo = current_net
-            else:
-                kolichestvo = current_qty * current_wid
+            # ✅ ВАЖНО:
+            # За 0.125L и 0.5L НЕ ползваме теглото като литри.
+            # Литрите винаги са quantity × wid.
+            kolichestvo = current_qty * current_wid
 
             rows.append({
                 "Тарифен код": current_code,
@@ -1065,67 +1139,26 @@ def parse_fuchs(text):
 
     for line in lines:
 
-        line = " ".join(line.split())
+        line = " ".join(
+            str(line).split()
+        )
 
-        # ==============================================
-        # ✅ нов артикул
-        # ==============================================
+        # ==================================================
+        # ✅ Нов артикул
+        # ==================================================
         if "Material" in line:
 
             flush_article()
 
-            wid = None
+            current_wid = extract_fuchs_wid(line)
 
-            upper_line = line.upper()
-
-            # ✅ L
-            m = re.search(
-                r'(\d+(?:[\.,]\d+)?)\s*L\b',
-                upper_line
-            )
-
-            if m:
-                wid = float(
-                    m.group(1).replace(",", ".")
-                )
-
-            # ✅ KG
-            if wid is None:
-
-                m = re.search(
-                    r'(\d+(?:[\.,]\d+)?)\s*KG\b',
-                    upper_line
-                )
-
-                if m:
-                    wid = float(
-                        m.group(1).replace(",", ".")
-                    )
-
-            # ✅ G
-            if wid is None:
-
-                m = re.search(
-                    r'(\d+(?:[\.,]\d+)?)\s*G\b',
-                    upper_line
-                )
-
-                if m:
-                    wid = (
-                        float(
-                            m.group(1).replace(",", ".")
-                        ) / 1000
-                    )
-
-            current_wid = wid
-
-        # ==============================================
-        # ✅ код
-        # ==============================================
+        # ==================================================
+        # ✅ Код
+        # ==================================================
         if "Commodity Code" in line:
 
             m = re.search(
-                r'Commodity Code\s+(\d+)',
+                r"Commodity Code\s+(\d+)",
                 line,
                 re.IGNORECASE
             )
@@ -1139,35 +1172,41 @@ def parse_fuchs(text):
                 else:
                     current_code = None
 
-        # ==============================================
-        # ✅ количества
-        # ==============================================
+        # ==================================================
+        # ✅ Quantity / net / gross
+        # ==================================================
         if "Quantity/net/gross" in line:
 
             m = re.search(
-                r'([\d\.,]+)\s*EA\s*/\s*([\d\.,]+)\s*KG',
+                r"([\d\.,]+)\s*EA\s*/\s*([\d\.,]+)\s*KG",
                 line,
                 re.IGNORECASE
             )
 
             if m:
 
-                qty = float(
-                    m.group(1)
-                    .replace(",", "")
-                )
+                try:
 
-                net = float(
-                    m.group(2)
-                    .replace(",", "")
-                )
+                    qty = float(
+                        m.group(1)
+                        .replace(",", "")
+                    )
 
-                current_qty += qty
-                current_net += net
+                    net = float(
+                        m.group(2)
+                        .replace(",", "")
+                    )
+
+                    current_qty += qty
+                    current_net += net
+
+                except:
+                    continue
 
     flush_article()
 
     if not rows:
+        st.error("❌ FUCHS parser не извлече данни")
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
