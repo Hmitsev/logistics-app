@@ -1418,174 +1418,179 @@ def parse_chempioil_pdf(text):
 
             qty = float(m.group(1))
             net_weight = float(m.group(2))
-            gross_weight = float(m.group(3))
 
             # ✅ WID
             wid = None
 
-            upper_line = line.upper()
+            upper_line = line.upper().replace(",", ".")
 
+            # ✅ L
             m = re.search(
-                r'(\d+(?:\.\d+)?)L\b',
+                r'(\d+(?:\.\d+)?)\s*L\b',
                 upper_line
             )
 
             if m:
                 wid = float(m.group(1))
 
+            # ✅ KG
             if wid is None:
 
                 m = re.search(
-                    r'(\d+(?:\.\d+)?)KG\b',
+                    r'(\d+(?:\.\d+)?)\s*KG\b',
                     upper_line
                 )
 
                 if m:
                     wid = float(m.group(1))
 
+            # ✅ G / GR
             if wid is None:
 
                 m = re.search(
                     r'(\d+(?:\.\d+)?)\s*(?:GR|G)\b',
-                    upper_line
+                    *pper_line
                 )
 
-                if m:
-                    wid = float(m.group(1)) / 1000
+     *          if m:
+                  * wid = float(m.group(1)) / 1000
 
-            if wid is None:
-                continue
+ *          if wid is None:
+        *       continue
 
-            rows.append({
-                "Тарифен код": code,
-                "Количество": qty,
-                "wid": wid,
-
-                # ✅ литри
-                "kolichestvo": qty * wid,
-
-                # ✅ тегло
-                "тегло": net_weight
+            rows.*ppend({
+                "Тарифен к*д": code,
+                "Количес*во": qty,
+                "wid": w*d,
+                "kolichestvo": *ty * wid,
+                "тегло":*net_weight
             })
 
-        except:
+       *except:
+
             continue
 
-    if not rows:
-        st.error("❌ CHEMPIOIL PDF parser не извлече данни")
-        return pd.DataFrame()
+   *if not rows:
 
+        st.error("❌ *HEMPIOIL PDF parser не извлече дан*и")
+
+        return pd.DataFrame()*
     df_out = pd.DataFrame(rows)
 
-    df_out = df_out.groupby(
-        ["Тарифен код", "wid"],
-        as_index=False
+*   df_out = df_out.groupby(
+      * ["Тарифен код", "wid"],
+        a*_index=False
     ).agg({
-        "Количество": "sum",
-        "kolichestvo": "sum",
-        "тегло": "sum"
+        "*оличество": "sum",
+        "kolich*stvo": "sum",
+        "тегло": "su*"
     })
 
     return df_out
-# ======================================================
-# ✅ CHEMPIOIL EXCEL (ALL FORMATS)
-# ======================================================
-def parse_chempioil_excel(file):
 
-    raw = pd.read_excel(
+
+# ==*==================================*================
+# ✅ CHEMPIOIL EXC*L (ALL FORMATS + CODE FALLBACK FIX*
+# ===============================*======================
+def parse_c*empioil_excel(file):
+
+    raw = pd*read_excel(
         file,
-        header=None
+        *eader=None
     )
 
-    header_row = None
+    header_row =*None
 
-    for i in range(len(raw)):
+    for i in range(len(raw))*
 
         row_text = " ".join(
-            str(x)
-            for x in raw.iloc[i]
-            if pd.notna(x)
+   *        str(x)
+            for x i* raw.iloc[i]
+            if pd.not*a(x)
         ).upper()
 
-        if (
-            ("HS CODE" in row_text and "NAME" in row_text)
-            or
-            ("PRODUCT NAME" in row_text and "CN" in row_text)
-        ):
-            header_row = i
+        if*(
+            ("HS CODE" in row_te*t and "NAME" in row_text)
+        *   or
+            ("PRODUCT NAME" *n row_text and "CN" in row_text)
+ *      ):
+            header_row = *
             break
 
-    if header_row is None:
-        st.error("❌ CHEMPIOIL header не е намерен")
-        return pd.DataFrame()
+    if header_*ow is None:
 
-    df = pd.read_excel(
+        st.error("❌ C*EMPIOIL header не е намерен")
+
+   *    return pd.DataFrame()
+
+    df * pd.read_excel(
         file,
-        header=header_row
+    *   header=header_row
     )
 
-    df.columns = [
-        str(c).strip()
-        for c in df.columns
+    df*columns = [
+        str(c).strip()*        for c in df.columns
     ]
+*    # ============================*=====================
+    # ✅ FORM*T 1
+    # No, Code, Name, Quantity* Unit, Net weight, Gross weight, H* Code
+    # ======================*===========================
+    if*"HS Code" in df.columns:
 
-    # ==================================================
-    # ✅ FORMAT 1
-    # ==================================================
+        *roduct_code_col = "Code"
+        h*_code_col = "HS Code"
+        name*col = "Name"
+        qty_col = "Qu*ntity"
+        net_col = "Net weig*t"
 
-    if "HS Code" in df.columns:
+    # ========================*=========================
+    # ✅ *ORMAT 2
+    # No, Product Code, Pr*duct Name, Quantity, Jm, CN, Total*Weight (NET)
+    # ===============*==================================*    elif "CN" in df.columns:
 
-        code_col = "HS Code"
-        name_col = "Name"
-        qty_col = "Quantity"
-        net_col = "Net weight"
+    *   product_code_col = "Product Cod*"
+        hs_code_col = "CN"
+     *  name_col = "Product Name"
+      * qty_col = "Quantity"
+        net_*ol = "Total Weight (NET):"
 
-    # ==================================================
-    # ✅ FORMAT 2
-    # ==================================================
+    el*e:
 
-    elif "CN" in df.columns:
+        st.error("❌ CHEMPIOIL:*непознат Excel формат")
 
-        code_col = "CN"
-        name_col = "Product Name"
-        qty_col = "Quantity"
-        net_col = "Total Weight (NET):"
+        r*turn pd.DataFrame()
 
-    else:
-
-        st.error("❌ CHEMPIOIL: непознат Excel формат")
-        return pd.DataFrame()
-
-    rows = []
-
+    rows = []*
     for _, row in df.iterrows():
+*        try:
 
-        try:
+            descript*on = str(
+                row.get(*ame_col, "")
+            ).upper()*replace(",", ".")
 
-            description = str(
-                row[name_col]
-            ).upper()
+            pro*uct_code = str(
+                ro*.get(product_code_col, "")
+       *    ).upper().strip()
 
-            code = str(
-                row[code_col]
+           *code = str(
+                row.ge*(hs_code_col, "")
             )
 
-            code = re.sub(
-                r"\D",
+ *          code = re.sub(
+         *      r"\D",
                 "",
-                code
+ *              code
             )[:8]
 
-            if code not in ALLOWED_CODES:
-                continue
-
+            if code not in ALLO*ED_CODES:
+                continue*
             qty = pd.to_numeric(
-                row[qty_col],
+                row.get(qty_col),
                 errors="coerce"
             )
 
             net_weight = pd.to_numeric(
-                row[net_col],
+                row.get(net_col),
                 errors="coerce"
             )
 
@@ -1597,39 +1602,69 @@ def parse_chempioil_excel(file):
 
             wid = None
 
+            # ==================================================
+            # ✅ 1) Първо търсим разфасовка в NAME
+            # Примери:
+            # 1L, 4L, 5L, 20L, 60L, 208L
+            # ==================================================
             m = re.search(
-                r'(\d+(?:[.,]\d+)?)\s*L\b',
+                r'(\d+(?:\.\d+)?)\s*L\b',
                 description
             )
 
             if m:
-                wid = float(
-                    m.group(1).replace(",", ".")
-                )
+                wid = float(m.group(1))
 
+            # ==================================================
+            # ✅ 2) KG
+            # ==================================================
             if wid is None:
 
                 m = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*KG\b',
+                    r'(\d+(?:\.\d+)?)\s*KG\b',
                     description
                 )
 
                 if m:
-                    wid = float(
-                        m.group(1).replace(",", ".")
-                    )
+                    wid = float(m.group(1))
 
+            # ==================================================
+            # ✅ 3) G / GR
+            # ==================================================
             if wid is None:
 
                 m = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*(?:GR|G)\b',
+                    r'(\d+(?:\.\d+)?)\s*(?:GR|G)\b',
                     description
                 )
 
                 if m:
-                    wid = float(
-                        m.group(1).replace(",", ".")
-                    ) / 1000
+                    wid = float(m.group(1)) / 1000
+
+            # ==================================================
+            # ✅ 4) FALLBACK ОТ PRODUCT CODE
+            #
+            # Ако в NAME липсва литраж:
+            #
+            # CH8901-20  -> 20L
+            # CH8901-60  -> 60L
+            # CH8901-DR  -> 208L
+            # CH9729-60  -> 60L
+            # CH9729-DR  -> 208L
+            # ==================================================
+            if wid is None:
+
+                m = re.search(
+                    r"-(\d+)$",
+                    product_code
+                )
+
+                if m:
+                    wid = float(m.group(1))
+
+            if wid is None and product_code.endswith("-DR"):
+
+                wid = 208
 
             if wid is None:
                 continue
@@ -1638,21 +1673,18 @@ def parse_chempioil_excel(file):
                 "Тарифен код": code,
                 "Количество": float(qty),
                 "wid": wid,
-                "kolichestvo": round(
-                    float(qty) * wid,
-                    3
-                ),
-                "тегло": round(
-                    float(net_weight),
-                    3
-                )
+                "kolichestvo": float(qty) * wid,
+                "тегло": float(net_weight)
             })
 
         except:
+
             continue
 
     if not rows:
+
         st.error("❌ CHEMPIOIL Excel parser не извлече данни")
+
         return pd.DataFrame()
 
     df_out = pd.DataFrame(rows)
