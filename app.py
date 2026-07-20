@@ -1422,7 +1422,11 @@ def parse_chempioil_pdf(text):
             # ✅ WID
             wid = None
 
-            upper_line = line.upper().replace(",", ".")
+            upper_line = (
+                line
+                .upper()
+                .replace(",", ".")
+            )
 
             # ✅ L
             m = re.search(
@@ -1534,56 +1538,60 @@ def parse_c*empioil_excel(file):
 *    # ============================*=====================
     # ✅ FORM*T 1
     # No, Code, Name, Quantity* Unit, Net weight, Gross weight, H* Code
-    # ======================*===========================
-    if*"HS Code" in df.columns:
+    # ==================================================
+    if "HS Code" in df.columns:
 
-        *roduct_code_col = "Code"
-        h*_code_col = "HS Code"
-        name*col = "Name"
-        qty_col = "Qu*ntity"
-        net_col = "Net weig*t"
+        product_code_col = "Code"
+        hs_code_col = "HS Code"
+        name_col = "Name"
+        qty_col = "Quantity"
+        net_col = "Net weight"
 
-    # ========================*=========================
-    # ✅ *ORMAT 2
-    # No, Product Code, Pr*duct Name, Quantity, Jm, CN, Total*Weight (NET)
-    # ===============*==================================*    elif "CN" in df.columns:
+    # ==================================================
+    # ✅ FORMAT 2
+    # No, Product Code, Product Name, Quantity, Jm, CN, Total Weight (NET)
+    # ==================================================
+    elif "CN" in df.columns:
 
-    *   product_code_col = "Product Cod*"
+        product_code_col = "Product Code"
         hs_code_col = "CN"
-     *  name_col = "Product Name"
-      * qty_col = "Quantity"
-        net_*ol = "Total Weight (NET):"
+        name_col = "Product Name"
+        qty_col = "Quantity"
+        net_col = "Total Weight (NET):"
 
-    el*e:
+    else:
 
-        st.error("❌ CHEMPIOIL:*непознат Excel формат")
+        st.error("❌ CHEMPIOIL: непознат Excel формат")
 
-        r*turn pd.DataFrame()
+        return pd.DataFrame()
 
-    rows = []*
+    rows = []
+
     for _, row in df.iterrows():
-*        try:
 
-            descript*on = str(
-                row.get(*ame_col, "")
-            ).upper()*replace(",", ".")
+        try:
 
-            pro*uct_code = str(
-                ro*.get(product_code_col, "")
-       *    ).upper().strip()
+            description = str(
+                row.get(name_col, "")
+            ).upper().replace(",", ".")
 
-           *code = str(
-                row.ge*(hs_code_col, "")
+            product_code = str(
+                row.get(product_code_col, "")
+            ).upper().strip()
+
+            code = str(
+                row.get(hs_code_col, "")
             )
 
- *          code = re.sub(
-         *      r"\D",
+            code = re.sub(
+                r"\D",
                 "",
- *              code
+                code
             )[:8]
 
-            if code not in ALLO*ED_CODES:
-                continue*
+            if code not in ALLOWED_CODES:
+                continue
+
             qty = pd.to_numeric(
                 row.get(qty_col),
                 errors="coerce"
