@@ -1508,16 +1508,16 @@ def parse_c*empioil_excel(file):
     for i in range(len(raw))*
 
         row_text = " ".join(
-   *        str(x)
+            str(x)
             for x i* raw.iloc[i]
             if pd.not*a(x)
         ).upper()
 
         if*(
             ("HS CODE" in row_te*t and "NAME" in row_text)
-        *   or
+            or
             ("PRODUCT NAME" *n row_text and "CN" in row_text)
- *      ):
+        ):
             header_row = *
             break
 
@@ -1525,17 +1525,17 @@ def parse_c*empioil_excel(file):
 
         st.error("❌ C*EMPIOIL header не е намерен")
 
-   *    return pd.DataFrame()
+        return pd.DataFrame()
 
     df * pd.read_excel(
         file,
-    *   header=header_row
+        header=header_row
     )
 
     df*columns = [
         str(c).strip()*        for c in df.columns
     ]
-*    # ============================*=====================
+     # ============================*=====================
     # ✅ FORM*T 1
     # No, Code, Name, Quantity* Unit, Net weight, Gross weight, H* Code
     # ==================================================
