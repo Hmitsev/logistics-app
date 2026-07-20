@@ -1453,7 +1453,7 @@ def parse_chempioil_pdf(text):
 
                 m = re.search(
                     r'(\d+(?:\.\d+)?)\s*(?:GR|G)\b',
-                     pper_line
+                    upper_line
                 )
 
                 if m:
@@ -1462,12 +1462,12 @@ def parse_chempioil_pdf(text):
             if wid is None:
                 continue
 
-            rows.*ppend({
-                "Тарифен к*д": code,
-                "Количес*во": qty,
-                "wid": w*d,
-                "kolichestvo": *ty * wid,
-                "тегло":*net_weight
+            rows.append({
+                "Тарифен код": code,
+                "Количество": qty,
+                "wid": wid,
+                "kolichestvo": qty * wid,
+                "тегло": net_weight
             })
 
         except:
@@ -1476,68 +1476,70 @@ def parse_chempioil_pdf(text):
 
     if not rows:
 
-        st.error("❌ *HEMPIOIL PDF parser не извлече дан*и")
+        st.error("❌ CHEMPIOIL PDF parser не извлече данни")
 
-        return pd.DataFrame()*
+        return pd.DataFrame()
+
     df_out = pd.DataFrame(rows)
 
     df_out = df_out.groupby(
         ["Тарифен код", "wid"],
-        a*_index=False
+        as_index=False
     ).agg({
-        "*оличество": "sum",
-        "kolich*stvo": "sum",
-        "тегло": "su*"
+        "Количество": "sum",
+        "kolichestvo": "sum",
+        "тегло": "sum"
     })
 
     return df_out
 
 
-# ==*==================================*================
-# ✅ CHEMPIOIL EXC*L (ALL FORMATS + CODE FALLBACK FIX*
-# ===============================*======================
-def parse_c*empioil_excel(file):
+# ======================================================
+# ✅ CHEMPIOIL EXCEL (ALL FORMATS + CODE FALLBACK FIX)
+# ======================================================
+def parse_chempioil_excel(file):
 
-    raw = pd*read_excel(
+    raw = pd.read_excel(
         file,
-        *eader=None
+        header=None
     )
 
-    header_row =*None
+    header_row = None
 
-    for i in range(len(raw))*
+    for i in range(len(raw)):
 
         row_text = " ".join(
             str(x)
-            for x i* raw.iloc[i]
-            if pd.not*a(x)
+            for x in raw.iloc[i]
+            if pd.notna(x)
         ).upper()
 
-        if*(
-            ("HS CODE" in row_te*t and "NAME" in row_text)
+        if (
+            ("HS CODE" in row_text and "NAME" in row_text)
             or
-            ("PRODUCT NAME" *n row_text and "CN" in row_text)
+            ("PRODUCT NAME" in row_text and "CN" in row_text)
         ):
-            header_row = *
+            header_row = i
             break
 
-    if header_*ow is None:
+    if header_row is None:
 
-        st.error("❌ C*EMPIOIL header не е намерен")
+        st.error("❌ CHEMPIOIL header не е намерен")
 
         return pd.DataFrame()
 
-    df * pd.read_excel(
+    df = pd.read_excel(
         file,
         header=header_row
     )
 
-    df*columns = [
-        str(c).strip()*        for c in df.columns
+    df.columns = [
+        str(c).strip()
+        for c in df.columns
     ]
-     # ============================*=====================
-    # ✅ FORM*T 1
-    # No, Code, Name, Quantity* Unit, Net weight, Gross weight, H* Code
+
+    # ==================================================
+    # ✅ FORMAT 1
     # ==================================================
     if "HS Code" in df.columns:
 
@@ -1549,7 +1551,6 @@ def parse_c*empioil_excel(file):
 
     # ==================================================
     # ✅ FORMAT 2
-    # No, Product Code, Product Name, Quantity, Jm, CN, Total Weight (NET)
     # ==================================================
     elif "CN" in df.columns:
 
@@ -1612,8 +1613,6 @@ def parse_c*empioil_excel(file):
 
             # ==================================================
             # ✅ 1) Първо търсим разфасовка в NAME
-            # Примери:
-            # 1L, 4L, 5L, 20L, 60L, 208L
             # ==================================================
             m = re.search(
                 r'(\d+(?:\.\d+)?)\s*L\b',
@@ -1651,8 +1650,6 @@ def parse_c*empioil_excel(file):
 
             # ==================================================
             # ✅ 4) FALLBACK ОТ PRODUCT CODE
-            #
-            # Ако в NAME липсва литраж:
             #
             # CH8901-20  -> 20L
             # CH8901-60  -> 60L
