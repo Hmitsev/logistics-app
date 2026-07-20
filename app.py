@@ -1456,11 +1456,11 @@ def parse_chempioil_pdf(text):
                     *pper_line
                 )
 
-     *          if m:
-                  * wid = float(m.group(1)) / 1000
+                if m:
+                    wid = float(m.group(1)) / 1000
 
- *          if wid is None:
-        *       continue
+            if wid is None:
+                continue
 
             rows.*ppend({
                 "Тарифен к*д": code,
