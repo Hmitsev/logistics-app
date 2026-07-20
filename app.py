@@ -1453,7 +1453,7 @@ def parse_chempioil_pdf(text):
 
                 m = re.search(
                     r'(\d+(?:\.\d+)?)\s*(?:GR|G)\b',
-                    *pper_line
+                     pper_line
                 )
 
                 if m:
@@ -1470,19 +1470,19 @@ def parse_chempioil_pdf(text):
                 "тегло":*net_weight
             })
 
-       *except:
+        except:
 
             continue
 
-   *if not rows:
+    if not rows:
 
         st.error("❌ *HEMPIOIL PDF parser не извлече дан*и")
 
         return pd.DataFrame()*
     df_out = pd.DataFrame(rows)
 
-*   df_out = df_out.groupby(
-      * ["Тарифен код", "wid"],
+    df_out = df_out.groupby(
+        ["Тарифен код", "wid"],
         a*_index=False
     ).agg({
         "*оличество": "sum",
