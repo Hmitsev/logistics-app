@@ -1784,11 +1784,11 @@ def parse_valvoline_excel(file):
 
             packaging = str(
                 row["Packaging"]
-            ).upper()
+            ).upper().replace(",", ".")
 
             description = str(
                 row["Description"]
-            ).upper()
+            ).upper().replace(",", ".")
 
             uom = str(
                 row["UoM"]
@@ -1823,11 +1823,17 @@ def parse_valvoline_excel(file):
             # =====================================
             # ✅ CASE
             # =====================================
-
             if uom == "case":
 
+                # ✅ Хваща:
+                # 12 x 500 ML
+                # 12/500 ML
+                # 12 x 300 ML
+                # 12 x 1 L
+                # 4 x 5 L
+                # 4/5 L
                 case_match = re.search(
-                    r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(L|KG|G)',
+                    r'(\d+)\s*(?:[Xx]|/)\s*(\d+(?:[.,]\d+)?)\s*(ML|L|KG|G|GR)',
                     packaging
                 )
 
@@ -1835,7 +1841,7 @@ def parse_valvoline_excel(file):
                 if not case_match:
 
                     case_match = re.search(
-                        r'(\d+)\s*[Xx/]\s*(\d+(?:[.,]\d+)?)\s*(L|KG|G)',
+                        r'(\d+)\s*(?:[Xx]|/)\s*(\d+(?:[.,]\d+)?)\s*(ML|L|KG|G|GR)',
                         description
                     )
 
@@ -1852,11 +1858,16 @@ def parse_valvoline_excel(file):
 
                     unit_type = case_match.group(3)
 
-                    if unit_type == "G":
+                    if unit_type == "ML":
                         wid = wid / 1000
 
+                    elif unit_type in ["G", "GR"]:
+                        wid = wid / 1000
+
+                    # ✅ Брой = кашони x бройки в кашон
                     broj = packages * units_per_case
 
+                    # ✅ Литри/количество = брой x разфасовка
                     colic = broj * wid
 
                 else:
@@ -1864,14 +1875,14 @@ def parse_valvoline_excel(file):
                     continue
 
             # =====================================
-            # ✅ LIT / KG / G
+            # ✅ LIT / KG / G / ML
             # =====================================
-
             else:
 
                 # ✅ нормален Packaging
+                # 208 L, 60 L, 20 L, 18 KG, 500 ML
                 m = re.search(
-                    r'(\d+(?:[.,]\d+)?)\s*(L|KG|G)',
+                    r'(\d+(?:[.,]\d+)?)\s*(ML|L|KG|G|GR)',
                     packaging
                 )
 
@@ -1884,7 +1895,10 @@ def parse_valvoline_excel(file):
 
                     unit_type = m.group(2)
 
-                    if unit_type == "G":
+                    if unit_type == "ML":
+                        wid = wid / 1000
+
+                    elif unit_type in ["G", "GR"]:
                         wid = wid / 1000
 
                 # ✅ ако Packaging е само число
@@ -1894,7 +1908,7 @@ def parse_valvoline_excel(file):
                 ):
 
                     m = re.search(
-                        r'(\d+(?:[.,]\d+)?)\s*(L|KG|G)',
+                        r'(\d+(?:[.,]\d+)?)\s*(ML|L|KG|G|GR)',
                         description
                     )
 
@@ -1907,14 +1921,17 @@ def parse_valvoline_excel(file):
 
                         unit_type = m.group(2)
 
-                        if unit_type == "G":
+                        if unit_type == "ML":
+                            wid = wid / 1000
+
+                        elif unit_type in ["G", "GR"]:
                             wid = wid / 1000
 
                 if wid is None:
                     continue
 
+                # При UoM = Lit / kg логиката остава както при теб
                 broj = packages
-
                 colic = qty
 
             rows.append({
@@ -1926,6 +1943,7 @@ def parse_valvoline_excel(file):
             })
 
         except:
+
             continue
 
     if not rows:
