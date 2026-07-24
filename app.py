@@ -862,8 +862,8 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
-
-# ======================================================
+    
+    # ======================================================
 # ✅ AUTO MEGA FINAL
 # ======================================================
 def parse_auto_mega_excel(file):
@@ -1048,6 +1048,8 @@ def parse_auto_mega_excel(file):
     })
 
     return df_out
+
+ 
 # ======================================================
 # ✅ FUCHS PDF - FIXED ML / M / SMALL PACKAGES
 # ======================================================
