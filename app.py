@@ -862,6 +862,7 @@ def parse_motul(text):
                 units_in_box = 1
 
     return pd.DataFrame(rows)
+
 # ======================================================
 # ✅ AUTO MEGA FINAL
 # ======================================================
@@ -953,15 +954,15 @@ def parse_auto_mega_excel(file):
             )
 
             if match:
+
                 wid = float(
-                    match.group(1).replace(",", ".")
+                    match.group(1)
+                    .replace(",", ".")
                 )
 
             # ✅ специални случаи
-
             if wid is None:
 
-                # 🔥 FIX
                 if "TOYOTA SAE 5W40" in description:
                     wid = 5
 
@@ -972,50 +973,48 @@ def parse_auto_mega_excel(file):
                     wid = 1
 
             # ✅ fallback по wt./item
+            if wid is None and pd.notna(item_weight):
 
-if wid is None and pd.notna(item_weight):
+                w = float(item_weight)
 
-    w = float(item_weight)
+                if 0.90 <= w <= 0.999:
+                    wid = 1
 
-    if 0.90 <= w <= 0.999:
-        wid = 1
+                elif 1.10 <= w <= 1.999:
+                    wid = 2
 
-    elif 1.10 <= w <= 1.999:
-        wid = 2
+                elif 2.10 <= w <= 2.999:
+                    wid = 3
 
-    elif 2.10 <= w <= 2.999:
-        wid = 3
+                elif 3.10 <= w <= 3.999:
+                    wid = 4
 
-    elif 3.10 <= w <= 3.999:
-        wid = 4
+                elif 4.10 <= w <= 4.999:
+                    wid = 5
 
-    elif 4.10 <= w <= 4.999:
-        wid = 5
+                elif 5.10 <= w <= 5.999:
+                    wid = 6
 
-    elif 5.10 <= w <= 5.999:
-        wid = 6
+                elif 17.00 <= w <= 18.999:
+                    wid = 18
 
-    elif 17.00 <= w <= 18.999:
-        wid = 18
+                elif 19.00 <= w <= 19.999:
+                    wid = 20
 
-    elif 19.00 <= w <= 19.999:
-        wid = 20
+                elif 55.00 <= w <= 59.999:
+                    wid = 60
 
-    elif 55.00 <= w <= 59.999:
-        wid = 60
+                elif 70.00 <= w <= 70.999:
+                    wid = 80
 
-    elif 70.00 <= w <= 70.999:
-        wid = 80
+                elif 170.00 <= w <= 170.999:
+                    wid = 180
 
-    elif 170.00 <= w <= 170.999:
-        wid = 180
+                elif 181.00 <= w <= 181.999:
+                    wid = 200
 
-    elif 181.00 <= w <= 181.999:
-        wid = 200
-
-    elif 207.00 <= w <= 208.999:
-        wid = 208
-
+                elif 207.00 <= w <= 208.999:
+                    wid = 208
 
             if wid is None:
                 continue
@@ -1032,7 +1031,9 @@ if wid is None and pd.notna(item_weight):
             continue
 
     if not rows:
+
         st.error("❌ AUTO MEGA parser не извлече данни")
+
         return pd.DataFrame()
 
     df_out = pd.DataFrame(rows)
